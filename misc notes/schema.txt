@@ -1,0 +1,66 @@
+CREATE TABLE IF NOT EXISTS organizations
+(
+  ID  
+  orgname
+);
+CREATE TABLE IF NOT EXISTS org_SAPPlant
+(
+  ID
+  orgID
+  SAPPlant
+  SAPStorLoc
+);
+
+CREATE TABLE IF NOT EXISTS MaterialList
+(
+    orgID
+    ID                              Longk, 4
+    oldID                           LONG,
+    Material                        STRING,
+    Description                     STRING,
+    PartTypeID                      INT,
+    Material type                   STRING,
+    Material Group                  STRING,
+    Possible Locations              STRING,
+    NOTES                           STRING
+);
+
+CREATE TABLE IF NOT EXISTS Count Schedule+History
+(
+    orgID
+    ID                              Long, 4
+    oldID                           LONG,
+    CountDate                       DATE,
+    MaterialID                      INT,
+    Counter                         STRING,
+    Priority                        STRING,
+    Reason Scheduled                STRING,
+    CM Print Flag                   BOOL,
+    Notes                           STRING
+);
+
+CREATE TABLE IF NOT EXISTS ActualCounts
+(
+    orgID
+    ID                              Longk, 4
+    oldID                           LONG,
+    CountDate                       DATE,
+    CycCtID                         STRING,
+    MaterialID                      INT,
+    Counter                         STRING,
+    CTD QTY Expr                    STRING,
+    BLDG                            STRING,
+    AREA                            STRING,
+    PKG ID/Desc                     STRING,
+    TAG QTY                         STRING,
+    NOTES                           STRING
+);
+
+CREATE TABLE IF NOT EXISTS WhsePartTypes
+(
+    ID                              Longk, 4
+    oldID                           LONG,
+    WhsePartType                    STRING,
+    Part Type Priority              INT,
+    Inactive Part Type              BOOL
+);
