@@ -11,6 +11,11 @@ class Organizations(models.Model):
 
     class Meta:
         db_table = 'organizations'
+        ordering = ['orgname']
+
+    def __str__(self) -> str:
+        return self.orgname
+        # return super().__str__()
 
 
 class org_SAPPlant(models.Model):
@@ -45,6 +50,12 @@ class MaterialList(models.Model):
     Notes = models.CharField(max_length=250, blank=True)
     UniqueConstraint('org', 'Material')
 
+    class Meta:
+        ordering = ['org','Material']
+
+    def __str__(self) -> str:
+        return self.Material
+        # return super().__str__()
 
 class Count_Schedule_History(models.Model):
     ID = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)

@@ -18,6 +18,6 @@ from django.urls import include, path
 
 urlpatterns = [
     # path('', include("WICS.load_data.load_L6_Materials")),
-    # path('', include("cMenu.urls")),
+    path('', include("cMenu.urls")),
     path('admin/',admin.site.urls)
 ]

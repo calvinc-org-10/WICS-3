@@ -21,4 +21,5 @@ urlpatterns = [
     path('', views.LoadMenu,kwargs={'menuNum':0},name='manna'),
     path('loadmenu/<int:menuNum>/',views.LoadMenu,name='LoadMenu'),
     path('ProcessMenuCommand/<int:CommandNum>/<slug:CommandArg>',views.HandleMenuCommand,name='HandleCommand'),
+    # path('FormBrowse/<slug:CommandArg>',views.HandleMenuCommand,name='HandleCommand'),
 ]

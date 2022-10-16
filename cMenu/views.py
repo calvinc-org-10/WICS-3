@@ -1,6 +1,9 @@
+from ast import Load
 from django.shortcuts import render
 from django.http import HttpResponse
+from django.template import Context, Template
 from tomlkit import array
+from WICS.forms import FormBrowse
 from cMenu.menucommand_handlers import *
 
 from cMenu.models import menuItems
@@ -22,35 +25,38 @@ def LoadMenu(req, menuNum):
     return render(None,template_name="cMenu.html",context=mnContxt)
 
 def HandleMenuCommand(req,CommandNum,CommandArg):
-    match CommandNum:
-        case MENUCOMMAND.LoadMenu :
-            pass
-        case MENUCOMMAND.FormBrowse :
-            pass
-        case MENUCOMMAND.FormAdd :
-            pass
-        case MENUCOMMAND.ReportView :
-            pass
-        case MENUCOMMAND.ReportPrint :
-            pass
-        case MENUCOMMAND.OpenTable :
-            pass
-        case MENUCOMMAND.OpenQuery :
-            pass
-        case MENUCOMMAND.RunCode :
-            pass
-        case MENUCOMMAND.EditMenu :
-            pass
-        case MENUCOMMAND.EditParameters :
-            pass
-        case MENUCOMMAND.EditGreetings :
-            pass
-        case MENUCOMMAND.EditPasswords :
-            pass
-        case MENUCOMMAND.ExitApplication :
-            pass
-        case _:
-            pass
-
     tmpst = "Command " + CommandNum.__str__() + " will be performed with Argument " + CommandArg
+
+    if CommandNum == MENUCOMMAND.LoadMenu.value :
+        # work on this case
+        LoadMenu(req,int(CommandArg))
+        pass
+    elif CommandNum == MENUCOMMAND.FormBrowse.value :
+        tmpst = FormBrowse(CommandArg)
+        pass
+    elif CommandNum == MENUCOMMAND.FormAdd.value :
+        pass
+    elif CommandNum == MENUCOMMAND.ReportView.value :
+        pass
+    elif CommandNum == MENUCOMMAND.ReportPrint.value :
+        pass
+    elif CommandNum == MENUCOMMAND.OpenTable.value :
+        pass
+    elif CommandNum == MENUCOMMAND.OpenQuery.value :
+        pass
+    elif CommandNum == MENUCOMMAND.RunCode.value :
+        pass
+    elif CommandNum == MENUCOMMAND.EditMenu.value :
+        pass
+    elif CommandNum == MENUCOMMAND.EditParameters.value :
+        pass
+    elif CommandNum == MENUCOMMAND.EditGreetings.value :
+        pass
+    elif CommandNum == MENUCOMMAND.EditPasswords.value :
+        pass
+    elif CommandNum == MENUCOMMAND.ExitApplication.value :
+        pass
+    else:
+        pass
+
     return HttpResponse(tmpst)
