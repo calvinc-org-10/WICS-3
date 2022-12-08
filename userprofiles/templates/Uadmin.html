@@ -1,0 +1,96 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+
+{% comment %}
+{% endcomment %}
+{% block tTitle %}WICS User Admin{% endblock %}
+{% block tHeader %}
+    <script>
+        function create_empty_user() {
+            var form_idx = $('#id_form-TOTAL_FORMS').val()
+            // check against max-forms before allowing add
+            $('#form_set').append($('#empty_form').html().replace(/__prefix__/g, form_idx).replace("hidden",""))
+            $('#id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1)
+        }
+    </script>
+{% endblock %}
+{% block boddy %}
+    <!-- form head -->
+    <div class="container">
+        <div class="row max-width=100%">
+            test {{ nChangedRecs }} // {{ PW }}   <!-- kill after testing -->
+            <div class="col-3 text-start">WICSuAdmin-success</div>
+            <div class="col-6 text-center"><h1>WICS User Administration</h1></div>
+            <div class="col-3 text-end">{{ orgname }}<br>{{ uname }}</div>
+        </div>
+    </div>
+
+    <!-- form body -->
+    <div class="container text-center">
+    <form method="post">  <!-- action=?? - not needed - submit will submit to calling view -->
+        {% csrf_token %}
+        {{ ulist.management_form }}
+        <!-- form main -->
+        <div class="row">
+            <div class="col">
+            {{ ulist.non_form_errors }}
+            <hr>
+                ID - UserName - Menu Group - First Name - Last Name - email - superuser? - administrator? - active? - Last Login
+            <ul id="form_set">
+            {% for u in ulist %}
+                {{ u.errors }}
+                <li>
+                    {% render_field u.showuid size="4" %}
+                    {% render_field u.uname size="12" %}
+                    {% render_field u.menuGroup %}  <!-- size will be # of dropdowns.  How to specify width? -->
+                    {% render_field u.fname size="20" %}
+                    {% render_field u.lname size="20" %}
+                    {% render_field u.email size="20" %}
+                    {% render_field u.superuser %}
+                    {% render_field u.admin %}
+                    {% render_field u.active %}
+                    {% render_field u.last_login size="20" %}
+                    <button>Change Password (will work later...)</button>
+                    <Button>Remove (keep??)</Button>
+                </li>
+                <hr>
+            {% endfor %}
+            </ul>
+            </div>
+        </div>
+
+        <!-- form footer -->
+        <div class="container">
+            <div class="row mx-auto max-width=100%">
+                <div class="col-5">
+                    <button type="submit">Save changes</button>
+                    <button id="add-user" type="button" onclick="create_empty_user()">Add user</button>
+                </div>
+                <div class="col-5"></div>
+                <div class="col">
+                    <button type="button" onclick="window.close();">Close Form</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="empty_form" hidden>
+            <li>
+                {% render_field ulist.empty_form.showuid size="4" %}
+                {% render_field ulist.empty_form.uname size="12" %}
+                {% render_field ulist.empty_form.menuGroup %}  <!-- size will be # of dropdowns.  How to specify width? -->
+                {% render_field ulist.empty_form.fname size="20" %}
+                {% render_field ulist.empty_form.lname size="20" %}
+                {% render_field ulist.empty_form.email size="20" %}
+                {% render_field ulist.empty_form.superuser %}
+                {% render_field ulist.empty_form.admin %}
+                {% render_field ulist.empty_form.active %}
+                {% render_field ulist.empty_form.last_login size="20" %}
+                <!-- <button>Change Password</button> -->
+                <Button>Remove (keep??)</Button>
+            </li>
+            <hr>
+        </div>
+
+    </form>
+    </div>
+{% endblock %}

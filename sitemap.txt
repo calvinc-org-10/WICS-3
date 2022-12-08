@@ -1,0 +1,17 @@
+django_support/urls.py
+cMenu/urls.py
+WICS/urls.py
+
+
+calvinc460.pythonanywhere.com/
+                                                                path('', log_in.loginbegin,name='log_in'),
+    _c_u_s_r                                                    path('_c_u_s_r',log_in.checkuser,name='checkuser'),
+    menu/                                                       path('menu/', include("cMenu.urls")),
+                                                                path('', views.LoadMenu,kwargs={'menuGroup':1, 'menuNum':0},name='initmenu'),
+        loadmenu/<int:menuGroup>/<int:menuNum>/                 path('loadmenu/<int:menuGroup>/<int:menuNum>/',views.LoadMenu,name='LoadMenu'),
+        ProcessMenuCommand/<int:CommandNum>/<slug:CommandArg>   path('ProcessMenuCommand/<int:CommandNum>/<slug:CommandArg>',views.HandleMenuCommand,name='HandleCommand'),
+        # path('FormBrowse/<slug:CommandArg>',views.HandleMenuCommand,name='HandleCommand'),
+    WICS/                                                       path('WICS/', include("WICS.urls")),
+        FormBrowse/<slug:formname>/<int:recNum>                 path('FormBrowse/<slug:formname>/<int:recNum>',forms.FormBrowse,name='WICS_FormBrowse'),
+    admin/                                                      path('admin/',admin.site.urls),
+calvinc460.pythonanywhere.com/menu/ProcessMenuCommand/11/l10-wics-uadmin

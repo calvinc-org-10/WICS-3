@@ -1,0 +1,302 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+
+{% block tTitle %}Count Entry{% endblock %}
+
+{% block boddy %}
+test 1957
+    <div class="container text-center mx-auto">
+    <div class="row">
+        <div class="col-10 fs-1">
+            <u>{{ orgname }}</u>
+            <br>Count Entry
+        </div>
+        <div class="col-2 text-end"> {{ uname }} </div>
+    </div>
+    <div class="row"> <!-- status messages -->
+
+        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+{% comment %}
+        {% if changes_saved.main %}
+            <div class="alert alert-success p-0 alert-dismissible fade show">
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                This Material record successfully saved.
+                ChDat: {{ changed_data.main }}
+            </div>
+        {% endif %}
+        {% if changes_saved.counts %}
+            <div class="alert alert-success p-0 alert-dismissible fade show">
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                Count changes for this Material record successfully saved.
+                ChDat: {{ changed_data.counts }}
+            </div>
+        {% endif %}
+        {% if changes_saved.schedule %}
+            <div class="alert alert-success p-0 alert-dismissible fade show">
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                Count Schedule changes for this Material record successfully saved.
+                ChDat: {{ changed_data.schedule }}
+            </div>
+        {% endif %}
+{% endcomment %}
+    </div><!-- row -->
+    </div><!-- container -->
+    <hr>
+
+    <input type="text" id="RecPK" value={{ recNum }} disabled> // {{ matlnum_changed }}
+    <input type="hidden" id="formID" value={{ formID }} >
+
+    <!-- GoTo -->
+    <div class="container text-center bg-secondary">
+        <div class="row mx-auto max-width=95%">
+            <div class="col mx-auto">
+                {% comment %}
+                Schedule Count, other buttons/info goes here ?
+                {% endcomment %}
+            </div>
+        </div>
+    </div>
+
+    <form id="form1" method="post">
+        {% csrf_token %}
+        <!-- form header -->
+        <hr>
+
+        <!-- main part of form -->
+        <!-- put initial focus on Material and/or init CountDate to today(local), skip CycCtID -->
+        <div class="container">
+            {{ frmMain.errors }}
+            <span class="container" style="width:20em">{{ frmMain.CountDate.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.CycCtID.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.Material.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.Counter.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.LocationOnly.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.BLDG.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.LOCATION.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.CTD_QTY_Expr.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.FLAG_PossiblyNotRecieved.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.FLAG_MovementDuringCount.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.PKGID_Desc.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.TAGQTY.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.Notes.name }}</span>
+            <br>
+            {% render_field frmMain.org hidden="true" %}
+            {% render_field frmMain.CountDate tabindex="-1" %}
+            {% render_field frmMain.CycCtID tabindex="-1" %}
+            {% render_field frmMain.Material onchange="loadExtraInfo()" %}
+            {% render_field frmMain.Counter %}
+            {{ frmMain.LocationOnly }} {# onchange="" #}  <!-- skip CTD_QTY if clicked -->
+            {% render_field frmMain.BLDG %}
+            {% render_field frmMain.LOCATION %}
+
+            {% render_field frmMain.CTD_QTY_Expr size="20" onchange="sCE();" %}
+            <span class="container-md" id="EvalExpr">????</span>
+
+            {{ frmMain.FLAG_PossiblyNotRecieved }}
+            {{ frmMain.FLAG_MovementDuringCount }}
+            {% render_field frmMain.PKGID_Desc %}
+            {% render_field frmMain.TAGQTY %}
+            {% render_field frmMain.Notes size="10" %}
+
+            <hr>
+            {% render_field frmMatlInfo.Description size="10" %}
+            {% render_field frmMatlInfo.PartType style="width:10em" tabindex="-1" %}
+            {% render_field frmMatlInfo.TypicalContainerQty size="10" tabindex="-1" %}
+            {% render_field frmMatlInfo.TypicalPalletQty size="10" tabindex="-1" %}
+
+        </div>
+        <hr>
+
+        Schedule Info
+        <br>
+        {% if noSchedInfo %}
+            <h1>MATERIAL NOT SCHEDULED FOR COUNT ON THIS DATE</h1>
+            <button type="button">Schedule Count</button>
+        {% else %}
+            {{ frmSchedInfo }}
+        {% endif %}
+{% comment %}
+class CountSchedule(models.Model):
+    CountDate = models.DateField(null=False)
+    Material = models.ForeignKey(MaterialList, on_delete=models.RESTRICT)
+    Counter = models.CharField(max_length=250, blank=True)
+    Priority = models.CharField(max_length=50, blank=True)
+    ReasonScheduled = models.CharField(max_length=250, blank=True)
+    CMPrintFlag = models.BooleanField(null=True)
+    Notes = models.CharField(max_length=250, blank=True)
+{% endcomment %}
+
+        <!-- form footer -->
+        <div class="container">
+            <div class="row mx-auto max-width=100%">
+                <div class="col-2">
+                    <button id="save_btn" type="submit">Save changes</button>
+                </div>
+                <div class="col-10">
+                    <button id="btn_firstrec" type="button">First</button>
+                    <button id="btn_prevrec" type="button">Prev</button>
+                    <button id="btn_nextrec" type="button">Next</button>
+                    <button id="btn_lastrec" type="button">Last</button>
+                    <button id="btn_newrec" type="button">New</button>
+                    GoTo Count Rec # {% render_field gotoForm.gotoItem id="gotoID" form="dummy1" onchange="processGoToReq();" %}
+                </div>
+                <div class="col">
+                    <button id="close_btn" type="button">Close Form</button>
+                </div>
+            </div>
+        </div>
+    </form>
+    <form id="dummy1"></form>
+
+    <script>
+        var $form = $('form');
+        var initialState;
+        var modalCloseCheckResult, modalCloseCheckClosed;
+
+
+        document.body.onload = function() {
+            initialState = $form.serialize();
+            if ({{ matlnum_changed }} != '' && {{ matlnum_changed }} != 'None') { document.getElementById("{{frmMain.Material.id_for_label}}").value = {{ matlnum_changed }} };
+            }
+        document.body.onbeforeunload = function() {
+            document.getElementById("wait_spinner").style.display = "block";
+            }
+
+        document.getElementById("{{frmMain.CTD_QTY_Expr.id_for_label}}").addEventListener("onfocus",
+            function(){ SkipCountIfLocationOnly(); });
+        // document.getElementById("{{frmMain.CTD_QTY_Expr.id_for_label}}").addEventListener("onchange",
+        function sCE(){ showCountExpr('{{frmMain.CTD_QTY_Expr.id_for_label}}', 'EvalExpr'); };
+
+        // later, duplicate this for closeform (see document.body.onbeforeunload)
+        document.getElementById("close_btn").addEventListener("click",
+            function(evobj){
+                if (confirmLeave()) {
+                    window.close()
+                }
+            });
+
+        function isFormChanged() {
+            return !(initialState === $form.serialize());
+        };
+
+        function processGoToReq() {
+            if (confirmLeave()) {
+                loadCountEntryRec();
+            }
+        };
+
+        // I'd like to use Bootstrap modals for this, but they're not really modal; they don't halt execution until dismissal
+        /*
+        document.getElementById('modalCloseCheck').addEventListener('hidden.bs.modal',
+            function() {
+               modalCloseCheckClosed = true;
+            });
+        */
+        function confirmLeave(){
+            if (isFormChanged()) {
+                return confirm("This record has changed\nDo you really want to leave without saving?");
+                // modalCloseCheckResult = false;
+                // modalCloseCheckClosed = false;
+                // $('#modalCloseCheck').modal();
+                // while (!modalCloseCheckClosed) {
+                //     // do nothing!
+                //     } ;
+                // alert(modalCloseCheckResult);
+                // return modalCloseCheckResult;
+            } else {
+                return true;
+            }
+        };
+
+// move to common???
+        function showCountExpr(expr_fld, rslt) {
+            document.getElementById(rslt).innerHTML = "= " + EvalExpr(document.getElementById(expr_fld).value);
+        };
+
+        function loadExtraInfo() {
+            thisRecNum = document.getElementById('RecPK').value;
+            ctdtID = document.getElementById('{{frmMain.CountDate.id_for_label}}');
+            mtlnmID = document.getElementById('{{frmMain.Material.id_for_label}}');
+            try {
+                dVal = new Date(ctdtID.value)
+            }
+            catch {
+                alert(ctdtID.value + " is not a valid date");
+                ctdtID.focus();
+                return;
+            }
+            {
+                dmonth = ('00' + (dVal.getMonth() + 1)).slice(-2),
+                dday = ('00' + dVal.getDate()).slice(-2),
+                dyear = ('0000' + dVal.getFullYear()).slice(-4);
+                dVal = [dyear, dmonth, dday].join('-');
+            }
+            newRec = "{% url 'CountEntryForm' 0 'passedCountDate' 1 %}"
+            if (thisRecNum > 0) { newRec = newRec.replace("/0","/"+goID.value) };
+            newRec = newRec.replace("passedCountDate",dVal)
+            newRec = newRec.replace("/1","/"+mtlnmID.value)
+            window.location = newRec;
+        };
+        function loadCountEntryRec() {
+            fmID = document.getElementById("formID");
+            goID = document.getElementById('gotoID');
+            if (goID.value != null || goID.value == document.getElementById('RecPK').value) {
+                // later, use reverse      path('FormBrowse/<slug:formname>/<int:recNum>',forms.FormBrowse,name='WICS_FormBrowse'),
+                newRec_base = "{% url 'FormBrowse' formID 0 %}"
+                newRec = newRec_base.replace("/0","/"+goID.value)
+                // newRec = "/WICS/FormBrowse/" + fmID.value + "/" + goID.value;
+                window.location = newRec;
+            } else {
+                goID.value = document.getElementById('RecPK').value;
+            }
+        };
+
+
+        function processGoToReq() {
+            if (confirmLeave()) {
+                loadMaterialRec();
+            }
+        };
+
+        function isFormChanged() {
+            return !(initialState === $form.serialize());
+        };
+
+        // I'd like to use Bootstrap modals for this, but they're not really modal; they don't halt execution until dismissal
+        /*
+        document.getElementById('modalCloseCheck').addEventListener('hidden.bs.modal',
+            function() {
+               modalCloseCheckClosed = true;
+            });
+        */
+        function confirmLeave(){
+            if (isFormChanged()) {
+                return confirm("This record has changed\nDo you really want to leave without saving?");
+                // modalCloseCheckResult = false;
+                // modalCloseCheckClosed = false;
+                // $('#modalCloseCheck').modal();
+                // while (!modalCloseCheckClosed) {
+                //     // do nothing!
+                //     } ;
+                // alert(modalCloseCheckResult);
+                // return modalCloseCheckResult;
+            } else {
+                return true;
+            }
+        };
+
+        function SkipCountIfLocationOnly() {
+
+        };
+
+    </script>
+    <script>
+        function create_empty_user() {
+            var form_idx = $('#id_form-TOTAL_FORMS').val()
+            // check against max-forms before allowing add
+            $('#form_set').append($('#empty_form').html().replace(/__prefix__/g, form_idx).replace("hidden",""))
+            $('#id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1)
+        }
+    </script>
+{% endblock %}
+

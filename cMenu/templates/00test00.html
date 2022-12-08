@@ -1,0 +1,35 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+
+
+{% block tTitle %}Test 00{% endblock %}
+
+{% block boddy %}
+    1750 <br>
+    <form id="form1" onsubmit="return false;">
+        {% csrf_token %}
+        <!-- form header -->
+        <hr>
+
+        <!-- main part of form -->
+        <div class="container">
+            Test Expression:
+            <input type="text" id="testin" onchange="showCountExpr()">
+            <br><br>
+            Result: <span id="testresult">-- NONE --</span>
+        </div>
+        <button type="button" onclick="reallysubmit()">submit</button>
+    </form>
+
+    <script>
+        function showCountExpr() {
+            document.getElementById('testresult').innerHTML = EvalExpr(document.getElementById('testin').value)
+        }
+
+        function reallysubmit() {
+            document.getElementById('form1').submit()
+        }
+
+    </script>
+{% endblock %}
+

@@ -26,8 +26,11 @@ SECRET_KEY = 'django-insecure-r$kx79q99%#u#r8taa4x5_3uiym24a5b=ri6wn9zq7czt7^kd8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['calvinc460.pythonanywhere.com']
 
+DATE_INPUT_FORMATS = [
+    '%m/%d/%Y',
+    ]
 
 # Application definition
 
@@ -38,8 +41,10 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'widget_tweaks',
     'cMenu',
-    'WICS'
+    'WICS',
+    'userprofiles',
 ]
 
 MIDDLEWARE = [
@@ -57,7 +62,9 @@ ROOT_URLCONF = 'django_support.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [
+            '/home/calvinc460/WICS-Test/templates',
+            ],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -79,7 +86,8 @@ WSGI_APPLICATION = 'django_support.wsgi.application'
 
 # postgresql://fii-usa.calvin.curtindolph:6kjX-88cVJkOSRYxjYcj5Q@free-tier.gcp-us-central1.cockroachlabs.cloud:26257/WICS?sslmode=verify-full&options=--cluster%3Dgrove-roach-6414
 DATABASES = {
-    'default': {
+    # the initial test CockRoach db
+    'Testdb01': {
         'ENGINE': 'django_cockroachdb',
         'NAME': 'WICS',
         'USER': 'fii-usa.calvin.curtindolph',
@@ -90,6 +98,14 @@ DATABASES = {
             'sslmode': 'verify-full',
             'options': '--cluster=grove-roach-6414'
         },
+    },
+    # the new test, MySQL on PythonAnywhere
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'calvinc460$default',
+        'USER': 'calvinc460',
+        'PASSWORD': 'tMJxBC!D4zRpU_2',
+        'HOST': 'calvinc460.mysql.pythonanywhere-services.com',
     },
 }
 
@@ -133,3 +149,9 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# number fields set high because MaterialForm has many, many, many subrecords (subforms/fields)
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 3500

@@ -1,0 +1,160 @@
+MenuID	OptionNumber	OptionText	Command	Argument	PWord	TopLine	BottomLine
+0	0	Main Menu		Default		0	0
+0	1	Frequently Used Menu	1	1		0	0
+0	2	Materials	1	10		0	0
+0	3	Count Scheduling	1	21		0	0
+0	4	CM Counts	1	24		0	0
+0	6	Actual Counts	1	22		0	0
+0	10	Calvin's Menu	1	3		0	0
+0	11	Miscellaneous	1	90		0	0
+0	18	System Menu	1	99		0	0
+0	20	Go Away!	200			0	0
+1	0	Frequently Used				0	0
+1	1	Material	11	frmMaterial		0	0
+1	2	Part Types (L10 Warehouse Types)	11	frmPartTypes with CountInfo		0	0
+1	4	Count Schedule + History	11	frmCount Schedule+History By Counter+Date		0	-1
+1	5	Print Count Agendas and Worksheets	11	frmPrintAgendas		0	0
+1	6	CM Count Scheduling Menu	1	24		0	-1
+1	7	Count Entry	11	frmCountEntry		0	-1
+1	8	Daily Counts Performed Report	11	frmCountSummaryPreview		0	0
+1	10	Update SAP Table	11	frmImportSAP		0	0
+1	11	Raw Count Table (with Eval Qty)	16	qryCounts-Raw with Qty Evaluated		0	0
+1	12	Typical Locations	15	Typical Locations		0	0
+1	13	SAP	15	SAP		0	0
+1	17	Materials and Part Types	1	10		0	-1
+1	18	Count Scheduling	1	21		0	0
+1	19	Actual Counts	1	22		0	0
+1	20	Return to Main Menu	1	0		0	0
+3	0	Calvin's Menu				0	0
+3	1	Review Picklists and SAP Moves	11	frmSchedule AddPicks		0	0
+3	2	Count Schedule + History	11	frmCount Schedule+History By Counter+Date		0	0
+3	3	Print Count Agendas and Worksheets	11	frmPrintAgendas		0	0
+3	5	Count Entry	11	frmCountEntry		0	0
+3	6	Daily Counts Performed Report	11	frmCountSummaryPreview		0	0
+3	8	Raw Count Table (with Eval Qty)	16	qryCounts-Raw with Qty Evaluated		0	0
+3	9	Material with Raw Counts	11	frmMaterial		0	0
+3	11	Update SAP Table	11	frmImportSAP		0	0
+3	12	SAP	15	SAP		0	0
+3	13	Material List Update Table	15	00tmpMatl List Updt		0	0
+3	14	CM Count Scheduling Menu	1	24		0	0
+3	15	Typical Locations	15	Typical Locations		0	0
+3	16	Counters	15	Counters		0	0
+3	20	Return to Main Menu	1	0		0	0
+10	0	Materials and Part Types				0	0
+10	1	Material	11	frmMaterial		0	0
+10	6	Part Types (L10 Warehouse Types)	11	frmPartTypes with CountInfo		0	-1
+10	9	Print All Material by PartType with Last Counts	13	rptParts By Type with LastCounts		0	-1
+10	16	Frequently Used	1	1		0	-1
+10	18	Count Scheduling	1	21		0	0
+10	19	Actual Counts	1	22		0	0
+10	20	Return to Main Menu	1	0		0	0
+21	0	Count Scheduling				0	0
+21	1	Count Schedule + History	11	frmCount Schedule+History By Counter+Date		0	0
+21	2	Print Count Agendas and Worksheets	11	frmPrintAgendas		0	0
+21	4	Random Count Scheduler for CM Counts	11	frmRandCountScheduler		0	-1
+21	7	View Incomplete Counts	16	qryCountSched - Incompletes		0	-1
+21	10	View Unassigned (and Incomplete) Scheduled Counts	16	qryUnassigned Count Schedule		0	0
+21	11	Counters	15	Counters		0	0
+21	13	Raw Count Schedule	16	qryCount Schedule+History with LastCountDate		0	0
+21	16	Frequently Used	1	1		0	-1
+21	17	Materials and Part Types	1	10		0	0
+21	19	Actual Counts	1	22		0	0
+21	20	Return to Main Menu	1	0		0	0
+22	0	Actual Counts				0	0
+22	1	Count Entry	11	frmCountEntry		0	0
+22	2	Raw Counts	16	qryCounts-Raw with Qty Evaluated		0	0
+22	3	Count Sums by Material & Date	16	qryfxdCounts-Sum by Material-CountDate		0	0
+22	4	Print Count Summary	11	frmCountSummaryPreview		0	-1
+22	11	Counters Table	15	Counters		0	0
+22	16	Frequently Used	1	1		0	-1
+22	17	Materials and Part Types	1	10		0	0
+22	18	Count Scheduling	1	21		0	0
+22	20	Return to Main Menu	1	0		0	0
+24	0	CM Counts				0	0
+24	1	CM Random Material Count Scheduling	11	frmRandCountScheduler		0	0
+24	2	Generate CM Spreadsheet	11	frmExportCMCounts		0	0
+24	16	Frequently Used	1	1		0	-1
+24	17	Materials and Part Types	1	10		0	0
+24	18	Count Scheduling	1	21		0	0
+24	19	Actual Counts	1	22		0	0
+24	20	Return to Main Menu	1	0		0	0
+30	0	Audit Menu				0	0
+30	1	Audit Material Table	15	Material for Audit		0	0
+30	3	Recent Counts for Audit Materials	13	rptCounts - Raw - Audit Materials		0	0
+30	20	Return to Main Menu	1	0		0	0
+60	0	Tables				0	0
+60	1	Count Schedule+History	15	Count Schedule+History		0	0
+60	2	Counters	15	Counters		0	0
+60	3	Counts	15	Counts		0	0
+60	4	L10Whse PartTypes	15	L10Whse PartTypes		0	0
+60	5	Material List	15	Material List		0	0
+60	6	SAP	15	SAP		0	0
+60	7	Typical Locations	15	Typical Locations		0	0
+60	16	Frequently Used	1	1		0	-1
+60	17	Materials and Part Types	1	10		0	0
+60	18	Count Scheduling	1	21		0	0
+60	19	Actual Counts	1	22		0	0
+60	20	Main menu	1	0		0	0
+65	0	Queries - Scheduled Counts				0	0
+65	1	Raw Count Schedule	16	qryCount Schedule+History with LastCountDate		0	0
+65	3	Count Schedule for a specific Part Type (pattern)	16	qryCount Schedule+History PartType Like Pattern by LastCountDate		0	0
+65	7	View Incomplete Counts	16	qryCountSched - Incompletes		0	0
+65	16	Frequently Used	1	1		0	-1
+65	17	Materials and Part Types	1	10		0	0
+65	18	Count Scheduling	1	21		0	0
+65	19	Actual Counts	1	22		0	0
+65	20	Return to Main Menu	1	0		0	0
+66	0	Queries - Actual Counts				0	0
+66	1	Counts - Raw with Qty Evaluated	16	qryCounts-Raw with Qty Evaluated		0	0
+66	4	Count Sums by Material + CountDate	16	qryfxdCounts-Sum by Material-CountDate		0	0
+66	8	SAP Totals	16	qrySAPTotals		0	-1
+66	16	Frequently Used	1	1		0	0
+66	17	Materials and Part Types	1	10		0	0
+66	18	Count Scheduling	1	21		0	0
+66	19	Actual Counts	1	22		0	0
+66	20	Return to Main Menu	1	0		0	0
+67	0	Queries - Materials				0	0
+67	1	All Materials (even uncounted) arr by Last Ct Dt	16	qryAll Materials Count Schedule+History		0	0
+67	16	Frequently Used	1	1		0	0
+67	17	Materials and Part Types	1	10		0	0
+67	18	Count Scheduling	1	21		0	0
+67	19	Actual Counts	1	22		0	0
+67	20	Return to Main Menu	1	0		0	0
+70	0	Forms				0	0
+70	1	Material	11	frmMaterial		0	0
+70	2	Part Types (L10 Warehouse Types)	11	frmPartTypes with CountInfo		0	0
+70	7	Count Schedule + History	11	frmCount Schedule+History By Counter+Date		0	0
+70	8	Count Entry	11	frmCountEntry		0	0
+70	16	Frequently Used	1	1		0	-1
+70	17	Materials and Part Types	1	10		0	0
+70	18	Count Scheduling	1	21		0	0
+70	19	Actual Counts	1	22		0	0
+70	20	Return to Main Menu	1	0		0	0
+75	0	Reports				0	0
+75	10	All Parts by Type with Last Counts	13	rptParts By Type with LastCounts		0	0
+75	16	Frequently Used	1	1		0	-1
+75	17	Materials and Part Types	1	10		0	0
+75	18	Count Scheduling	1	21		0	0
+75	19	Actual Counts	1	22		0	0
+75	20	Return to Main Menu	1	0		0	0
+90	0	Miscellaneous				0	0
+90	1	Update SAP Table	11	frmImportSAP		0	0
+90	11	All Materials (even uncounted) arr by Last Ct Dt	16	qryAll Materials Count Schedule+History		0	0
+90	16	Frequently Used	1	1		0	-1
+90	17	Materials and Part Types	1	10		0	0
+90	18	Count Scheduling	1	21		0	0
+90	19	Actual Counts	1	22		0	0
+90	20	Return to Main Menu	1	0		0	0
+99	0	System Menu				0	0
+99	1	Edit Parameters	92			0	0
+99	2	Edit Greetings	93			0	0
+99	4	Edit Menu	91			0	0
+99	6	Determine RGB values	11	zutilShowColor		0	0
+99	9	Parameters Report	13	zutilParameters		0	0
+99	10	Menu Report	13	zutilMenu		0	0
+99	11	Edit Raw Parameter Table	15	zutilParameters		0	0
+99	14	Edit Menu Item Table	15	zapplMenuItems		0	0
+99	17	Reload Signature	12	zutilSignature		0	0
+99	18	Development	21	OpenDevelopmentEnvironment		0	0
+99	19	View db Window	21	ShowDBWindow		0	0
+99	20	Main menu	1	0		0	0

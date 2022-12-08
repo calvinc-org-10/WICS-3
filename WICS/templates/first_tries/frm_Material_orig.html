@@ -1,0 +1,70 @@
+{% load widget_tweaks %}
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-Zenh87qX5JnK2Jl0vWa8Ck2rdkQ2Bzep5IDxbcnCeuOxjzrPF/et3URy9Bv1WTRi" crossorigin="anonymous">
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-OERcA2EqjJCMA+/3y+gxIOqMEjwtxJY7qPCqsdltbNJuaOe923+mo//f6V8Qbsw3" crossorigin="anonymous"></script>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script>
+            function loadMaterialRec() {
+              fmID = document.getElementById("formID")
+              goID = document.getElementById('gotoID')
+              if (goID.value != null) {
+                  newRec = "/WICS/FormBrowse/" + fmID.value + "/" + goID.value
+                  window.location = newRec
+              } else {
+                  goID.value = document.getElementById('RecPK').value
+              }
+            }
+        </script>
+        <title>Materials</title>
+    </head>
+    <body>
+        <div class="container text-center mx-auto" style=""><h1><u>{{ orgname }}</u></h1></div>
+        <hr>
+
+        <form method="post">
+            <!-- form header -->
+            <input type="hidden" id="RecPK" value={{ form.showPK }}
+            <input type="hidden" id="formID" value={{ formID }}>
+            <div class="container text-center bg-secondary">
+                <div class="row mx-auto max-width=100%"><div class="col mx-auto">
+                    <h1>GoTo Material # {% render_field form.gotoItem id="gotoID" onchange="loadMaterialRec()" %}</h1>
+                </div></div>
+              </div>
+            <hr>
+
+            <!-- main part of form -->
+            <div class="container">
+                <div class="row">
+                    <div class="col-3">
+                        {{ form.Material.name }} - {% render_field form.Material %}</p>
+                    </div>
+                    <div class="col">
+                        {{ form.Description.name }} - {% render_field form.Description style="width: 60%"  %}</p>
+                    </div>
+                    <div class="col-1 text-end">
+                        ID = {{ form.showPK.value }}/{{ form.oldWICSID.value }}
+                    </div>
+                </div>
+                <div class="row">
+                </div>
+                <div class="row">
+                </div>
+                    <p>{{ form.PartType.name }} - {% render_field form.PartType %}</p>
+                    <p>{{ form.SAPMaterialType.name }} - {% render_field form.SAPMaterialType %}</p>
+                    <p>{{ form.SAPMaterialGroup.name }} - {% render_field form.SAPMaterialGroup %}</p>
+                    <p>{{ form.Price.name }} - {% render_field form.Price %}</p>
+                    <p>{{ form.PriceUnit.name }} - {% render_field form.PriceUnit %}</p>
+                    <p>{{ form.Notes.name }} - {% render_field form.Notes %}</p>
+            </div>
+            <!-- subforms footer -->
+
+            <!-- form footer -->
+            <p><button type="button">Save changes</button></p>
+            <p><button type="button">Close Form</button></p>
+        </form>
+    </body>
+</html>

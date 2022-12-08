@@ -1,0 +1,302 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load evaluate_arithmetic %}
+
+
+{% block tTitle %}Materials{% endblock %}
+
+{% block boddy %}
+test 2130 - put an onchange on CT EXP
+    <div class="container text-center mx-auto">
+    <div class="row">
+        <div class="col-10 fs-1">
+            <u>{{ orgname }}</u>
+        </div>
+        <div class="col-2 text-end"> {{ uname }} </div>
+    </div>
+    <div class="row"> <!-- status messages -->
+
+        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+
+        {% if changes_saved.main %}
+            <div class="alert alert-success p-0 alert-dismissible fade show">
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                This Material record successfully saved.
+                ChDat: {{ changed_data.main }}
+            </div>
+        {% endif %}
+        {% if changes_saved.counts %}
+            <div class="alert alert-success p-0 alert-dismissible fade show">
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                Count changes for this Material record successfully saved.
+                ChDat: {{ changed_data.counts }}
+            </div>
+        {% endif %}
+        {% if changes_saved.schedule %}
+            <div class="alert alert-success p-0 alert-dismissible fade show">
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                Count Schedule changes for this Material record successfully saved.
+                ChDat: {{ changed_data.schedule }}
+            </div>
+        {% endif %}
+
+    </div>
+    </div>
+    <hr>
+
+    <input type="hidden" id="RecPK" value={{ frmMain.showPK.value }} >
+    <input type="hidden" id="formID" value={{ formID }} >
+
+    <!-- GoTo -->
+    <div class="container text-center bg-secondary">
+        <div class="row mx-auto max-width=95%"><div class="col mx-auto">
+            <h1>GoTo Material # {% render_field gotoForm.gotoItem id="gotoID" onchange="processGoToReq();" %}</h1>
+            </div>
+        </div>
+    </div>
+
+    <form id="form1" method="post">
+        {% csrf_token %}
+        <!-- form header -->
+        <hr>
+
+        <!-- main part of form -->
+        <div class="container">
+            {{ frmMain.errors }}
+            <span class="container" style="width:20em">{{ frmMain.Material.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.Description.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.PartType.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.SAPMaterialType.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.SAPMaterialGroup.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.Price.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.PriceUnit.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.TypicalContainerQty.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.TypicalPalletQty.name }}</span>
+            <span class="container" style="width:20em">{{ frmMain.Notes.name }}</span>
+            <br>
+            {% render_field frmMain.org hidden="true" %}
+            {% render_field frmMain.Material size="10" %}
+            {% render_field frmMain.Description size="10" %}
+            {% render_field frmMain.PartType style="width:10em" %}
+            {% render_field frmMain.SAPMaterialType size="10" %}
+            {% render_field frmMain.SAPMaterialGroup size="10" %}
+            {% render_field frmMain.Price size="10" %}
+            {% render_field frmMain.PriceUnit size="10" %}
+            {% render_field frmMain.TypicalContainerQty size="10" %}
+            {% render_field frmMain.TypicalPalletQty size="10" %}
+            {% render_field frmMain.Notes size="10" %}
+            <hr>
+            SAP Date: {{ SAPSet.SAPDate }}
+            <div class="container">
+                <ul>
+                {{ SAPSet.SAPTable|unordered_list }}
+                </ul>
+            </div>
+        </div>
+        <hr>
+
+        <!-- subforms, implemented by Bootstrap Nav pills -->
+        <ul class="nav nav-pills ps-1">
+          <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="pill" href="#CountDetail">Actual Count Detail</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="pill" href="#CountSummary">Actual Count Summary</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="pill" href="#CountSchedule">Count Scheduling</a>
+          </li>
+        </ul>
+        <!-- Tab panes -->
+        <div class="card fs-6" style="height:200px; overflow: auto;">
+            <div class="card-body no-padding">
+            <div class="tab-content">
+                <div class="tab-pane container active" id="CountDetail">
+                    <!-- Count Entry subform -->
+                    {# move to card-header? #}
+                    {{ countset.management_form }}
+                    CountSet errors: {{ countset.errors }}
+                    <br>
+                    <span class="container" style="width:20em">{{ countset.empty_form.CountDate.name }}</span>
+                    <span class="container" style="width:20em">{{ countset.empty_form.Counter.name }}</span>
+                    <span class="container" style="width:20em">{{ countset.empty_form.CTD_QTY_Expr.name }}</span>
+                    <span class="container" style="width:20em">{{ countset.empty_form.BLDG.name }}</span>
+                    <span class="container" style="width:20em">{{ countset.empty_form.LOCATION.name }}</span>
+                    <span class="container" style="width:20em">{{ countset.empty_form.Notes.name }}</span>
+                    <ul>
+                    {% for ff in countset %}
+                        <div class="row">
+                        <li>
+                            {{ ff.id }}
+                            {% render_field ff.CountDate size="10" %}
+                            {% render_field ff.Counter size="10" %}
+                            {% render_field ff.CTD_QTY_Expr size="40" %}
+                            {# <span class="container" style="width:20em"> = {{ ff.CTD_QTY_Expr.value|eval_arith }} //</span> #}
+                            <span class="container-md" id="EvalExpr{{ forloop.counter0 }}">????</span>
+                            {% render_field ff.BLDG size="10" %}
+                            {% render_field ff.LOCATION size="10" %}
+                            <br>
+                            {% render_field ff.Notes size="30" %}
+                        </li>
+                        </div>
+                    {% endfor %}
+                    </ul>
+                </div>
+                <div class="tab-pane container fade" id="CountSummary">
+                    {{ countsummset.management_form }}
+                    <ul>
+                    {% for ffrm in countsummset %}
+                        <li>
+                        {% for ffld in ffrm %}
+                            {{ ffld }}
+                        {% endfor %}
+                        </li>
+                    {% endfor %}
+                    </ul>
+              </div>
+                <div class="tab-pane container fade" id="CountSchedule">
+                    {{ scheduleset.management_form }}
+                    ScheduleSet errors: {{ scheduleset.errors }}
+                    <br>
+                    {% for ffld in scheduleset.empty_form %}
+                        {% if not ffld.is_hidden %}
+                        <span class="container" style="width:20em">{{ ffld.name }}</span>
+                        {% endif %}
+                    {% endfor %}
+                    <ul>
+                    {% for ffrm in scheduleset %}
+                        <li>
+                        {{ ffrm.id }}
+                        {% for ffld in ffrm %}
+                            {{ ffld }}
+                        {% endfor %}
+                        </ul>
+                    {% endfor %}
+                    </ul>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- form footer -->
+        <div class="container">
+            <div class="row mx-auto max-width=100%">
+                <div class="col-4">
+                    <button id="save_btn" type="submit">Save changes</button>
+                </div>
+                <div class="col-6"></div>
+                <div class="col">
+                    <button id="close_btn" type="button">Close Form</button>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <!-- Modal to check for dismissal of dirty record -->
+        <div class="modal-sm fade" id="modalCloseCheck" role="dialog">
+            <div class="modal-dialog">
+
+                <!-- Modal content-->
+                <div class="modal-content">
+                    <div class="modal-header">
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    <h4 class="modal-title">Record Changed!</h4>
+                </div>
+                <div class="modal-body">
+                    This record has changed<br>
+                    Do you really want to leave without saving?
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-default" onclick="modalCloseCheckResult = false;" data-dismiss="modal">No</button>
+                    <button type="button" class="btn" onclick="modalCloseCheckResult = true;" data-dismiss="modal">Yes, abandon changes</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        var $form = $('form');
+        var initialState;
+        var modalCloseCheckResult, modalCloseCheckClosed;
+
+
+        document.body.onload = function() {
+            initialState = $form.serialize();
+            // fill in the Count evals
+            // I'll clean this up later, I promise!
+            for (let i=0; i < document.getElementById("id_countset-TOTAL_FORMS").value; i++) {
+                showCountExpr('id_countset-' + i + '-CTD_QTY_Expr', 'EvalExpr' + i)
+            };
+            }
+        document.body.onbeforeunload = function() {
+            document.getElementById("wait_spinner").style.display = "block";
+            }
+
+        // later, duplicate this for closeform (see document.body.onbeforeunload)
+        document.getElementById("close_btn").addEventListener("click",
+            function(evobj){
+                if (confirmLeave()) {
+                    window.close()
+                }
+            });
+
+        function processGoToReq() {
+            if (confirmLeave()) {
+                loadMaterialRec();
+            }
+        };
+
+        function isFormChanged() {
+            return !(initialState === $form.serialize());
+        };
+
+        // I'd like to use Bootstrap modals for this, but they're not really modal; they don't halt execution until dismissal
+        document.getElementById('modalCloseCheck').addEventListener('hidden.bs.modal',
+            function() {
+               modalCloseCheckClosed = true;
+            });
+        function confirmLeave(){
+            if (isFormChanged()) {
+                return confirm("This record has changed\nDo you really want to leave without saving?");
+                // modalCloseCheckResult = false;
+                // modalCloseCheckClosed = false;
+                // $('#modalCloseCheck').modal();
+                // while (!modalCloseCheckClosed) {
+                //     // do nothing!
+                //     } ;
+                // alert(modalCloseCheckResult);
+                // return modalCloseCheckResult;
+            } else {
+                return true;
+            }
+        };
+
+        function loadMaterialRec() {
+          fmID = document.getElementById("formID");
+          goID = document.getElementById('gotoID');
+          if (goID.value != null || goID.value == document.getElementById('RecPK').value) {
+              // later, use reverse      path('FormBrowse/<slug:formname>/<int:recNum>',forms.FormBrowse,name='WICS_FormBrowse'),
+              newRec_base = "{% url 'FormBrowse' formID 0 %}"
+              newRec = newRec_base.replace("/0","/"+goID.value)
+              // newRec = "/WICS/FormBrowse/" + fmID.value + "/" + goID.value;
+              window.location = newRec;
+          } else {
+              goID.value = document.getElementById('RecPK').value;
+          }
+        };
+
+        function showCountExpr(ex_fld, rslt) {
+            document.getElementById(rslt).innerHTML = "= " + EvalExpr(document.getElementById(ex_fld).value);
+        };
+
+    </script>
+    <script>
+        function create_empty_user() {
+            var form_idx = $('#id_form-TOTAL_FORMS').val()
+            // check against max-forms before allowing add
+            $('#form_set').append($('#empty_form').html().replace(/__prefix__/g, form_idx).replace("hidden",""))
+            $('#id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1)
+        }
+    </script>
+{% endblock %}
+

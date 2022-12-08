@@ -1,0 +1,23 @@
+{% extends "WICS_common.html" %}
+
+{% block tTitle %}{{ formID }}{% endblock %}
+{% block boddy %}
+    <!-- menu head -->
+    <div class="container">
+        <div class="row max-width=100%">
+            <div class="col-3 text-start">Calvin is testing here - please add coffee!!</div>
+            <div class="col-6 text-center"><h1>{{ formID }}</h1></div>
+            <div class="col-3 text-end">{{ orgname }}<br>{{ uname }}</div>
+        </div>
+    </div>
+
+    <!-- menu body -->
+    req Daste: {{ reqDate }},
+    SAP Date: {{ SAPDate }}
+    <hr>
+    <div class="container">
+        <ul>
+        {{ SAPSet|unordered_list }}
+        </ul>
+    </div>
+{% endblock %}

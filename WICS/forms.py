@@ -1,30 +1,334 @@
-from django.forms import ModelChoiceField, ModelForm
-from WICS.models import MaterialList
-import WICS.globals
+import time
+import datetime
+from django.contrib.auth.decorators import login_required
+from django import forms
+from django.db import models
+from django.forms import inlineformset_factory, formset_factory
+from django.shortcuts import render
+from django.db.models import Value
+from WICS.models import MaterialList, ActualCounts, CountSchedule, SAPFiles, WhsePartTypes
+from WICS.SAPLists import fnSAPList
+from userprofiles.models import WICSuser
+from django.http import HttpResponseRedirect
+from django.db.models.query import EmptyQuerySet
+
+ExcelWorkbook_fileext = ".XLSX"
 
 
-class MaterialForm(ModelForm):
-    gotoItem = ModelChoiceField(queryset=MaterialList.objects.filter(org=WICS.globals.WICSOrgKey))
+class MaterialFormGoTo(forms.Form):
+    gotoItem = forms.ModelChoiceField(queryset=MaterialList.objects.none(), empty_label=None, required=False)
+
+
+class MaterialForm(forms.ModelForm):
+    showPK = forms.IntegerField(label='ID', disabled=True, required=False)
     class Meta:
         model = MaterialList
-#        fields = ['gotoItem', 'ID', 'oldID', 'org', 'Material', 'Description','PartType', 'SAPMaterialType', 'SAPMaterialGroup', 'Price', 'PriceUnit', 'Notes']
-#        ID can't be on form because it's non-editable.  How do I get it on the form anyway?
-        fields = ['gotoItem', 'oldID', 'org', 'Material', 'Description','PartType', 'SAPMaterialType', 'SAPMaterialGroup', 'Price', 'PriceUnit', 'Notes']
+        fields = ['id', 'org', 'Material', 'Description','PartType',
+                'SAPMaterialType', 'SAPMaterialGroup', 'Price',
+                'TypicalContainerQty', 'TypicalPalletQty', 'PriceUnit', 'Notes']
+        # fields = '__all__'
 
-def FormBrowse(formname):
-    theForm = 'Form ' + formname + ' is not built yet.  Calvin needs more coffee.'
-    if formname == 'frmcount-schedulehistory-by-counterdate': pass
-    elif formname == 'frmCountEntry': pass
-    elif formname == 'frmCountSummaryPreview': pass
-    elif formname == 'frmExportCMCounts': pass
-    elif formname == 'frmImportSAP': pass
-    elif formname == 'frmmaterial': 
-        theForm = '<form>' + MaterialForm().as_p() + '</form><p><p><h1>How do I get the first record to load?</h1>'
-    elif formname == 'frmPartTypes with CountInfo': pass
-    elif formname == 'frmPrintAgendas': pass
-    elif formname == 'frmRandCountScheduler': pass
-    elif formname == 'frmSchedule AddPicks': pass
-    elif formname == 'zutilShowColor': pass
-    else: pass
+class MaterialCountSummary(forms.Form):
+    Material = forms.CharField(max_length=100, disabled=True)
+    CountDate = forms.DateField(required=False, disabled=True)
+    CountQTY_Eval = forms.IntegerField(required=False, disabled=True)
 
-    return theForm
+
+@login_required
+def fnMaterialForm(req, formname, recNum = -1):
+    _userorg = WICSuser.objects.get(user=req.user).org
+
+    # get current record
+    if recNum <= 0:
+        currRec = MaterialList.objects.filter(org=_userorg).first()
+    else:
+        currRec = MaterialList.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
+    # endif
+    SAP_SOH = fnSAPList(req, matl=currRec)
+
+    gotoForm = MaterialFormGoTo({'gotoItem':currRec})
+    gotoForm.fields['gotoItem'].queryset=MaterialList.objects.filter(org=_userorg)
+
+    changes_saved = {
+        'main': False,
+        'counts': False,
+        'schedule': False
+        }
+    chgd_dat = {'main':None, 'counts': None, 'schedule': None}
+
+    if req.method == 'POST':
+        # changed data is being submitted.  process and save it
+        # process mtlFm AND subforms.
+
+        # process main form
+        mtlFm = MaterialForm(req.POST, instance=currRec,  initial={'gotoItem': currRec.pk, 'showPK': currRec.pk, 'org':_userorg},  prefix='material')
+        if mtlFm.is_valid():
+            if mtlFm.has_changed():
+                mtlFm.save()
+                chgd_dat['main'] = mtlFm.changed_data
+                changes_saved['main'] = True
+                #raise Exception('main saved')
+
+        # count detail subform
+        countSubFm_class = inlineformset_factory(MaterialList,ActualCounts,
+                    fields=('id', 'CountDate', 'CycCtID', 'Counter', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'PKGID_Desc', 'TAGQTY', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',),
+                    extra=0,can_delete=False)
+        countSet = countSubFm_class(req.POST, instance=currRec, prefix='countset', initial={'org': _userorg})
+        if countSet.is_valid():
+            if countSet.has_changed():
+                countSet.save()
+                chgd_dat['counts'] = countSet.changed_objects
+                changes_saved['counts'] = True
+                #raise Exception('counts saved')
+
+        # count schedule subform
+        SchedSubFm_class = inlineformset_factory(MaterialList,CountSchedule,
+                    fields=('id', 'CountDate','Counter', 'Priority', 'ReasonScheduled', 'CMPrintFlag', 'Notes',),
+                    extra=0,can_delete=False)
+        schedSet = SchedSubFm_class(req.POST, instance=currRec, prefix='schedset', initial={'org': _userorg})
+        if schedSet.is_valid():
+            if schedSet.has_changed():
+                schedSet.save()
+                chgd_dat['schedule'] = schedSet.changed_objects
+                changes_saved['schedule'] = True
+                #raise Exception('sched saved')
+
+        # count summary form is r/o.  It will not be changed
+
+    else: # request.method == 'GET' or something else
+        mtlFm = MaterialForm(instance=currRec, initial={'gotoItem': currRec.pk, 'showPK': currRec.pk, 'org':_userorg}, prefix='material')
+
+        CountSubFm_class = inlineformset_factory(MaterialList,ActualCounts,
+                    fields=('id', 'CountDate', 'CycCtID', 'Counter', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'PKGID_Desc', 'TAGQTY', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',),
+                    extra=0,can_delete=False)
+        countSet = CountSubFm_class(instance=currRec, prefix='countset', initial={'org':_userorg})
+
+        SchedSubFm_class = inlineformset_factory(MaterialList,CountSchedule,
+                    fields=('id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'CMPrintFlag', 'Notes',),
+                    extra=0,can_delete=False)
+        schedSet = SchedSubFm_class(instance=currRec, prefix='schedset', initial={'org':_userorg})
+
+    # endif
+
+    # count summary subform
+    raw_countdata = ActualCounts.objects.filter(Material=currRec).order_by('Material','CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
+    LastMaterial = None ; LastCountDate = None
+    initdata = []
+    for r in raw_countdata:
+        try:
+            r.QtyEval = eval(r.CTD_QTY_Expr)    # later, use ast.literal_eval
+        # except (ValueError, SyntaxError):
+        except:
+            r.QtyEval = 0
+        if (r.Material != LastMaterial or r.CountDate != LastCountDate):
+            LastMaterial = r.Material ; LastCountDate = r.CountDate
+            initdata.append({
+                'Material': r.Material,
+                'CountDate': r.CountDate,
+                'CountQTY_Eval': 0,
+            })
+        n = initdata[-1]['CountQTY_Eval'] + r.QtyEval
+        initdata[-1]['CountQTY_Eval'] = n
+    subFm_class = formset_factory(MaterialCountSummary,extra=0)
+    summarySet = subFm_class(initial=initdata, prefix='summaryset')
+
+    #countSet['org'].is_hidden = True
+    #schedSet['org'].is_hidden = True
+
+    # display the form
+    cntext = {'frmMain': mtlFm,
+            'gotoForm': gotoForm,
+            'countset': countSet,
+            'scheduleset': schedSet,
+            'countsummset': summarySet,
+            'SAPSet': SAP_SOH,
+            'changes_saved': changes_saved,
+            'changed_data': chgd_dat,
+            'recNum': recNum,
+            'formID':formname, 'orgname':currRec.org.orgname, 'uname':req.user.get_full_name()
+            }
+    templt = 'frm_Material.html'
+    return render(req, templt, cntext)
+
+#####################################################################################################
+#####################################################################################################
+#####################################################################################################
+
+class UploadSAPForm(forms.ModelForm):
+    class Meta:
+        model = SAPFiles
+        fields = ('org', 'uploaded_at', 'SAPFile', 'Notes', )
+
+@login_required
+def fnUploadSAP(req, formname):
+    _userorg = WICSuser.objects.get(user=req.user).org
+    timetogo = False
+
+    if req.method == 'POST':
+        form = UploadSAPForm(req.POST, req.FILES, initial={'org':_userorg})
+        if form.is_valid():
+            instance = SAPFiles(SAPFile=req.FILES['SAPFile'])
+            instance.org = _userorg
+            instance.uploaded_at = req.POST['uploaded_at']
+            instance.SAPFile.upload_to="SAP/SAP" + str(time.ctime(time.time())).replace(":","-").strip() + ExcelWorkbook_fileext
+            instance.save()
+            timetogo = True
+            return HttpResponseRedirect('/success/url/')    #fixmefixmefixme - set up templt to handle timetogo
+    else:
+        form = UploadSAPForm(initial={'org':_userorg})
+    #endif
+
+    cntext = {'form': form, 'timetogo': timetogo,
+            'formID':formname, 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+            }
+    templt = 'frm_upload_SAP.html'
+    return render(req, templt, cntext)
+
+#####################################################################################################
+#####################################################################################################
+#####################################################################################################
+
+
+class CountFormGoTo(forms.Form):
+    gotoItem = forms.ModelChoiceField(queryset=ActualCounts.objects.none(), required=False)
+
+
+class CountEntryForm(forms.ModelForm):
+    LocationOnly = forms.BooleanField(required=False)
+    FLAG_PossiblyNotRecieved = forms.BooleanField(required=False)
+    FLAG_MovementDuringCount = forms.BooleanField(required=False)
+    class Meta:
+        model = ActualCounts
+        fields = ['id', 'org', 'CountDate', 'CycCtID', 'Material', 'Counter', 'LocationOnly',
+                'BLDG', 'LOCATION', 'CTD_QTY_Expr',
+                'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount',
+                'PKGID_Desc', 'TAGQTY', 'Notes']
+
+class RelatedMaterialInfo(forms.ModelForm):
+    Material = forms.ModelChoiceField(queryset=MaterialList.objects.none(), disabled=True)
+    Description = forms.CharField(max_length=250, disabled=True)
+    PartType = forms.ModelChoiceField(queryset=WhsePartTypes.objects.none(), empty_label=None, required=False)
+    TypicalContainerQty = forms.IntegerField(required=False)
+    TypicalPalletQty = forms.IntegerField(required=False)
+    class Meta:
+        model = MaterialList
+        fields = '__all__'
+
+class RelatedScheduleInfo(forms.ModelForm):
+    CMPrintFlag = forms.BooleanField(disabled=True, required=False)
+    CountDate = forms.DateField(disabled=True, required=False)
+    Counter = forms.CharField(max_length=250, disabled=True, required=False)
+    Priority = forms.CharField(max_length=50, disabled=True, required=False)
+    ReasonScheduled = forms.CharField(max_length=250, disabled=True, required=False)
+    Notes = forms.CharField(max_length=250, disabled=True, required=False)
+    class Meta:
+        model = CountSchedule
+        fields = '__all__'
+
+@login_required
+def fnCountEntryForm(req, formname, recNum = -1, loadMatlInfo = None, passedCountDate=None):
+    _userorg = WICSuser.objects.get(user=req.user).org
+
+    # get current record
+    if recNum <= 0:
+        currRec = ActualCounts.objects.filter(org=_userorg).none()
+    else:
+        currRec = ActualCounts.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
+    # endif
+
+    gotoForm = CountFormGoTo({'gotoItem':currRec})
+    gotoForm.fields['gotoItem'].queryset=ActualCounts.objects.filter(org=_userorg)
+
+    changes_saved = {
+        'main': False,
+        'matl': False,
+        'schedule': False
+        }
+    chgd_dat = {'main':None, 'matl': None, 'schedule': None}
+
+    prepNewRec = (req.method != 'POST')
+
+    if req.method == 'POST':
+        # changed data is being submitted.  process and save it
+        # process mainFm AND subforms.
+
+        # process main form
+        mainFm = CountEntryForm(req.POST, initial={'org':_userorg, 'CountDate':datetime.date.today()},  prefix='counts') if isinstance(currRec, EmptyQuerySet) else CountEntryForm(req.POST, instance=currRec,  initial={'org':_userorg, 'CountDate':datetime.date.today()},  prefix='counts')
+        if mainFm.is_valid():
+            if mainFm.has_changed():
+                mainFm.save()
+                chgd_dat['main'] = mainFm.changed_data
+                changes_saved['main'] = True
+                #raise Exception('main saved')
+
+                # prepare a new empty record for next entry
+                prepNewRec = True
+
+        ## making LIMITED changes in the subforms will come later ...
+        # material info subform
+        # matlSubFm = RelatedMaterialInfo(req.POST, prefix='matl', initial={'org': _userorg})
+        # if matlSubFm.is_valid():
+        #     if matlSubFm.has_changed():
+        #         matlSubFm.save()
+        #         chgd_dat['matl'] = matlSubFm.changed_objects
+        #         changes_saved['matl'] = True
+        #         #raise Exception('matl saved')
+
+        # count schedule subform
+        # SchedSubFm_class = inlineformset_factory(MaterialList,CountSchedule,
+        #             fields=('id', 'CountDate','Counter', 'Priority', 'ReasonScheduled', 'CMPrintFlag', 'Notes',),
+        #             extra=0,can_delete=False)
+        # schedSet = SchedSubFm_class(req.POST, instance=currRec, prefix='schedset', initial={'org': _userorg})
+        # if schedSet.is_valid():
+        #     if schedSet.has_changed():
+        #         schedSet.save()
+        #         chgd_dat['schedule'] = schedSet.changed_objects
+        #         changes_saved['schedule'] = True
+        #         #raise Exception('sched saved')
+    #endif
+
+    if prepNewRec: # request.method == 'GET' or something else, or last record was valid and saved
+        #mainFm = CountEntryForm(initial={'org':_userorg},  prefix='counts') if isinstance(currRec, EmptyQuerySet) else CountEntryForm(instance=currRec, initial={'org':_userorg},  prefix='counts')
+        mainFm = CountEntryForm(initial={'org':_userorg, 'CountDate':datetime.date.today()},  prefix='counts') if currRec.__len__()<1 else CountEntryForm(instance=currRec, initial={'org':_userorg, 'CountDate':datetime.date.today()},  prefix='counts')
+    # endif
+
+    if loadMatlInfo != None or recNum > 0:
+        # fill in MatlInfo and CountSchedInfo
+        getpk = recNum if recNum > 0 else loadMatlInfo
+        matlinfo = MaterialList.objects.get(pk=getpk)   # this better exist, else something is seriously wrong
+        getDate = currRec.CountDate if recNum > 0 else passedCountDate
+        getID = currRec.Material_id if recNum > 0 else loadMatlInfo
+        try:
+            schedinfo = CountSchedule.objects.filter(CountDate=getDate,Material_id=getID)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
+        except (CountSchedule.DoesNotExist, IndexError):
+            schedinfo = []
+    else:
+        matlinfo = []
+        schedinfo = []
+    #endif
+
+    # load dropdowns
+    # CountEntryForm Material??
+
+    matlFm = RelatedMaterialInfo() if matlinfo==[] else RelatedMaterialInfo(instance=matlinfo)
+    matlFm.fields['Material'].queryset=MaterialList.objects.filter(org=_userorg)
+    matlFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg)
+
+    schedFm = RelatedScheduleInfo() if schedinfo==[] else RelatedScheduleInfo(instance=schedinfo)
+    # load dropdowns
+
+    # display the form
+    cntext = {'frmMain': mainFm,
+            'gotoForm': gotoForm,
+            'frmMatlInfo': matlFm,
+            'noSchedInfo':(schedinfo==[]),
+            'frmSchedInfo': schedFm,
+            'changes_saved': changes_saved,
+            'changed_data': chgd_dat,
+            'recNum': recNum,
+            'matlnum_changed': loadMatlInfo,
+            'formID':formname, 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+            }
+    templt = 'frm_CountEntry.html'
+    return render(req, templt, cntext)
+

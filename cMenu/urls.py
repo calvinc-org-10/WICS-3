@@ -13,13 +13,13 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
-from django.contrib import admin
 from django.urls import path
-from cMenu import views
+from cMenu import views, menucommand_handlers
+# import userprofiles.globals
 
 urlpatterns = [
-    path('', views.LoadMenu,kwargs={'menuNum':0},name='manna'),
-    path('loadmenu/<int:menuNum>/',views.LoadMenu,name='LoadMenu'),
+    path('', views.LoadMenu,kwargs={'menuGroup':1, 'menuNum':0},name='initmenu'),
+    path('loadmenu/<int:menuGroup>/<int:menuNum>/',views.LoadMenu,name='LoadMenu'),
     path('ProcessMenuCommand/<int:CommandNum>/<slug:CommandArg>',views.HandleMenuCommand,name='HandleCommand'),
-    # path('FormBrowse/<slug:CommandArg>',views.HandleMenuCommand,name='HandleCommand'),
+    path('FormBrowse/<slug:formname>/<int:recNum>',menucommand_handlers.FormBrowse,name='FormBrowse'),
 ]
