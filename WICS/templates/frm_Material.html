@@ -6,7 +6,7 @@
 {% block tTitle %}Materials{% endblock %}
 
 {% block boddy %}
-test 2130 - put an onchange on CT EXP
+test 1320 - put an onchange on CT EXP
     <div class="container text-center mx-auto">
     <div class="row">
         <div class="col-10 fs-1">
@@ -58,33 +58,35 @@ test 2130 - put an onchange on CT EXP
     <form id="form1" method="post">
         {% csrf_token %}
         <!-- form header -->
+        {{ frmMain.errors }}
+        {% render_field frmMain.org hidden="true" %}
         <hr>
 
         <!-- main part of form -->
         <div class="container">
-            {{ frmMain.errors }}
-            <span class="container" style="width:20em">{{ frmMain.Material.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.Description.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.PartType.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.SAPMaterialType.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.SAPMaterialGroup.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.Price.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.PriceUnit.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.TypicalContainerQty.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.TypicalPalletQty.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.Notes.name }}</span>
-            <br>
-            {% render_field frmMain.org hidden="true" %}
-            {% render_field frmMain.Material size="10" %}
-            {% render_field frmMain.Description size="10" %}
-            {% render_field frmMain.PartType style="width:10em" %}
-            {% render_field frmMain.SAPMaterialType size="10" %}
-            {% render_field frmMain.SAPMaterialGroup size="10" %}
-            {% render_field frmMain.Price size="10" %}
-            {% render_field frmMain.PriceUnit size="10" %}
-            {% render_field frmMain.TypicalContainerQty size="10" %}
-            {% render_field frmMain.TypicalPalletQty size="10" %}
-            {% render_field frmMain.Notes size="10" %}
+            <div class="row">
+                <div class="col-7">
+                    Material: {% render_field frmMain.Material size="15" %} Description: {% render_field frmMain.Description size="50" %}
+                </div>
+                <div class="col-5">
+                    Part Type:  {% render_field frmMain.PartType style="width:10em" %}
+                </div>
+            </div>
+            <div class="row">
+                <div class="col">
+                    SAP Matl Type: {% render_field frmMain.SAPMaterialType size="4" %}
+                    SAP Matl Grp: {% render_field frmMain.SAPMaterialGroup size="4" %}
+                    Price: {% render_field frmMain.Price style="width:8em" %}
+                    Price Unit: {% render_field frmMain.PriceUnit style="width:8em" %}
+                    Typ Container Qty: {% render_field frmMain.TypicalContainerQty style="width:6em" %}
+                    Typ Plt Qty: {% render_field frmMain.TypicalPalletQty style="width:6em" %}
+                </div>
+            </div>
+            <div class="row">
+            <div class="col">
+                Notes: {% render_field frmMain.Notes size="80" %}
+            </div>
+            </div>
             <hr>
             SAP Date: {{ SAPSet.SAPDate }}
             <div class="container">

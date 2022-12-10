@@ -47,7 +47,7 @@ def fnMaterialForm(req, formname, recNum = -1):
     SAP_SOH = fnSAPList(req, matl=currRec)
 
     gotoForm = MaterialFormGoTo({'gotoItem':currRec})
-    gotoForm.fields['gotoItem'].queryset=MaterialList.objects.filter(org=_userorg)
+    gotoForm.fields['gotoItem'].queryset=MaterialList.objects.filter(org=_userorg).all()
 
     changes_saved = {
         'main': False,
@@ -299,7 +299,7 @@ def fnCountEntryForm(req, formname, recNum = -1, loadMatlInfo = None, passedCoun
         getDate = currRec.CountDate if recNum > 0 else passedCountDate
         getID = currRec.Material_id if recNum > 0 else loadMatlInfo
         try:
-            schedinfo = CountSchedule.objects.filter(CountDate=getDate,Material_id=getID)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
+            schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate,Material_id=getID)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
         except (CountSchedule.DoesNotExist, IndexError):
             schedinfo = []
     else:
@@ -311,8 +311,8 @@ def fnCountEntryForm(req, formname, recNum = -1, loadMatlInfo = None, passedCoun
     # CountEntryForm Material??
 
     matlFm = RelatedMaterialInfo() if matlinfo==[] else RelatedMaterialInfo(instance=matlinfo)
-    matlFm.fields['Material'].queryset=MaterialList.objects.filter(org=_userorg)
-    matlFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg)
+    matlFm.fields['Material'].queryset=MaterialList.objects.filter(org=_userorg).all()
+    matlFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
 
     schedFm = RelatedScheduleInfo() if schedinfo==[] else RelatedScheduleInfo(instance=schedinfo)
     # load dropdowns

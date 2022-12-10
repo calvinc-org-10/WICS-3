@@ -17,11 +17,16 @@ class Organizations(models.Model):
 
 
 # is this table really needed?
-class org_SAPPlant(models.Model):
-    org = models.ForeignKey(Organizations, on_delete=models.CASCADE)
-    SAPPlant = models.CharField(max_length=50)
-    SAPStorLoc = models.CharField(max_length=50)
-    UniqueConstraint('SAPPlant', 'SAPStorLoc')
+#class org_SAPPlant(models.Model):
+#    org = models.ForeignKey(Organizations, on_delete=models.CASCADE)
+#    SAPPlant = models.CharField(max_length=50)
+#    SAPStorLoc = models.CharField(max_length=50)
+#    UniqueConstraint('SAPPlant', 'SAPStorLoc')
+
+
+class orgObjects(models.Manager):
+    def get_queryset(self, org_in):
+        return super().get_queryset().filter(org=org_in)
 
 
 class WhsePartTypes(models.Model):
@@ -30,6 +35,7 @@ class WhsePartTypes(models.Model):
     WhsePartType = models.CharField(max_length=50)
     PartTypePriority = models.SmallIntegerField()
     InactivePartType = models.BooleanField(null=True, blank=True)
+    #orgobjects = orgObjects()
     UniqueConstraint('org', 'WhsePartType')
     UniqueConstraint('org', 'PartTypePriority')
 
@@ -52,6 +58,8 @@ class MaterialList(models.Model):
     TypicalContainerQty = models.IntegerField(null=True, blank=True)
     TypicalPalletQty = models.IntegerField(null=True, blank=True)
     Notes = models.CharField(max_length=250, blank=True)
+    #objects = models.Manager()
+    #orgobjects = orgObjects()
     UniqueConstraint('org', 'Material')
 
     class Meta:
@@ -73,6 +81,7 @@ class CountSchedule(models.Model):
     ReasonScheduled = models.CharField(max_length=250, blank=True)
     CMPrintFlag = models.BooleanField(null=True, blank=True)
     Notes = models.CharField(max_length=250, blank=True)
+    #orgobjects = orgObjects()
     UniqueConstraint('org', 'CountDate', 'Material')
 
     class Meta:
@@ -95,6 +104,7 @@ class ActualCounts(models.Model):
     TAGQTY = models.CharField(max_length=250, blank=True)
     FLAG_PossiblyNotRecieved = models.BooleanField(null=True, blank=True)
     FLAG_MovementDuringCount = models.BooleanField(null=True, blank=True)
+    #orgobjects = orgObjects()
     Notes = models.CharField(max_length = 250, blank=True)
 
     class Meta:
@@ -110,24 +120,24 @@ class SAPFiles(models.Model):
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
     SAPFile = models.FileField(upload_to='SAP/')
     Notes = models.CharField(max_length=255, blank=True)
+    #orgobjects = orgObjects()
     class Meta:
         get_latest_by = 'uploaded_at'
-class SAP(models.Model):
-    org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
-    UpdateDate = models.DateField(null=False)
-    Material = models.CharField(max_length=100)
-    Description = models.CharField(max_length=250, blank=True)
-    Plant = models.CharField(max_length=50, blank=True)
-    SAPMaterialType = models.CharField(max_length=100, blank=True)
-    StorageLocation = models.CharField(max_length=50, blank=True)
-    BaseUnitofMeasure = models.CharField(max_length=50, blank=True)
-    Unrestricted = models.FloatField(null=True, blank=True)
-    Currency = models.CharField(max_length=50, blank=True)
-    ValueUnrestricted = models.FloatField(null=True, blank=True)
-    SpecialStock = models.CharField(max_length=50, blank=True)
-    Batch = models.CharField(max_length=50, blank=True)
-
-    class Meta:
-        ordering = ['org', 'UpdateDate', 'Material']
+#class SAP(models.Model):
+#    org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
+#    UpdateDate = models.DateField(null=False)
+#    Material = models.CharField(max_length=100)
+#    Description = models.CharField(max_length=250, blank=True)
+#    Plant = models.CharField(max_length=50, blank=True)
+#    SAPMaterialType = models.CharField(max_length=100, blank=True)
+#    StorageLocation = models.CharField(max_length=50, blank=True)
+#    BaseUnitofMeasure = models.CharField(max_length=50, blank=True)
+#    Unrestricted = models.FloatField(null=True, blank=True)
+#    Currency = models.CharField(max_length=50, blank=True)
+#    ValueUnrestricted = models.FloatField(null=True, blank=True)
+#    SpecialStock = models.CharField(max_length=50, blank=True)
+#    Batch = models.CharField(max_length=50, blank=True)
+#    class Meta:
+#        ordering = ['org', 'UpdateDate', 'Material']
 
 

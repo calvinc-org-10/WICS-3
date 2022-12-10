@@ -4,7 +4,7 @@
 {% block tTitle %}Count Entry{% endblock %}
 
 {% block boddy %}
-test 1957
+test 2105
     <div class="container text-center mx-auto">
     <div class="row">
         <div class="col-10 fs-1">
@@ -43,75 +43,60 @@ test 1957
     </div><!-- container -->
     <hr>
 
-    <input type="text" id="RecPK" value={{ recNum }} disabled> // {{ matlnum_changed }}
+    <input type="text" id="RecPK" value={{ recNum }} disabled>
     <input type="hidden" id="formID" value={{ formID }} >
-
-    <!-- GoTo -->
-    <div class="container text-center bg-secondary">
-        <div class="row mx-auto max-width=95%">
-            <div class="col mx-auto">
-                {% comment %}
-                Schedule Count, other buttons/info goes here ?
-                {% endcomment %}
-            </div>
-        </div>
-    </div>
 
     <form id="form1" method="post">
         {% csrf_token %}
         <!-- form header -->
-        <hr>
+        s/b id: {{ frmMain.id }}
+        s/b hidden org: {% render_field frmMain.org hidden="true" %}
+        s/b errors: {{ frmMain.errors }}
 
         <!-- main part of form -->
         <!-- put initial focus on Material and/or init CountDate to today(local), skip CycCtID -->
         <div class="container">
-            {{ frmMain.errors }}
-            <span class="container" style="width:20em">{{ frmMain.CountDate.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.CycCtID.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.Material.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.Counter.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.LocationOnly.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.BLDG.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.LOCATION.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.CTD_QTY_Expr.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.FLAG_PossiblyNotRecieved.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.FLAG_MovementDuringCount.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.PKGID_Desc.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.TAGQTY.name }}</span>
-            <span class="container" style="width:20em">{{ frmMain.Notes.name }}</span>
-            <br>
-            {% render_field frmMain.org hidden="true" %}
-            {% render_field frmMain.CountDate tabindex="-1" %}
-            {% render_field frmMain.CycCtID tabindex="-1" %}
-            {% render_field frmMain.Material onchange="loadExtraInfo()" %}
-            {% render_field frmMain.Counter %}
-            {{ frmMain.LocationOnly }} {# onchange="" #}  <!-- skip CTD_QTY if clicked -->
-            {% render_field frmMain.BLDG %}
-            {% render_field frmMain.LOCATION %}
-
-            {% render_field frmMain.CTD_QTY_Expr size="20" onchange="sCE();" %}
-            <span class="container-md" id="EvalExpr">????</span>
-
-            {{ frmMain.FLAG_PossiblyNotRecieved }}
-            {{ frmMain.FLAG_MovementDuringCount }}
-            {% render_field frmMain.PKGID_Desc %}
-            {% render_field frmMain.TAGQTY %}
-            {% render_field frmMain.Notes size="10" %}
-
-            <hr>
-            {% render_field frmMatlInfo.Description size="10" %}
-            {% render_field frmMatlInfo.PartType style="width:10em" tabindex="-1" %}
-            {% render_field frmMatlInfo.TypicalContainerQty size="10" tabindex="-1" %}
-            {% render_field frmMatlInfo.TypicalPalletQty size="10" tabindex="-1" %}
-
+        <div class="row">
+            <div class="col-2">Count Dt: {% render_field frmMain.CountDate tabindex="-1" size="8" %}</div>
+            <div class="col-2">CycCt ID: {% render_field frmMain.CycCtID tabindex="-1" size="5" %}</div>
+            <div class="col-4">Material: {% render_field frmMain.Material onchange="loadExtraInfo()" %}</div>
+            <div class="col-3">Actual Ctr: {% render_field frmMain.Counter %}</div>
+            <div class="col-1">Loc Only: {{ frmMain.LocationOnly }} {# onchange="" #}  <!-- skip CTD_QTY if clicked --></div>
+        </div>
+        <div class="row">
+            <div class="col-5">Ctd Qty: {% render_field frmMain.CTD_QTY_Expr size="35" onchange="sCE();" %}</div>
+            <div class="col-1"><span class="container-md" id="EvalExpr">????</span></div>
+            <div class="col-2">Building: {% render_field frmMain.BLDG size="5" %}</div>
+            <div class="col-2">Location: {% render_field frmMain.LOCATION size="5" %}</div>
+        </div>
+        <div class="row">
+            <div class="col-3">
+                Possibly Not Rcvd: {{ frmMain.FLAG_PossiblyNotRecieved }}
+                Mvmnt During Ct: {{ frmMain.FLAG_MovementDuringCount }}
+            </div>
+            <div class="col-4">
+                Pkg ID/Desc: {% render_field frmMain.PKGID_Desc size="5" %}
+                Tag Qty: {% render_field frmMain.TAGQTY size="5" %}
+            </div>
+            <div class="col-4">Notes: {% render_field frmMain.Notes size="35" %}</div>
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-4">Desc: {% render_field frmMatlInfo.Description size="30" %}</div>
+            <div class="col-2">Pt Type: {% render_field frmMatlInfo.PartType style="width:7em" tabindex="-1" %}</div>
+            <div class="col-6">
+                Typ Container Qty: {% render_field frmMatlInfo.TypicalContainerQty size="4" tabindex="-1" %}
+                Typ Plt Qty: {% render_field frmMatlInfo.TypicalPalletQty size="4" tabindex="-1" %}
+            </div>
+        </div>
         </div>
         <hr>
 
         Schedule Info
         <br>
         {% if noSchedInfo %}
-            <h1>MATERIAL NOT SCHEDULED FOR COUNT ON THIS DATE</h1>
-            <button type="button">Schedule Count</button>
+            <div class="col-8">  <h3>MATERIAL NOT SCHEDULED FOR COUNT ON THIS DATE</h3>  </div>
+            <div class="col-4">  <button type="button">Schedule Count</button>  </div>
         {% else %}
             {{ frmSchedInfo }}
         {% endif %}
@@ -127,20 +112,21 @@ class CountSchedule(models.Model):
 {% endcomment %}
 
         <!-- form footer -->
+        <hr>
         <div class="container">
             <div class="row mx-auto max-width=100%">
                 <div class="col-2">
                     <button id="save_btn" type="submit">Save changes</button>
                 </div>
-                <div class="col-10">
+                <div class="col-8">
                     <button id="btn_firstrec" type="button">First</button>
                     <button id="btn_prevrec" type="button">Prev</button>
                     <button id="btn_nextrec" type="button">Next</button>
                     <button id="btn_lastrec" type="button">Last</button>
                     <button id="btn_newrec" type="button">New</button>
-                    GoTo Count Rec # {% render_field gotoForm.gotoItem id="gotoID" form="dummy1" onchange="processGoToReq();" %}
+                    GoTo Count Rec # {% render_field gotoForm.gotoItem id="gotoID" style="width:7em" form="dummy1" onchange="processGoToReq();" %}
                 </div>
-                <div class="col">
+                <div class="col-2">
                     <button id="close_btn" type="button">Close Form</button>
                 </div>
             </div>

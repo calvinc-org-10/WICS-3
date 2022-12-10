@@ -1,5 +1,7 @@
 django_support/settings.py
 /django_support/__pycache__/
+manage.py
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
