@@ -9,6 +9,7 @@ Count Entry form:
   Removed GoToRec from this form.  Too expensive to load list of ALL count records
 
 2022 Dec 12 - commit to Matl-CountEnt fork
+2022 Dec 13 - merge Matl-CountEnt (so far) with main
 
 
 MISC NOTES:
