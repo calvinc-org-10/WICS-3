@@ -1,5 +1,6 @@
-django_support/settings.py
-/django_support/__pycache__/
+django_support/__pycache__/
+cMenu/__pycache__/
+WICS/__pycache__/
 manage.py
 
 
