@@ -18,5 +18,6 @@ from WICS import forms
 
 # should this be in cMenu?
 urlpatterns = [
+    path('MaterialForm2/<int:recNum>',forms.fnMaterialForm, {'formname': 'frmmaterialform','gotoRec':True}, name='ReloadMatlForm'),
     path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<int:loadMatlInfo>',forms.fnCountEntryForm, {'formname': 'frmcountentry'}, name='CountEntryForm'),
 ]

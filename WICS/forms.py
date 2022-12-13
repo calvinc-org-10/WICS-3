@@ -15,10 +15,6 @@ from django.db.models.query import EmptyQuerySet
 ExcelWorkbook_fileext = ".XLSX"
 
 
-class MaterialFormGoTo(forms.Form):
-    gotoItem = forms.ModelChoiceField(queryset=MaterialList.objects.none(), empty_label=None, required=False)
-
-
 class MaterialForm(forms.ModelForm):
     showPK = forms.IntegerField(label='ID', disabled=True, required=False)
     class Meta:
@@ -35,19 +31,26 @@ class MaterialCountSummary(forms.Form):
 
 
 @login_required
-def fnMaterialForm(req, formname, recNum = -1):
+def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
     _userorg = WICSuser.objects.get(user=req.user).org
+    if _userorg == None: raise Exception('No user!!')
 
     # get current record
-    if recNum <= 0:
-        currRec = MaterialList.objects.filter(org=_userorg).first()
-    else:
-        currRec = MaterialList.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
-    # endif
+    currRec = None
+    if gotoRec:
+        currRec = MaterialList.objects.filter(org=_userorg,Material=req.GET['gotoID']).first()
+    if currRec == None:
+        if recNum <= 0:
+            currRec = MaterialList.objects.filter(org=_userorg).first()
+        else:
+            currRec = MaterialList.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
+        # endif
+    #endif
     SAP_SOH = fnSAPList(req, matl=currRec)
 
-    gotoForm = MaterialFormGoTo({'gotoItem':currRec})
-    gotoForm.fields['gotoItem'].queryset=MaterialList.objects.filter(org=_userorg).all()
+    gotoForm = {}
+    gotoForm['gotoItem'] = currRec
+    gotoForm['choicelist'] = MaterialList.objects.filter(org=_userorg).values('id','Material')
 
     changes_saved = {
         'main': False,
@@ -55,6 +58,9 @@ def fnMaterialForm(req, formname, recNum = -1):
         'schedule': False
         }
     chgd_dat = {'main':None, 'counts': None, 'schedule': None}
+
+    CountSubFormFields = ('id', 'CountDate', 'CycCtID', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'PKGID_Desc', 'TAGQTY', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',)
+    ScheduleSubFormFields = ('id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'CMPrintFlag', 'Notes',)
 
     if req.method == 'POST':
         # changed data is being submitted.  process and save it
@@ -71,9 +77,9 @@ def fnMaterialForm(req, formname, recNum = -1):
 
         # count detail subform
         countSubFm_class = inlineformset_factory(MaterialList,ActualCounts,
-                    fields=('id', 'CountDate', 'CycCtID', 'Counter', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'PKGID_Desc', 'TAGQTY', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',),
+                    fields=CountSubFormFields,
                     extra=0,can_delete=False)
-        countSet = countSubFm_class(req.POST, instance=currRec, prefix='countset', initial={'org': _userorg})
+        countSet = countSubFm_class(req.POST, instance=currRec, prefix='countset', initial={'org': _userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
         if countSet.is_valid():
             if countSet.has_changed():
                 countSet.save()
@@ -83,9 +89,9 @@ def fnMaterialForm(req, formname, recNum = -1):
 
         # count schedule subform
         SchedSubFm_class = inlineformset_factory(MaterialList,CountSchedule,
-                    fields=('id', 'CountDate','Counter', 'Priority', 'ReasonScheduled', 'CMPrintFlag', 'Notes',),
+                    fields=ScheduleSubFormFields,
                     extra=0,can_delete=False)
-        schedSet = SchedSubFm_class(req.POST, instance=currRec, prefix='schedset', initial={'org': _userorg})
+        schedSet = SchedSubFm_class(req.POST, instance=currRec, prefix='schedset', initial={'org': _userorg}, queryset=CountSchedule.objects.order_by('-CountDate'))
         if schedSet.is_valid():
             if schedSet.has_changed():
                 schedSet.save()
@@ -94,24 +100,22 @@ def fnMaterialForm(req, formname, recNum = -1):
                 #raise Exception('sched saved')
 
         # count summary form is r/o.  It will not be changed
-
     else: # request.method == 'GET' or something else
         mtlFm = MaterialForm(instance=currRec, initial={'gotoItem': currRec.pk, 'showPK': currRec.pk, 'org':_userorg}, prefix='material')
 
         CountSubFm_class = inlineformset_factory(MaterialList,ActualCounts,
-                    fields=('id', 'CountDate', 'CycCtID', 'Counter', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'PKGID_Desc', 'TAGQTY', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',),
+                    fields=CountSubFormFields,
                     extra=0,can_delete=False)
-        countSet = CountSubFm_class(instance=currRec, prefix='countset', initial={'org':_userorg})
+        countSet = CountSubFm_class(instance=currRec, prefix='countset', initial={'org':_userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
 
         SchedSubFm_class = inlineformset_factory(MaterialList,CountSchedule,
-                    fields=('id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'CMPrintFlag', 'Notes',),
+                    fields=ScheduleSubFormFields,
                     extra=0,can_delete=False)
-        schedSet = SchedSubFm_class(instance=currRec, prefix='schedset', initial={'org':_userorg})
-
+        schedSet = SchedSubFm_class(instance=currRec, prefix='schedset', initial={'org':_userorg}, queryset=CountSchedule.objects.order_by('-CountDate'))
     # endif
 
     # count summary subform
-    raw_countdata = ActualCounts.objects.filter(Material=currRec).order_by('Material','CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
+    raw_countdata = ActualCounts.objects.filter(Material=currRec).order_by('Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
     LastMaterial = None ; LastCountDate = None
     initdata = []
     for r in raw_countdata:
@@ -236,8 +240,10 @@ def fnCountEntryForm(req, formname, recNum = -1, loadMatlInfo = None, passedCoun
         currRec = ActualCounts.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
     # endif
 
+    ##  too much, to be removed
     gotoForm = CountFormGoTo({'gotoItem':currRec})
-    gotoForm.fields['gotoItem'].queryset=ActualCounts.objects.filter(org=_userorg)
+    # gotoForm.fields['gotoItem'].queryset=ActualCounts.objects.filter(org=_userorg)
+    gotoForm.fields['gotoItem'].queryset=ActualCounts.objects.none()
 
     changes_saved = {
         'main': False,
@@ -299,7 +305,7 @@ def fnCountEntryForm(req, formname, recNum = -1, loadMatlInfo = None, passedCoun
         getDate = currRec.CountDate if recNum > 0 else passedCountDate
         getID = currRec.Material_id if recNum > 0 else loadMatlInfo
         try:
-            schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate,Material_id=getID)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
+            schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material_id=getID)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
         except (CountSchedule.DoesNotExist, IndexError):
             schedinfo = []
     else:

@@ -1,0 +1,19 @@
+2022 Dec 10-12
+Material Form:
+  changed presentation of GoTo Material dropdown so that it looks like a real dropdown (it's actually a <input type="list"> with a "dropdown" graphic and a few strategic event handlers)
+  TODO: do same in CountEntry
+  ActualCount and CountSchedule subforms - order by descending date
+  Cleaned up look and feel of subforms (field ordering, width, etc), part 1.  More needs to be done
+  Auto-calculate quantities on actual counts
+Count Entry form:
+  Removed GoToRec from this form.  Too expensive to load list of ALL count records
+
+2022 Dec 12 - commit to Matl-CountEnt fork
+
+
+MISC NOTES:
+When importing initial records, store blank char fields as '', not null.  That way, they won't flag as changed if another field is.  Most notable in Notes field
+
+
+TODO:
+changed presentation of dropdowns in CountEntry (see Material Form)

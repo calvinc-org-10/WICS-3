@@ -6,7 +6,6 @@
 {% block tTitle %}Materials{% endblock %}
 
 {% block boddy %}
-test 1320 - put an onchange on CT EXP
     <div class="container text-center mx-auto">
     <div class="row">
         <div class="col-10 fs-1">
@@ -48,14 +47,25 @@ test 1320 - put an onchange on CT EXP
     <input type="hidden" id="formID" value={{ formID }} >
 
     <!-- GoTo -->
+    <form id="gotoForm" method="GET" action="{% url 'ReloadMatlForm' frmMain.showPK.value %}">
     <div class="container text-center bg-secondary">
-        <div class="row mx-auto max-width=95%"><div class="col mx-auto">
-            <h1>GoTo Material # {% render_field gotoForm.gotoItem id="gotoID" onchange="processGoToReq();" %}</h1>
+        <div class="row mx-auto max-width=95%">
+            <div class="col mx-auto">
+            <h1><label for="Material-choice">GoTo Material #</label>
+                <input list="Material-list" id="gotoID" name="gotoID" onfocus="$(this).select();" onchange="processGoToReq();" value="{{gotoForm.gotoItem.Material}}">
+                <span class="bi-caret-down-square" style="position:relative;top:+0px;font-size:45px;left:-59px;" onclick="$gotoTextBox.focus();"></span>
+            </h1>
+                <datalist id="Material-list">
+                    {% for itm in gotoForm.choicelist %}
+                        <option value="{{itm.Material}}">
+                    {% endfor %}
+                </datalist>
             </div>
         </div>
     </div>
+    </form>
 
-    <form id="form1" method="post">
+    <form id="FmMain" class="trackformchanges" method="post">
         {% csrf_token %}
         <!-- form header -->
         {{ frmMain.errors }}
@@ -63,7 +73,7 @@ test 1320 - put an onchange on CT EXP
         <hr>
 
         <!-- main part of form -->
-        <div class="container">
+        <div class="container-fluid">
             <div class="row">
                 <div class="col-7">
                     Material: {% render_field frmMain.Material size="15" %} Description: {% render_field frmMain.Description size="50" %}
@@ -110,77 +120,106 @@ test 1320 - put an onchange on CT EXP
           </li>
         </ul>
         <!-- Tab panes -->
-        <div class="card fs-6" style="height:200px; overflow: auto;">
-            <div class="card-body no-padding">
-            <div class="tab-content">
-                <div class="tab-pane container active" id="CountDetail">
-                    <!-- Count Entry subform -->
-                    {# move to card-header? #}
-                    {{ countset.management_form }}
-                    CountSet errors: {{ countset.errors }}
-                    <br>
-                    <span class="container" style="width:20em">{{ countset.empty_form.CountDate.name }}</span>
-                    <span class="container" style="width:20em">{{ countset.empty_form.Counter.name }}</span>
-                    <span class="container" style="width:20em">{{ countset.empty_form.CTD_QTY_Expr.name }}</span>
-                    <span class="container" style="width:20em">{{ countset.empty_form.BLDG.name }}</span>
-                    <span class="container" style="width:20em">{{ countset.empty_form.LOCATION.name }}</span>
-                    <span class="container" style="width:20em">{{ countset.empty_form.Notes.name }}</span>
-                    <ul>
-                    {% for ff in countset %}
+        <div class="tab-content">
+            <div class="tab-pane container-fluid active" id="CountDetail">
+                <div class="card">
+                    <div class="card-header">
+                        {{ countset.management_form }}
+                        {{ countset.errors }}
+                        <br>
+                        <div class="container"><div class="row">
+                        <div class="col-1">Count Date</div>
+                        <div class="col-2">Counter</div>
+                        <div class="col-4">Physical Inventory</div>
+                        <div class="col-1">BLDG</div>
+                        <div class="col-1">LOCATION</div>
+                        <div class="col-3">Count Notes</div>
+                        </div></div>
+                    </div>
+                    <div class="card-body no-padding" style="height:210px; overflow: auto;">
+                        {% for ff in countset %}
                         <div class="row">
-                        <li>
                             {{ ff.id }}
-                            {% render_field ff.CountDate size="10" %}
-                            {% render_field ff.Counter size="10" %}
-                            {% render_field ff.CTD_QTY_Expr size="40" %}
-                            {# <span class="container" style="width:20em"> = {{ ff.CTD_QTY_Expr.value|eval_arith }} //</span> #}
-                            <span class="container-md" id="EvalExpr{{ forloop.counter0 }}">????</span>
-                            {% render_field ff.BLDG size="10" %}
-                            {% render_field ff.LOCATION size="10" %}
-                            <br>
-                            {% render_field ff.Notes size="30" %}
-                        </li>
+                            <div class="col-1">{% render_field ff.CountDate size="10" %}</div>
+                            <div class="col-2">{% render_field ff.Counter size="10" %}</div>
+                            {% with sCE_parm=forloop.counter0  %}
+                            <div class="col-4">
+                                {# django AND widget_tweaks both screw up the dynamic onchange building, so I'm doing it myself! #}
+                                <input type="text"
+                                        name="{{ff.prefix}}-{{ff.CTD_QTY_Expr.name}}"
+                                        {% if ff.CTD_QTY_Expr.value != None %} value="{{ ff.CTD_QTY_Expr.value|stringformat:'s' }}"{% endif %}
+                                        maxlength="500" size="40" id="{{ ff.CTD_QTY_Expr.id_for_label }}"
+                                        onchange="showCountExpr(this.id, 'EvalExpr{{ sCE_parm }}');">
+                                {% comment %}
+                                {{ ff.CTD_QTY_Expr }}
+                                {% endcomment %}
+                                <span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
+                            </div>
+                            {% endwith %}
+                            <div class="col-1">{% render_field ff.BLDG size="10" %}</div>
+                            <div class="col-1">{% render_field ff.LOCATION size="10" %}</div>
+                            <div class="col-3">{% render_field ff.Notes size="30" %}</div>
                         </div>
-                    {% endfor %}
-                    </ul>
-                </div>
-                <div class="tab-pane container fade" id="CountSummary">
-                    {{ countsummset.management_form }}
-                    <ul>
-                    {% for ffrm in countsummset %}
-                        <li>
-                        {% for ffld in ffrm %}
-                            {{ ffld }}
                         {% endfor %}
-                        </li>
-                    {% endfor %}
-                    </ul>
-              </div>
-                <div class="tab-pane container fade" id="CountSchedule">
-                    {{ scheduleset.management_form }}
-                    ScheduleSet errors: {{ scheduleset.errors }}
-                    <br>
-                    {% for ffld in scheduleset.empty_form %}
-                        {% if not ffld.is_hidden %}
-                        <span class="container" style="width:20em">{{ ffld.name }}</span>
-                        {% endif %}
-                    {% endfor %}
-                    <ul>
-                    {% for ffrm in scheduleset %}
-                        <li>
-                        {{ ffrm.id }}
-                        {% for ffld in ffrm %}
-                            {{ ffld }}
-                        {% endfor %}
-                        </ul>
-                    {% endfor %}
-                    </ul>
+                    </div>
                 </div>
             </div>
+            <div class="tab-pane container fade" id="CountSummary">
+                <div class="card">
+                    <div class="card-header">
+                        {{ countsummset.management_form }}
+                        <div class="container"><div class="row">
+                        <div class="col-2">Material</div>
+                        <div class="col-1">Count Date</div>
+                        <div class="col-2">Total Counted</div>
+                        </div></div>
+                    </div>
+                    <div class="card-body no-padding" style="height:210px; overflow: auto;">
+                        <ul>
+                        {% for ffrm in countsummset %}
+                            <li>
+                            {% for ffld in ffrm %}
+                                {{ ffld }}
+                            {% endfor %}
+                            </li>
+                        {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="tab-pane container fade" id="CountSchedule">
+                <div class="card">
+                    <div class="card-header">
+                        {{ scheduleset.management_form }}
+                        {{ scheduleset.errors }}
+                        <div class="container"><div class="row">
+                            <div class="col-1">Count Date</div>
+                            <div class="col-2">Counter</div>
+                            <div class="col-1">Priority</div>
+                            <div class="col-3">Reason Scheduled</div>
+                            <div class="col-1">CM Flag</div>
+                            <div class="col-4">Notes</div>
+                        </div></div>
+                    </div>
+                    <div class="card-body no-padding" style="height:210px; overflow: auto;">
+                        {% for ff in scheduleset %}
+                        <div class="row">
+                            {{ ff.id }}
+                            <div class="col-1">{% render_field ff.CountDate size="10" %}</div>
+                            <div class="col-2">{% render_field ff.Counter size="10" %}</div>
+                            <div class="col-1">{% render_field ff.Priority size="10" %}</div>
+                            <div class="col-3">{% render_field ff.ReasonScheduled size="40" %}</div>
+                            <div class="col-1">{{ ff.CMPrintFlag }}</div>
+                            <div class="col-4">{% render_field ff.Notes size="30" %}</div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
             </div>
         </div>
 
         <!-- form footer -->
+        <br>
         <div class="container">
             <div class="row mx-auto max-width=100%">
                 <div class="col-4">
@@ -217,19 +256,29 @@ test 1320 - put an onchange on CT EXP
     </div>
 
     <script>
-        var $form = $('form');
-        var initialState;
+        var $forms = $(".trackformchanges");
+        var initialState
+        var $gotoTextBox = $("#gotoID");
+        // record the ID and GPN of current record (it's used often!)
+        var thisMtlID = {{frmMain.showPK.value}}, thisMtlGPN = "{{frmMain.Material.value}}"
         var modalCloseCheckResult, modalCloseCheckClosed;
 
 
-        document.body.onload = function() {
-            initialState = $form.serialize();
+        $(document).ready(function() {
+            initialState = $forms.serialize();
             // fill in the Count evals
             // I'll clean this up later, I promise!
             for (let i=0; i < document.getElementById("id_countset-TOTAL_FORMS").value; i++) {
-                showCountExpr('id_countset-' + i + '-CTD_QTY_Expr', 'EvalExpr' + i)
+                CQtyID = 'id_countset-' + i + '-CTD_QTY_Expr';
+                EvID = 'EvalExpr' + i;
+                showCountExpr(CQtyID, EvID);
+                //fbody = "function CQE_" + i + "_df () { showCountExpr(this.id, '" + EvID + "'); };"
+                fbody = Function("function dummyCE" + i + "() { showCountExpr(this.id, '" + EvID + "'); };");
+                // console.log(fbody);
+                //jIDName = "#" + CQtyID
+                //$(jIDName).on("change", fbody);
             };
-            }
+            });
         document.body.onbeforeunload = function() {
             document.getElementById("wait_spinner").style.display = "block";
             }
@@ -249,7 +298,8 @@ test 1320 - put an onchange on CT EXP
         };
 
         function isFormChanged() {
-            return !(initialState === $form.serialize());
+            currState = $forms.serialize();
+            return !(initialState === currState);
         };
 
         // I'd like to use Bootstrap modals for this, but they're not really modal; they don't halt execution until dismissal
@@ -257,6 +307,7 @@ test 1320 - put an onchange on CT EXP
             function() {
                modalCloseCheckClosed = true;
             });
+            //TODO: only check if the forms I care about have changed - multi-form and serialize by form
         function confirmLeave(){
             if (isFormChanged()) {
                 return confirm("This record has changed\nDo you really want to leave without saving?");
@@ -273,23 +324,31 @@ test 1320 - put an onchange on CT EXP
             }
         };
 
+        // to become obsolete??
         function loadMaterialRec() {
           fmID = document.getElementById("formID");
           goID = document.getElementById('gotoID');
-          if (goID.value != null || goID.value == document.getElementById('RecPK').value) {
+          if (goID.value != null || goID.value == thisMtlGPN) {
               // later, use reverse      path('FormBrowse/<slug:formname>/<int:recNum>',forms.FormBrowse,name='WICS_FormBrowse'),
-              newRec_base = "{% url 'FormBrowse' formID 0 %}"
-              newRec = newRec_base.replace("/0","/"+goID.value)
+              document.getElementById("gotoForm").submit()
+              // newRec_base = "{% url 'FormBrowse' formID 0 %}"
+              // newRec = newRec_base.replace("/0","/"+goID.value)
               // newRec = "/WICS/FormBrowse/" + fmID.value + "/" + goID.value;
-              window.location = newRec;
+              // window.location = newRec;
           } else {
-              goID.value = document.getElementById('RecPK').value;
+              goID.value = thisMtlGPN;
           }
         };
 
-        function showCountExpr(ex_fld, rslt) {
-            document.getElementById(rslt).innerHTML = "= " + EvalExpr(document.getElementById(ex_fld).value);
+        // document.getElementById("{{frmMain.CTD_QTY_Expr.id_for_label}}").addEventListener("onchange",
+        function sCE(n){
+            showCountExpr('id_countset-' + n + '-CTD_QTY_Expr', 'EvalExpr'+str(n));
         };
+// move to common???
+        function showCountExpr(expr_fld, rslt) {
+            document.getElementById(rslt).innerHTML = "= " + EvalExpr(document.getElementById(expr_fld).value);
+        };
+
 
     </script>
     <script>

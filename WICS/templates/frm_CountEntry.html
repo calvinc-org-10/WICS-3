@@ -49,9 +49,8 @@ test 2105
     <form id="form1" method="post">
         {% csrf_token %}
         <!-- form header -->
-        s/b id: {{ frmMain.id }}
-        s/b hidden org: {% render_field frmMain.org hidden="true" %}
-        s/b errors: {{ frmMain.errors }}
+        {% render_field frmMain.org hidden="true" %}
+        {{ frmMain.errors }}
 
         <!-- main part of form -->
         <!-- put initial focus on Material and/or init CountDate to today(local), skip CycCtID -->
@@ -124,7 +123,10 @@ class CountSchedule(models.Model):
                     <button id="btn_nextrec" type="button">Next</button>
                     <button id="btn_lastrec" type="button">Last</button>
                     <button id="btn_newrec" type="button">New</button>
+                    {% comment %}
+                    <!-- GoToCountRec to be removed - way too many pulls from db -->
                     GoTo Count Rec # {% render_field gotoForm.gotoItem id="gotoID" style="width:7em" form="dummy1" onchange="processGoToReq();" %}
+                    {% endcomment %}
                 </div>
                 <div class="col-2">
                     <button id="close_btn" type="button">Close Form</button>
@@ -140,7 +142,24 @@ class CountSchedule(models.Model):
         var modalCloseCheckResult, modalCloseCheckClosed;
 
 
+        // expand this one day - this could be useful
+        function dtstr(dt = new Date(), fmt = "YYYY-MM-DD HH:NN:SS")
+        {
+            dt = (dt == undefined) ? new Date() : dt;   // how do I move dt to localtime??? - easy - by not introducing syntax errors!
+            d_str = fmt
+            d_str = d_str.replaceAll('YYYY',("0000"+dt.getFullYear()).slice(-4))
+            d_str = d_str.replaceAll('MM',("00"+(dt.getMonth()+1)).slice(-2))
+            d_str = d_str.replaceAll('DD',("00"+dt.getDate()).slice(-2))
+            d_str = d_str.replaceAll('HH',("00"+dt.getHours()).slice(-2))
+            d_str = d_str.replaceAll('NN',("00"+dt.getMinutes()).slice(-2))
+            d_str = d_str.replaceAll('SS',("00"+dt.getSeconds()).slice(-2))
+            // if new_dt = Date(d_str) is invalid, replace with dt.toString()
+            return d_str
+        }
+
         document.body.onload = function() {
+            document.getElementById("{{frmMain.CountDate.id_for_label}}").value = dtstr(new Date(), "YYYY-MM-DD")
+
             initialState = $form.serialize();
             if ({{ matlnum_changed }} != '' && {{ matlnum_changed }} != 'None') { document.getElementById("{{frmMain.Material.id_for_label}}").value = {{ matlnum_changed }} };
             }
