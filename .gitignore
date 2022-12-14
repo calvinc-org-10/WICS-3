@@ -1,8 +1,9 @@
+manage.py
 django_support/settings.py
 django_support/__pycache__/
-manage.py
 WICS/__pycache__/
 cMenu/__pycache__/
+userprofiles/__pycache__
 
 
 # Byte-compiled / optimized / DLL files
