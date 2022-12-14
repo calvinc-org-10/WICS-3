@@ -33,19 +33,24 @@ class MaterialCountSummary(forms.Form):
 @login_required
 def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
     _userorg = WICSuser.objects.get(user=req.user).org
-    if _userorg == None: raise Exception('No user!!')
+    if not _userorg: raise Exception('User is corrupted!!')
 
     # get current record
     currRec = None
     if gotoRec:
         currRec = MaterialList.objects.filter(org=_userorg,Material=req.GET['gotoID']).first()
-    if currRec == None:
+    if not currRec:
         if recNum <= 0:
             currRec = MaterialList.objects.filter(org=_userorg).first()
         else:
             currRec = MaterialList.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
         # endif
     #endif
+    if not currRec: #there are no Material records for this org!!
+        thisPK = 0
+    else:
+        thisPK = currRec.pk
+
     SAP_SOH = fnSAPList(req, matl=currRec)
 
     gotoForm = {}
@@ -67,7 +72,11 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
         # process mtlFm AND subforms.
 
         # process main form
-        mtlFm = MaterialForm(req.POST, instance=currRec,  initial={'gotoItem': currRec.pk, 'showPK': currRec.pk, 'org':_userorg},  prefix='material')
+        #if currRec:
+        mtlFm = MaterialForm(req.POST, instance=currRec,  initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg},  prefix='material')
+        #else:
+        #    mtlFm = MaterialForm(req.POST, initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg},  prefix='material')
+        #endif
         if mtlFm.is_valid():
             if mtlFm.has_changed():
                 mtlFm.save()
@@ -79,7 +88,10 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
         countSubFm_class = inlineformset_factory(MaterialList,ActualCounts,
                     fields=CountSubFormFields,
                     extra=0,can_delete=False)
+        #if currRec:
         countSet = countSubFm_class(req.POST, instance=currRec, prefix='countset', initial={'org': _userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
+        #else:
+        #    countSet = countSubFm_class(req.POST, prefix='countset', initial={'org': _userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
         if countSet.is_valid():
             if countSet.has_changed():
                 countSet.save()
@@ -91,7 +103,10 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
         SchedSubFm_class = inlineformset_factory(MaterialList,CountSchedule,
                     fields=ScheduleSubFormFields,
                     extra=0,can_delete=False)
+        #if currRec:
         schedSet = SchedSubFm_class(req.POST, instance=currRec, prefix='schedset', initial={'org': _userorg}, queryset=CountSchedule.objects.order_by('-CountDate'))
+        #else:
+        #    schedSet = SchedSubFm_class(req.POST, prefix='schedset', initial={'org': _userorg}, queryset=CountSchedule.objects.order_by('-CountDate'))
         if schedSet.is_valid():
             if schedSet.has_changed():
                 schedSet.save()
@@ -101,17 +116,26 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
 
         # count summary form is r/o.  It will not be changed
     else: # request.method == 'GET' or something else
-        mtlFm = MaterialForm(instance=currRec, initial={'gotoItem': currRec.pk, 'showPK': currRec.pk, 'org':_userorg}, prefix='material')
+        #if currRec:
+        mtlFm = MaterialForm(instance=currRec, initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg}, prefix='material')
+        #else:
+        #    mtlFm = MaterialForm(initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg}, prefix='material')
 
         CountSubFm_class = inlineformset_factory(MaterialList,ActualCounts,
                     fields=CountSubFormFields,
                     extra=0,can_delete=False)
+        #if currRec:
         countSet = CountSubFm_class(instance=currRec, prefix='countset', initial={'org':_userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
+        #else:
+        #    countSet = CountSubFm_class(prefix='countset', initial={'org':_userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
 
         SchedSubFm_class = inlineformset_factory(MaterialList,CountSchedule,
                     fields=ScheduleSubFormFields,
                     extra=0,can_delete=False)
+        #if currRec:
         schedSet = SchedSubFm_class(instance=currRec, prefix='schedset', initial={'org':_userorg}, queryset=CountSchedule.objects.order_by('-CountDate'))
+        #else:
+        #    schedSet = SchedSubFm_class(prefix='schedset', initial={'org':_userorg}, queryset=CountSchedule.objects.order_by('-CountDate'))
     # endif
 
     # count summary subform
@@ -149,7 +173,7 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
             'changes_saved': changes_saved,
             'changed_data': chgd_dat,
             'recNum': recNum,
-            'formID':formname, 'orgname':currRec.org.orgname, 'uname':req.user.get_full_name()
+            'formID':formname, 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
             }
     templt = 'frm_Material.html'
     return render(req, templt, cntext)

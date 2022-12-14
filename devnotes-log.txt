@@ -10,6 +10,8 @@ Count Entry form:
 
 2022 Dec 12 - commit to Matl-CountEnt fork
 2022 Dec 13 - merge Matl-CountEnt (so far) with main
+2022 Dec 13-14 - migrate home development env: db --> local MariaDB, master code on GitHub, changes through fetches, etc
+2022 Dec 14 - handle empty tables (triggered by migration noted above) in MaterialForm
 
 
 MISC NOTES:
@@ -17,4 +19,4 @@ When importing initial records, store blank char fields as '', not null.  That w
 
 
 TODO:
-changed presentation of dropdowns in CountEntry (see Material Form)
+change presentation of dropdowns in CountEntry (see Material Form)

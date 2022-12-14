@@ -1,9 +1,11 @@
 from django.db import models
 import csv
 
+from cMenu.models import menuCommands
 from cMenu.models import menuItems
 
 delim = '|'
+
 
 def port_data_000():
     file_ToImp = 'portdata.txt'    
@@ -58,9 +60,15 @@ def port_data_001():
     print()
 
 
+def port_data_002():
+    pass
+
+
+###############################################################
 port_data_002()
 print("done!")
 exit()
+
 
 ##### save for later
 #            cDate = rowDict["CountDate"]
