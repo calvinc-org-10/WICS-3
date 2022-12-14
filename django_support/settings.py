@@ -26,7 +26,10 @@ SECRET_KEY = 'django-insecure-r$kx79q99%#u#r8taa4x5_3uiym24a5b=ri6wn9zq7czt7^kd8
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['calvinc460.pythonanywhere.com']
+ALLOWED_HOSTS = [
+    'calvinc460.pythonanywhere.com',
+    '127.0.0.1'
+    ]
 
 DATE_INPUT_FORMATS = [
     '%m/%d/%Y',
@@ -63,7 +66,8 @@ TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
         'DIRS': [
-            '/home/calvinc460/WICS-Test/templates',
+            # '/home/calvinc460/WICS-Test/templates',
+            'templates',
             ],
         'APP_DIRS': True,
         'OPTIONS': {

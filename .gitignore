@@ -1,7 +1,12 @@
 django_support/__pycache__/
 cMenu/__pycache__/
+cMenu/migrations/
 WICS/__pycache__/
+WICS/migrations/
+userprofiles/__pycache__
+userprofiles/migrations/
 manage.py
+port.py
 
 
 # Byte-compiled / optimized / DLL files
