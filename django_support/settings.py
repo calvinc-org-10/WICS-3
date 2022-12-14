@@ -100,14 +100,23 @@ DATABASES = {
         },
     },
     # the new test, MySQL on PythonAnywhere
-    'default': {
+    'prod': {
         'ENGINE': 'django.db.backends.mysql',
         'NAME': 'calvinc460$default',
         'USER': 'calvinc460',
         'PASSWORD': 'tMJxBC!D4zRpU_2',
         'HOST': 'calvinc460.mysql.pythonanywhere-services.com',
     },
+    # the development db, MariaDB on Calvin's home machine
+    'dev-home': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'WICS',
+        'USER': 'calvinc460',
+        'PASSWORD': 'pw202rtN0tTree',
+        'HOST': 'localhost',
+    },
 }
+DATABASES['default']=DATABASES['dev-home']
 
 # Password validation
 # https://docs.djangoproject.com/en/4.1/ref/settings/#auth-password-validators
