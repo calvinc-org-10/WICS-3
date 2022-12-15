@@ -54,7 +54,7 @@ class MaterialList(models.Model):
     SAPMaterialType = models.CharField(max_length=100, blank=True)
     SAPMaterialGroup = models.CharField(max_length=100, blank=True)
     Price = models.FloatField(null=True, blank=True)
-    PriceUnit = models.PositiveIntegerField(null=True)
+    PriceUnit = models.PositiveIntegerField(null=True, blank=True)
     TypicalContainerQty = models.IntegerField(null=True, blank=True)
     TypicalPalletQty = models.IntegerField(null=True, blank=True)
     Notes = models.CharField(max_length=250, blank=True)

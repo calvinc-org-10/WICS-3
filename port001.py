@@ -1,8 +1,8 @@
 from django.db import models
 import csv
 
-from cMenu.models import menuCommands
-from cMenu.models import menuItems
+from cMenu.models import menuCommands, menuItems
+from WICS.models import WhsePartTypes, MaterialList
 
 delim = '|'
 
@@ -22,7 +22,6 @@ def port_data_000():
             )
             nn = nn + 1
             print('added', nn, ': ',new_Rec.Command, "," , new_Rec.CommandText)
-            continue
 
     print('MenuCommands Loaded')
     print()
@@ -54,18 +53,184 @@ def port_data_001():
 
             nn = nn + 1
             print('added', nn, ': ',new_Rec.MenuID, "," , new_Rec.OptionNumber)
-            continue
 
     print(str(targetmodel._meta)+' Loaded')
     print()
 
 
 def port_data_002():
-    pass
+    file_ToImp = 'portdata.txt'
+    targetmodel = WhsePartTypes
 
+    file_ToExp = 'whse_id_map.txt'
+    outfile = open(file_ToExp,'w',newline='')
+    outflds = ['oldID','newID']
+    outWriter = csv.DictWriter(outfile, outflds)
+    outWriter.writeheader()
+
+    redirectmap = {}    # oldID -> id of redirectmap
+    with open(file_ToImp, newline='',errors='ignore') as infile:
+        inReader = csv.DictReader(infile, delimiter=delim)
+        for indx, fldn in enumerate(inReader.fieldnames):  # strip out all that stupid whitespace!!
+            inReader.fieldnames[indx] = fldn.strip()
+        nn = 0
+
+        for rowDict in inReader:
+            oldid = int(rowDict['id'].strip())
+            new_map = int(rowDict['new_map'].strip())
+
+            if oldid == new_map:
+                new_Rec = targetmodel.objects.create(
+                    WhsePartType = rowDict['WhsePartType'].strip(),
+                    PartTypePriority = int(rowDict['PartTypePriority'].strip()),
+                    InactivePartType = bool(int(rowDict['InactivePartType'].strip())),
+                    org_id = int(rowDict['org_id'].strip())
+                )
+                redirectmap[oldid] = new_Rec.id
+
+            outWriter.writerow({'oldID': oldid ,'newID': redirectmap[new_map] })
+            nn = nn + 1
+            print('added', nn, ': ',oldid, ' --> ' , redirectmap[new_map])
+
+    print(str(targetmodel._meta)+' Loaded')
+    outfile.close()
+    print(file_ToExp+' created')
+    print()
+
+def port_data_test3():
+    file_ToImp = 'portdata.txt'
+    targetmodel = WhsePartTypes
+
+    file_ToExp = 'TESTwhse_id_map.txt'
+    outfile = open(file_ToExp,'w',newline='')
+    outfile.write('old, new\n')
+
+    redirectmap = {}    # oldID -> id of redirectmap
+    with open(file_ToImp, newline='',errors='ignore') as infile:
+        inReader = csv.DictReader(infile, delimiter=delim)
+        for indx, fldn in enumerate(inReader.fieldnames):  # strip out all that stupid whitespace!!
+            inReader.fieldnames[indx] = fldn.strip()
+        nn = 0
+
+        for rowDict in inReader:
+            oldid = int(rowDict['id'].strip())
+            new_map = int(rowDict['new_map'].strip())
+
+            if oldid == new_map:
+                nn = nn + 1
+                redirectmap[oldid] = nn
+
+            outfile.write(str(oldid) + ', ' + str(redirectmap[new_map]) + '\n')
+            # nn = nn + 1
+            print('added', nn, ': ',oldid, ' --> ' , redirectmap[new_map])
+
+    print(str(targetmodel._meta)+' Loaded')
+    outfile.close()
+    print(file_ToExp+' created')
+    print()
+
+# this could be generally useful...
+def makenum(strngN, numtype = int, defNonNum = 0):
+    if (strngN.isnumeric()):
+        strngN = numtype(strngN)
+    else:
+        strngN = defNonNum
+    return strngN
+
+def port_data_004():
+    file_ToImp = 'portdata.txt'
+    targetmodel = MaterialList
+
+    # read WhsePartTypes translation map
+    file_xMap = 'whse_id_map.txt'
+    xMap = {}
+    with open(file_xMap, newline='',errors='ignore') as infile:
+        inReader = csv.DictReader(infile, delimiter=',')
+        for rowDict in inReader:
+            idx = makenum(rowDict['old'])
+            xMap[idx] = makenum(rowDict['new'])
+
+    file_ToExp = 'matl_map.txt'
+    outfile = open(file_ToExp,'w',newline='')
+    # outflds = ['oldID','newID']
+    outfile.write('old, new\n')
+
+    with open(file_ToImp, newline='',errors='ignore') as infile:
+        inReader = csv.DictReader(infile, delimiter=delim)
+        for indx, fldn in enumerate(inReader.fieldnames):  # strip out all that stupid whitespace!!
+            inReader.fieldnames[indx] = fldn.strip()
+        nn = 0
+
+        for rowDict in inReader:
+            oldid = makenum(rowDict['id'].strip(),int,None)
+            ptid = makenum(rowDict['PartType_id'].strip(), int, None)
+            if ptid:
+                ptid = xMap[ptid]
+
+            new_Rec = targetmodel.objects.create(
+                org_id = makenum(rowDict['org_id'].strip(),int,None),
+                Material = rowDict['Material'].strip(),
+                Description = rowDict['Description'].strip(),
+                PartType_id = ptid,
+                SAPMaterialType = rowDict['SAPMaterialType'].strip(),
+                SAPMaterialGroup = rowDict['SAPMaterialGroup'].strip(),
+                Price = makenum(rowDict['Price'].strip(), numtype=float, defNonNum=None),
+                PriceUnit = makenum(rowDict['PriceUnit'].strip(), numtype=int, defNonNum=None),
+                TypicalContainerQty = makenum(rowDict['TypicalContainerQty'].strip()),
+                TypicalPalletQty = makenum(rowDict['TypicalPalletQty'].strip()),
+                Notes = rowDict['Notes'].strip()
+            )
+
+            outfile.write(str(oldid) + ', ' + str(new_Rec.id) + '\n')
+            nn = nn + 1
+            print('added', nn, ': ', new_Rec.Material,', ', oldid, ' --> ' , new_Rec.id)
+
+    print(str(targetmodel._meta)+' Loaded')
+    outfile.close()
+    print(file_ToExp+' created')
+    print()
+
+    return
+
+
+def port_data_005():
+    file_ToImp = 'portdata1.txt'
+    targetmodel = MaterialList
+
+    with open(file_ToImp, newline='',errors='ignore') as infile:
+        inReader = csv.DictReader(infile, delimiter=delim)
+        for indx, fldn in enumerate(inReader.fieldnames):  # strip out all that stupid whitespace!!
+            inReader.fieldnames[indx] = fldn.strip()
+        nn = 0
+
+        for rowDict in inReader:
+            oldid = makenum(rowDict['id'].strip(),int,None)
+            ptid = makenum(rowDict['PartType_id'].strip(), int, None)
+
+            new_Rec = targetmodel.objects.create(
+                org_id = makenum(rowDict['org_id'].strip(),int,None),
+                Material = rowDict['Material'].strip(),
+                Description = rowDict['Description'].strip(),
+                PartType_id = ptid,
+                SAPMaterialType = rowDict['SAPMaterialType'].strip(),
+                SAPMaterialGroup = rowDict['SAPMaterialGroup'].strip(),
+                Price = makenum(rowDict['Price'].strip(), numtype=float, defNonNum=None),
+                PriceUnit = makenum(rowDict['PriceUnit'].strip(), numtype=int, defNonNum=None),
+                TypicalContainerQty = makenum(rowDict['TypicalContainerQty'].strip()),
+                TypicalPalletQty = makenum(rowDict['TypicalPalletQty'].strip()),
+                Notes = rowDict['Notes'].strip()
+            )
+
+            nn = nn + 1
+            print('added', nn, ': ', new_Rec.Material,', ', oldid, ' --> ' , new_Rec.id)
+
+    print(str(targetmodel._meta)+' Loaded')
+    print()
+
+    return
 
 ###############################################################
-port_data_002()
+port_data_005()
 print("done!")
 exit()
 
