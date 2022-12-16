@@ -4,7 +4,7 @@
 {% block tTitle %}Count Entry{% endblock %}
 
 {% block boddy %}
-test 2105
+Javascript dt: <span id=showjavdt>xxxx</span>
     <div class="container text-center mx-auto">
     <div class="row">
         <div class="col-10 fs-1">
@@ -97,6 +97,7 @@ test 2105
             <div class="col-8">  <h3>MATERIAL NOT SCHEDULED FOR COUNT ON THIS DATE</h3>  </div>
             <div class="col-4">  <button type="button">Schedule Count</button>  </div>
         {% else %}
+        FORMAT ME!! FORMAT ME!!<br>
             {{ frmSchedInfo }}
         {% endif %}
 {% comment %}
@@ -162,6 +163,7 @@ class CountSchedule(models.Model):
 
             initialState = $form.serialize();
             if ({{ matlnum_changed }} != '' && {{ matlnum_changed }} != 'None') { document.getElementById("{{frmMain.Material.id_for_label}}").value = {{ matlnum_changed }} };
+            
             }
         document.body.onbeforeunload = function() {
             document.getElementById("wait_spinner").style.display = "block";
@@ -231,6 +233,7 @@ class CountSchedule(models.Model):
                 return;
             }
             {
+                // replace with dtstr after everything else working
                 dmonth = ('00' + (dVal.getMonth() + 1)).slice(-2),
                 dday = ('00' + dVal.getDate()).slice(-2),
                 dyear = ('0000' + dVal.getFullYear()).slice(-4);

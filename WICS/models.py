@@ -95,7 +95,7 @@ class ActualCounts(models.Model):
     CycCtID = models.CharField(max_length=100, blank=True)
     # oldWICSMaterial = models.IntegerField(null=True, blank=True)      # kill this field once data is tied to new ID in WICS2
     Material = models.ForeignKey(MaterialList, on_delete=models.RESTRICT)
-    Counter = models.CharField(max_length=250, blank=False)
+    Counter = models.CharField(max_length=250, blank=False, null=False)
     LocationOnly = models.BooleanField(blank=True, default=False)
     CTD_QTY_Expr = models.CharField(max_length=500, blank=False)
     BLDG = models.CharField(max_length=100, blank=True)
