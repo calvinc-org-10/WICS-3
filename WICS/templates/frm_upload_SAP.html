@@ -46,7 +46,7 @@
         // expand this one day - this could be useful
         function dtstr(dt, fmt = "YYYY-MM-DD HH:NN:SS")
         {
-            dt = (dt == undefined) ? new Date() : dt;   // how do I move dt to localtime??? - easy - by not introducing syntax errors!
+            dt = (dt == undefined) ? Date() : dt;   // how do I move dt to localtime??? - easy - by not introducing syntax errors!
             d_str = fmt
             d_str = d_str.replaceAll('YYYY',("0000"+dt.getFullYear()).slice(-4))
             d_str = d_str.replaceAll('MM',("00"+(dt.getMonth()+1)).slice(-2))

@@ -4,7 +4,6 @@
 {% block tTitle %}Count Entry{% endblock %}
 
 {% block boddy %}
-Javascript dt: <span id=showjavdt>xxxx</span>
     <div class="container text-center mx-auto">
     <div class="row">
         <div class="col-10 fs-1">
@@ -14,7 +13,6 @@ Javascript dt: <span id=showjavdt>xxxx</span>
         <div class="col-2 text-end"> {{ uname }} </div>
     </div>
     <div class="row"> <!-- status messages -->
-
         <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
 {% comment %}
         {% if changes_saved.main %}
@@ -46,36 +44,62 @@ Javascript dt: <span id=showjavdt>xxxx</span>
     <input type="text" id="RecPK" value={{ recNum }} disabled>
     <input type="hidden" id="formID" value={{ formID }} >
 
-    <form id="form1" method="post">
+    <form id="CEForm" class="trackformchanges" method="post">
         {% csrf_token %}
         <!-- form header -->
-        {% render_field frmMain.org hidden="true" %}
         {{ frmMain.errors }}
+        {% render_field frmMain.org hidden="true" %}
 
         <!-- main part of form -->
         <!-- put initial focus on Material and/or init CountDate to today(local), skip CycCtID -->
-        <div class="container">
+        <div class="container-fluid">
         <div class="row">
-            <div class="col-2">Count Dt: {% render_field frmMain.CountDate tabindex="-1" size="8" %}</div>
-            <div class="col-2">CycCt ID: {% render_field frmMain.CycCtID tabindex="-1" size="5" %}</div>
-            <div class="col-4">Material: {% render_field frmMain.Material onchange="loadExtraInfo()" %}</div>
+            <div class="col-2">Count Dt: {% render_field frmMain.CountDate tabindex="-1" size="10" %}</div>
+            <div class="col-2">CycCt ID: {% render_field frmMain.CycCtID tabindex="-1" size="8" %}</div>
+            <div class="col-4">Material: 
+                {# {% render_field frmMain.Material onchange="loadExtraInfo()" %}</div> #}
+                <input list="Material-list" 
+                    id="{{frmMain.Material.id_for_label}}" name="{{frmMain.Material.name}}" 
+                    tabindex="1" autofocus
+                    onfocus="$(this).select();" 
+                    onchange="loadExtraInfo();" 
+                    value="{{matlchoiceForm.gotoItem.Material}}"
+                    style="width:20em;">
+                <span class="bi-caret-down-square" 
+                    style="position:relative;top:+0px;font-size:20px;left:-30px;" 
+                    onclick="$('#{{frmMain.Material.id_for_label}}').focus();">
+                </span>
+                <datalist id="Material-list">
+                    {% for itm in matlchoiceForm.choicelist %}
+                        <option value="{{itm.Material}}">
+                    {% endfor %}
+                </datalist>
+            </div>
             <div class="col-3">Actual Ctr: {% render_field frmMain.Counter %}</div>
-            <div class="col-1">Loc Only: {{ frmMain.LocationOnly }} {# onchange="" #}  <!-- skip CTD_QTY if clicked --></div>
+            <div class="col-1">Loc Only: {{ frmMain.LocationOnly }} 
+                {# onchange="" #}  <!-- skip CTD_QTY if clicked -->
+            </div>
         </div>
         <div class="row">
-            <div class="col-5">Ctd Qty: {% render_field frmMain.CTD_QTY_Expr size="35" onchange="sCE();" %}</div>
-            <div class="col-1"><span class="container-md" id="EvalExpr">????</span></div>
-            <div class="col-2">Building: {% render_field frmMain.BLDG size="5" %}</div>
-            <div class="col-2">Location: {% render_field frmMain.LOCATION size="5" %}</div>
+            <div class="col-6">Ctd Qty: 
+                {% render_field frmMain.CTD_QTY_Expr size="45" onchange="sCE();" %}
+                <span class="container-md" id="EvalExpr">????</span>
+            </div>
+            <div class="col-2">Building: {% render_field frmMain.BLDG size="8" %}</div>
+            <div class="col-2">Location: {% render_field frmMain.LOCATION size="8" %}</div>
         </div>
         <div class="row">
-            <div class="col-3">
+            <div class="col-2">
                 Possibly Not Rcvd: {{ frmMain.FLAG_PossiblyNotRecieved }}
+            </div>
+            <div class="col-2">
                 Mvmnt During Ct: {{ frmMain.FLAG_MovementDuringCount }}
             </div>
-            <div class="col-4">
-                Pkg ID/Desc: {% render_field frmMain.PKGID_Desc size="5" %}
-                Tag Qty: {% render_field frmMain.TAGQTY size="5" %}
+            <div class="col-2">
+                Pkg ID/Desc: {% render_field frmMain.PKGID_Desc size="7" %}
+            </div>
+            <div class="col-2">
+                Tag Qty: {% render_field frmMain.TAGQTY size="7" %}
             </div>
             <div class="col-4">Notes: {% render_field frmMain.Notes size="35" %}</div>
         </div>
@@ -90,63 +114,78 @@ Javascript dt: <span id=showjavdt>xxxx</span>
         </div>
         </div>
         <hr>
-
         Schedule Info
         <br>
         {% if noSchedInfo %}
             <div class="col-8">  <h3>MATERIAL NOT SCHEDULED FOR COUNT ON THIS DATE</h3>  </div>
             <div class="col-4">  <button type="button">Schedule Count</button>  </div>
         {% else %}
-        FORMAT ME!! FORMAT ME!!<br>
-            {{ frmSchedInfo }}
-        {% endif %}
-{% comment %}
-class CountSchedule(models.Model):
-    CountDate = models.DateField(null=False)
-    Material = models.ForeignKey(MaterialList, on_delete=models.RESTRICT)
-    Counter = models.CharField(max_length=250, blank=True)
-    Priority = models.CharField(max_length=50, blank=True)
-    ReasonScheduled = models.CharField(max_length=250, blank=True)
-    CMPrintFlag = models.BooleanField(null=True)
-    Notes = models.CharField(max_length=250, blank=True)
-{% endcomment %}
-
-        <!-- form footer -->
-        <hr>
-        <div class="container">
-            <div class="row mx-auto max-width=100%">
-                <div class="col-2">
-                    <button id="save_btn" type="submit">Save changes</button>
+            {# {{ frmSchedInfo }} #}
+            {# render_field frmMain.org hidden="true" #}
+            <div class="card">
+                <div class="card-header">
+                    {{ frmSchedInfo.errors }}
+                    <div class="container"><div class="row">
+                        <div class="col-1">Count Date</div>
+                        <div class="col-2">Counter</div>
+                        <div class="col-1">Priority</div>
+                        <div class="col-3">Reason Scheduled</div>
+                        <div class="col-1">CM Flag</div>
+                        <div class="col-4">Notes</div>
+                    </div></div>
                 </div>
-                <div class="col-8">
-                    <button id="btn_firstrec" type="button">First</button>
-                    <button id="btn_prevrec" type="button">Prev</button>
-                    <button id="btn_nextrec" type="button">Next</button>
-                    <button id="btn_lastrec" type="button">Last</button>
-                    <button id="btn_newrec" type="button">New</button>
-                    {% comment %}
-                    <!-- GoToCountRec to be removed - way too many pulls from db -->
-                    GoTo Count Rec # {% render_field gotoForm.gotoItem id="gotoID" style="width:7em" form="dummy1" onchange="processGoToReq();" %}
-                    {% endcomment %}
-                </div>
-                <div class="col-2">
-                    <button id="close_btn" type="button">Close Form</button>
+                <div class="card-body no-padding" style="height:70px; overflow: auto;">
+                    <div class="row">
+                        {# {{ frmSchedInfo.id }} #}
+                        <div class="col-1">{% render_field frmSchedInfo.CountDate size="10" disabled=true %}</div>
+                        <div class="col-2">{% render_field frmSchedInfo.Counter size="10" %}</div>
+                        <div class="col-1">{% render_field frmSchedInfo.Priority size="10" %}</div>
+                        <div class="col-3">{% render_field frmSchedInfo.ReasonScheduled size="40" %}</div>
+                        <div class="col-1">{{ frmSchedInfo.CMPrintFlag }}</div>
+                        <div class="col-4">{% render_field frmSchedInfo.Notes size="30" %}</div>
+                    </div>
                 </div>
             </div>
-        </div>
+        {% endif %}
     </form>
-    <form id="dummy1"></form>
+
+    <!-- form footer -->
+    <hr>
+    <div class="container">
+        <div class="row mx-auto max-width=100%">
+            <div class="col-2">
+                <button id="save_btn" type="submit" form="CEForm">Save changes</button>
+            </div>
+            <div class="col-8">
+                <button id="btn_firstrec" type="button" onclick="processGoToReq('First');">First</button>
+                <button id="btn_prevrec"  type="button" onclick="processGoToReq('Prev');" >Prev</button>
+                <button id="btn_nextrec"  type="button" onclick="processGoToReq('Next');" >Next</button>
+                <button id="btn_lastrec"  type="button" onclick="processGoToReq('Last');" >Last</button>
+                <button id="btn_newrec"   type="button" onclick="processGoToReq('New');"  >New</button>
+                {% comment %}
+                <!-- GoToCountRec to be removed - way too many pulls from db -->
+                GoTo Count Rec # {% render_field gotoForm.gotoItem id="gotoID" style="width:7em" form="dummy1" onchange="processGoToReq();" %}
+                {% endcomment %}
+            </div>
+            <div class="col-2">
+                <button id="close_btn" type="button">Close Form</button>
+            </div>
+        </div>
+    </div>
+        
 
     <script>
-        var $form = $('form');
+        var $form = $('.trackformchanges');
         var initialState;
         var modalCloseCheckResult, modalCloseCheckClosed;
+        // JAVASCRIPT DATES SUCK!!!!!!
 
 
-        // expand this one day - this could be useful
-        function dtstr(dt = new Date(), fmt = "YYYY-MM-DD HH:NN:SS")
+        // expand this one day - this could be useful - Fix it first!!!
+        function dtstr(dt = Date(), fmt = "YYYY-MM-DD HH:NN:SS")
         {
-            dt = (dt == undefined) ? new Date() : dt;   // how do I move dt to localtime??? - easy - by not introducing syntax errors!
+            dt = (dt == undefined) ? Date() : dt;   // how do I move dt to localtime??? - easy - by not introducing syntax errors!
+            if (typeof(dt) == 'string') { dt = new Date(dt) }
             d_str = fmt
             d_str = d_str.replaceAll('YYYY',("0000"+dt.getFullYear()).slice(-4))
             d_str = d_str.replaceAll('MM',("00"+(dt.getMonth()+1)).slice(-2))
@@ -159,12 +198,18 @@ class CountSchedule(models.Model):
         }
 
         document.body.onload = function() {
-            document.getElementById("{{frmMain.CountDate.id_for_label}}").value = dtstr(new Date(), "YYYY-MM-DD")
+            //document.getElementById("{{frmMain.CountDate.id_for_label}}").value = dtstr(Date(), "YYYY-MM-DD")
+            // nope - default s/b filled in if new, not always
+
+            sCE();  // show calculated value of CTD_QTY
 
             initialState = $form.serialize();
-            if ({{ matlnum_changed }} != '' && {{ matlnum_changed }} != 'None') { document.getElementById("{{frmMain.Material.id_for_label}}").value = {{ matlnum_changed }} };
-            
+
+            // if ({{ matlnum_changed }} != '' && {{ matlnum_changed }} != 'None') { document.getElementById("{{frmMain.Material.id_for_label}}").value = {{ matlnum_changed }} };
+            // the html on Material already does this ??
+
             }
+
         document.body.onbeforeunload = function() {
             document.getElementById("wait_spinner").style.display = "block";
             }
@@ -186,9 +231,9 @@ class CountSchedule(models.Model):
             return !(initialState === $form.serialize());
         };
 
-        function processGoToReq() {
+        function processGoToReq(goDir) {
             if (confirmLeave()) {
-                loadCountEntryRec();
+                loadCountEntryRec(goDir);
             }
         };
 
@@ -225,7 +270,7 @@ class CountSchedule(models.Model):
             ctdtID = document.getElementById('{{frmMain.CountDate.id_for_label}}');
             mtlnmID = document.getElementById('{{frmMain.Material.id_for_label}}');
             try {
-                dVal = new Date(ctdtID.value)
+                dVal = Date(ctdtID.value)
             }
             catch {
                 alert(ctdtID.value + " is not a valid date");
@@ -233,6 +278,7 @@ class CountSchedule(models.Model):
                 return;
             }
             {
+                if (typeof(dVal) == 'string') { dVal = new Date(dVal) };
                 // replace with dtstr after everything else working
                 dmonth = ('00' + (dVal.getMonth() + 1)).slice(-2),
                 dday = ('00' + dVal.getDate()).slice(-2),
@@ -245,52 +291,29 @@ class CountSchedule(models.Model):
             newRec = newRec.replace("/1","/"+mtlnmID.value)
             window.location = newRec;
         };
-        function loadCountEntryRec() {
-            fmID = document.getElementById("formID");
-            goID = document.getElementById('gotoID');
-            if (goID.value != null || goID.value == document.getElementById('RecPK').value) {
-                // later, use reverse      path('FormBrowse/<slug:formname>/<int:recNum>',forms.FormBrowse,name='WICS_FormBrowse'),
-                newRec_base = "{% url 'FormBrowse' formID 0 %}"
-                newRec = newRec_base.replace("/0","/"+goID.value)
-                // newRec = "/WICS/FormBrowse/" + fmID.value + "/" + goID.value;
-                window.location = newRec;
-            } else {
-                goID.value = document.getElementById('RecPK').value;
+        function loadCountEntryRec(goDir) {
+            thisRecNum = document.getElementById('RecPK').value;
+            ctdtID = document.getElementById('{{frmMain.CountDate.id_for_label}}');
+
+            try {
+                dVal = Date(ctdtID.value)
             }
-        };
-
-
-        function processGoToReq() {
-            if (confirmLeave()) {
-                loadMaterialRec();
+            catch {
+                alert(ctdtID.value + " is not a valid date");
+                ctdtID.focus();
+                return;
             }
-        };
-
-        function isFormChanged() {
-            return !(initialState === $form.serialize());
-        };
-
-        // I'd like to use Bootstrap modals for this, but they're not really modal; they don't halt execution until dismissal
-        /*
-        document.getElementById('modalCloseCheck').addEventListener('hidden.bs.modal',
-            function() {
-               modalCloseCheckClosed = true;
-            });
-        */
-        function confirmLeave(){
-            if (isFormChanged()) {
-                return confirm("This record has changed\nDo you really want to leave without saving?");
-                // modalCloseCheckResult = false;
-                // modalCloseCheckClosed = false;
-                // $('#modalCloseCheck').modal();
-                // while (!modalCloseCheckClosed) {
-                //     // do nothing!
-                //     } ;
-                // alert(modalCloseCheckResult);
-                // return modalCloseCheckResult;
-            } else {
-                return true;
+            {
+                if (typeof(dVal) == 'string') { dVal = new Date(dVal) };
+                dVal =  dtstr(dt = dVal, fmt = "YYYY-MM-DD")
             }
+            R = {{recNum}}
+            if (R < 0) {R = 0};
+            newRec = "{% url 'CountEntryFormGoto' 0 'passedCountDate' 'None' 'gotoCommand' %}"
+            newRec = newRec.replace("/0","/"+R);
+            newRec = newRec.replace("/passedCountDate","/"+dVal);
+            newRec = newRec.replace("/gotoCommand","/"+goDir);
+            window.location = newRec;
         };
 
         function SkipCountIfLocationOnly() {

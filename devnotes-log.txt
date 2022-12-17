@@ -13,10 +13,18 @@ Count Entry form:
 2022 Dec 13-14 - migrate home development env: db --> local MariaDB, master code on GitHub, changes through fetches, etc
 2022 Dec 14 - handle empty tables (triggered by migration noted above) in MaterialForm
 
+2022 Dec 15-16
+change presentation of dropdowns in CountEntry (see Material Form)
+When entering Material in Count Entry form, pass it in as string
+Make sure Javascript date is really a Date object before calling its methods
+pretty up Count Entry form
+Implement the navigation buttons on Count Entry fm
+
 
 MISC NOTES:
 When importing initial records, store blank char fields as '', not null.  That way, they won't flag as changed if another field is.  Most notable in Notes field
 
 
 TODO:
-change presentation of dropdowns in CountEntry (see Material Form)
+Review ALL code and clean it up - developing while learning has made me write a lot of patchy and nasty-looking code
+DOITNOWDOITNOW!!!  Save the Count Entry records!!!

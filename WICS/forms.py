@@ -254,20 +254,52 @@ class RelatedScheduleInfo(forms.ModelForm):
         fields = '__all__'
 
 @login_required
-def fnCountEntryForm(req, formname, recNum = -1, loadMatlInfo = None, passedCountDate=None):
+def fnCountEntryForm(req, formname, recNum = -1, 
+    loadMatlInfo = None, 
+    passedCountDate=None, 
+    gotoCommand=None
+    ):
+
     _userorg = WICSuser.objects.get(user=req.user).org
 
+    # the string 'None' is not the same as the value None
+    if loadMatlInfo=='None': loadMatlInfo=None
+    if passedCountDate=='None': passedCountDate=None
+    if gotoCommand=='None': gotoCommand=None
+    
+    # later, handle record not found
     # get current record
     if recNum <= 0:
         currRec = ActualCounts.objects.filter(org=_userorg).none()
     else:
-        currRec = ActualCounts.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
+        currRec = ActualCounts.objects.filter(org=_userorg).get(pk=recNum)
     # endif
+    # if this is a gotoCommand, get the correct record
+    if gotoCommand=="First" or (gotoCommand=="Prev" and recNum <=0):
+        currRec = ActualCounts.objects.filter(org=_userorg).first()
+        if currRec: recNum = currRec.id
+        else: recNum = -1
+    elif gotoCommand=="Prev":
+        currRec = ActualCounts.objects.filter(org=_userorg,pk__lt=recNum).first()
+        if currRec: recNum = currRec.id
+        else: recNum = -1
+    elif gotoCommand=="Next":
+        currRec = ActualCounts.objects.filter(org=_userorg,pk__gt=recNum).first()
+        if currRec: recNum = currRec.id
+        else: recNum = -1
+    elif gotoCommand=="Last":
+        currRec = ActualCounts.objects.filter(org=_userorg).last()
+        if currRec: recNum = currRec.id
+        else: recNum = -1
+    elif gotoCommand=="New":
+        currRec = ActualCounts.objects.filter(org=_userorg).none()
+        recNum=-1
+    #endif
 
     ##  too much, to be removed
-    gotoForm = CountFormGoTo({'gotoItem':currRec})
+    # gotoForm = CountFormGoTo({'gotoItem':currRec})
     # gotoForm.fields['gotoItem'].queryset=ActualCounts.objects.filter(org=_userorg)
-    gotoForm.fields['gotoItem'].queryset=ActualCounts.objects.none()
+    # gotoForm.fields['gotoItem'].queryset=ActualCounts.objects.none()
 
     changes_saved = {
         'main': False,
@@ -276,7 +308,7 @@ def fnCountEntryForm(req, formname, recNum = -1, loadMatlInfo = None, passedCoun
         }
     chgd_dat = {'main':None, 'matl': None, 'schedule': None}
 
-    prepNewRec = (req.method != 'POST')
+    prepNewRec = (req.method != 'POST' and recNum <= 0)
 
     if req.method == 'POST':
         # changed data is being submitted.  process and save it
@@ -318,18 +350,30 @@ def fnCountEntryForm(req, formname, recNum = -1, loadMatlInfo = None, passedCoun
     #endif
 
     if prepNewRec: # request.method == 'GET' or something else, or last record was valid and saved
-        #mainFm = CountEntryForm(initial={'org':_userorg},  prefix='counts') if isinstance(currRec, EmptyQuerySet) else CountEntryForm(instance=currRec, initial={'org':_userorg},  prefix='counts')
-        mainFm = CountEntryForm(initial={'org':_userorg, 'CountDate':datetime.date.today()},  prefix='counts') if currRec.__len__()<1 else CountEntryForm(instance=currRec, initial={'org':_userorg, 'CountDate':datetime.date.today()},  prefix='counts')
+        if currRec: mainFm = CountEntryForm(instance=currRec, initial={'org':_userorg, 'CountDate':datetime.date.today()},  prefix='counts')
+        else:       mainFm = CountEntryForm(initial={'org':_userorg, 'CountDate':datetime.date.today()},  prefix='counts') 
+    else:
+        mainFm = CountEntryForm(instance=currRec, initial={'org':_userorg},  prefix='counts')
     # endif
 
-    if loadMatlInfo != None or recNum > 0:
+    # review and clean up this block!
+    if loadMatlInfo != None:
         # fill in MatlInfo and CountSchedInfo
-        getpk = recNum if recNum > 0 else loadMatlInfo
-        matlinfo = MaterialList.objects.get(pk=getpk)   # this better exist, else something is seriously wrong
+        matlinfo = MaterialList.objects.get(Material=loadMatlInfo)   # this better exist, else something is seriously wrong
         getDate = currRec.CountDate if recNum > 0 else passedCountDate
         getID = currRec.Material_id if recNum > 0 else loadMatlInfo
         try:
-            schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material_id=getID)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
+            schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlinfo)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
+        except (CountSchedule.DoesNotExist, IndexError):
+            schedinfo = []
+    elif recNum > 0:
+        # ???????????
+        # fill in MatlInfo and CountSchedInfo
+        matlinfo = MaterialList.objects.get(Material=currRec.Material)   # this better exist, else something is seriously wrong
+        getDate = currRec.CountDate if recNum > 0 else passedCountDate
+        getID = currRec.Material_id if recNum > 0 else loadMatlInfo
+        try:
+            schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlinfo)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
         except (CountSchedule.DoesNotExist, IndexError):
             schedinfo = []
     else:
@@ -338,19 +382,26 @@ def fnCountEntryForm(req, formname, recNum = -1, loadMatlInfo = None, passedCoun
     #endif
 
     # load dropdowns
-    # CountEntryForm Material??
+    # CountEntryForm Material
+    matlchoiceForm = {}
+    if currRec:
+        matlchoiceForm['gotoItem'] =currRec
+    else:
+        if loadMatlInfo==None: loadMatlInfo = ''
+        matlchoiceForm['gotoItem'] = {'Material':loadMatlInfo}
+    matlchoiceForm['choicelist'] = MaterialList.objects.filter(org=_userorg).values('id','Material')
 
-    matlFm = RelatedMaterialInfo() if matlinfo==[] else RelatedMaterialInfo(instance=matlinfo)
-    matlFm.fields['Material'].queryset=MaterialList.objects.filter(org=_userorg).all()
-    matlFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
+
+    matlSubFm = RelatedMaterialInfo() if matlinfo==[] else RelatedMaterialInfo(instance=matlinfo)
+    matlSubFm.fields['Material'].queryset=MaterialList.objects.filter(org=_userorg).all()
+    matlSubFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
 
     schedFm = RelatedScheduleInfo() if schedinfo==[] else RelatedScheduleInfo(instance=schedinfo)
-    # load dropdowns
 
     # display the form
     cntext = {'frmMain': mainFm,
-            'gotoForm': gotoForm,
-            'frmMatlInfo': matlFm,
+            'frmMatlInfo': matlSubFm,
+            'matlchoiceForm':matlchoiceForm,
             'noSchedInfo':(schedinfo==[]),
             'frmSchedInfo': schedFm,
             'changes_saved': changes_saved,
