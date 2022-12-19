@@ -25,8 +25,11 @@ class Organizations(models.Model):
 
 
 class orgObjects(models.Manager):
-    def get_queryset(self, org_in):
-        return super().get_queryset().filter(org=org_in)
+    def __init__(self, org_in) -> None:
+        self.org = org_in
+        super().__init__()
+    def get_queryset(self):
+        return super().get_queryset().filter(org=self.org)
 
 
 class WhsePartTypes(models.Model):
@@ -90,7 +93,7 @@ class CountSchedule(models.Model):
 
 class ActualCounts(models.Model):
     # oldWICSID = models.IntegerField(null=True, blank=True)      # kill this field once data is tied to new ID in WICS2
-    org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
+    org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=False)
     CountDate = models.DateField(null=False)
     CycCtID = models.CharField(max_length=100, blank=True)
     # oldWICSMaterial = models.IntegerField(null=True, blank=True)      # kill this field once data is tied to new ID in WICS2

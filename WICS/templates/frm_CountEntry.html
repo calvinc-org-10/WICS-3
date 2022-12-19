@@ -1,6 +1,9 @@
 {% extends "WICS_common.html" %}
 {% load widget_tweaks %}
 
+{# I gotta clean this template up too... #}
+
+
 {% block tTitle %}Count Entry{% endblock %}
 
 {% block boddy %}
@@ -14,59 +17,62 @@
     </div>
     <div class="row"> <!-- status messages -->
         <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
-{% comment %}
         {% if changes_saved.main %}
             <div class="alert alert-success p-0 alert-dismissible fade show">
                 <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
-                This Material record successfully saved.
+                This Count record successfully saved.
                 ChDat: {{ changed_data.main }}
             </div>
         {% endif %}
-        {% if changes_saved.counts %}
+        {% if changes_saved.matl %}
             <div class="alert alert-success p-0 alert-dismissible fade show">
                 <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
-                Count changes for this Material record successfully saved.
-                ChDat: {{ changed_data.counts }}
+                Material changes for this record successfully saved.
+                ChDat: {{ changed_data.matl }}
             </div>
         {% endif %}
         {% if changes_saved.schedule %}
             <div class="alert alert-success p-0 alert-dismissible fade show">
                 <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
-                Count Schedule changes for this Material record successfully saved.
+                Count Schedule changes for this record successfully saved.
                 ChDat: {{ changed_data.schedule }}
             </div>
         {% endif %}
-{% endcomment %}
     </div><!-- row -->
     </div><!-- container -->
     <hr>
 
-    <input type="text" id="RecPK" value={{ recNum }} disabled>
+   {{ frmMain.instance.id }}
+    <input type="hidden" id="RecPK" value={{ recNum }} disabled>
     <input type="hidden" id="formID" value={{ formID }} >
-
+ 
     <form id="CEForm" class="trackformchanges" method="post">
         {% csrf_token %}
         <!-- form header -->
         {{ frmMain.errors }}
-        {% render_field frmMain.org hidden="true" %}
+        {{ frmMain.id }}
+        {{ frmMain.org }}
+        {# {% render_field frmMain.org hidden="true" %} #}
 
         <!-- main part of form -->
         <!-- put initial focus on Material and/or init CountDate to today(local), skip CycCtID -->
         <div class="container-fluid">
         <div class="row">
-            <div class="col-2">Count Dt: {% render_field frmMain.CountDate tabindex="-1" size="10" %}</div>
+            <div class="col-2">Count Dt: {% render_field frmMain.CountDate tabindex="-1" size="10" onchange="loadExtraInfo();" %}</div>
             <div class="col-2">CycCt ID: {% render_field frmMain.CycCtID tabindex="-1" size="8" %}</div>
             <div class="col-4">Material: 
                 {# {% render_field frmMain.Material onchange="loadExtraInfo()" %}</div> #}
                 <input list="Material-list" 
-                    id="{{frmMain.Material.id_for_label}}" name="{{frmMain.Material.name}}" 
+                    id="{{frmMain.Material.id_for_label}}" name="{{frmMain.Material.html_name}}" 
                     tabindex="1" autofocus
                     onfocus="$(this).select();" 
                     onchange="loadExtraInfo();" 
                     value="{{matlchoiceForm.gotoItem.Material}}"
+                    required
                     style="width:20em;">
                 <span class="bi-caret-down-square" 
                     style="position:relative;top:+0px;font-size:20px;left:-30px;" 
+                    tabindex = "-1"
                     onclick="$('#{{frmMain.Material.id_for_label}}').focus();">
                 </span>
                 <datalist id="Material-list">
@@ -105,6 +111,9 @@
         </div>
         <hr>
         <div class="row">
+            {{ frmMatlInfo.id }} {# render_field frmMatlInfo.id hidden="true" #}
+            {{ frmMatlInfo.org }} {# render_field frmMatlInfo.org hidden="true" #}
+            {{ frmMatlInfo.Material }} {# render_field frmMatlInfo.Material hidden="true" #}
             <div class="col-4">Desc: {% render_field frmMatlInfo.Description size="30" %}</div>
             <div class="col-2">Pt Type: {% render_field frmMatlInfo.PartType style="width:7em" tabindex="-1" %}</div>
             <div class="col-6">
@@ -112,7 +121,7 @@
                 Typ Plt Qty: {% render_field frmMatlInfo.TypicalPalletQty size="4" tabindex="-1" %}
             </div>
         </div>
-        </div>
+        </div>  <!-- container-fluid, on same level with rows -->
         <hr>
         Schedule Info
         <br>
@@ -136,7 +145,9 @@
                 </div>
                 <div class="card-body no-padding" style="height:70px; overflow: auto;">
                     <div class="row">
-                        {# {{ frmSchedInfo.id }} #}
+                        {{ frmSchedInfo.id }} {# render_field frmSchedInfo.id hidden="true" #}
+                        {{ frmSchedInfo.org }}  {# render_field frmSchedInfo.org hidden="true" #}
+                        {{ frmSchedInfo.Material }}  {# render_field frmSchedInfo.Material hidden="true" #}
                         <div class="col-1">{% render_field frmSchedInfo.CountDate size="10" disabled=true %}</div>
                         <div class="col-2">{% render_field frmSchedInfo.Counter size="10" %}</div>
                         <div class="col-1">{% render_field frmSchedInfo.Priority size="10" %}</div>
@@ -279,16 +290,13 @@
             }
             {
                 if (typeof(dVal) == 'string') { dVal = new Date(dVal) };
-                // replace with dtstr after everything else working
-                dmonth = ('00' + (dVal.getMonth() + 1)).slice(-2),
-                dday = ('00' + dVal.getDate()).slice(-2),
-                dyear = ('0000' + dVal.getFullYear()).slice(-4);
-                dVal = [dyear, dmonth, dday].join('-');
+                dVal =  dtstr(dt = dVal, fmt = "YYYY-MM-DD")
             }
-            newRec = "{% url 'CountEntryForm' 0 'passedCountDate' 1 %}"
-            if (thisRecNum > 0) { newRec = newRec.replace("/0","/"+goID.value) };
+            newRec = "{% url 'CountEntryForm' 0 'passedCountDate' 'matl' %}"
+            if (thisRecNum > 0) { newRec = newRec.replace("/0","/"+thisRecNum) };
             newRec = newRec.replace("passedCountDate",dVal)
-            newRec = newRec.replace("/1","/"+mtlnmID.value)
+            mNum="None"; if (mtlnmID.value != "") {mNum = mtlnmID.value}
+            newRec = newRec.replace("/matl","/"+mNum)
             window.location = newRec;
         };
         function loadCountEntryRec(goDir) {

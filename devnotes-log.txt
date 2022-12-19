@@ -20,6 +20,11 @@ Make sure Javascript date is really a Date object before calling its methods
 pretty up Count Entry form
 Implement the navigation buttons on Count Entry fm
 
+2022 Dec 17 
+Getting Count Entry form to properly save is harder than I thought!!
+Got it to save new records.  Needs more work, which must come later
+
+
 
 MISC NOTES:
 When importing initial records, store blank char fields as '', not null.  That way, they won't flag as changed if another field is.  Most notable in Notes field
