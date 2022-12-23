@@ -6,6 +6,7 @@ WICS/__pycache__/
 cMenu/__pycache__/
 userprofiles/__pycache__/
 
+.vscode/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

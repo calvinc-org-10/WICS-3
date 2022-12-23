@@ -81,53 +81,56 @@
                     {% endfor %}
                 </datalist>
             </div>
-            <div class="col-3">Actual Ctr: {% render_field frmMain.Counter %}</div>
-            <div class="col-1">Loc Only: {{ frmMain.LocationOnly }} 
+            <div class="col-3">Actual Ctr: {% render_field frmMain.Counter class="need-Matl-Dt" %}</div>
+            <div class="col-1">Loc Only: {% render_field frmMain.LocationOnly class="need-Matl-Dt" %} 
                 {# onchange="" #}  <!-- skip CTD_QTY if clicked -->
             </div>
         </div>
         <div class="row">
             <div class="col-6">Ctd Qty: 
-                {% render_field frmMain.CTD_QTY_Expr size="45" onchange="sCE();" %}
+                {% render_field frmMain.CTD_QTY_Expr class="need-Matl-Dt" size="45" onchange="sCE();" %}
                 <span class="container-md" id="EvalExpr">????</span>
             </div>
-            <div class="col-2">Building: {% render_field frmMain.BLDG size="8" %}</div>
-            <div class="col-2">Location: {% render_field frmMain.LOCATION size="8" %}</div>
+            <div class="col-2">Building: {% render_field frmMain.BLDG class="need-Matl-Dt" size="8" %}</div>
+            <div class="col-2">Location: {% render_field frmMain.LOCATION class="need-Matl-Dt" size="8" %}</div>
         </div>
         <div class="row">
             <div class="col-2">
-                Possibly Not Rcvd: {{ frmMain.FLAG_PossiblyNotRecieved }}
+                Possibly Not Rcvd: {% render_field frmMain.FLAG_PossiblyNotRecieved class="need-Matl-Dt" %}
             </div>
             <div class="col-2">
-                Mvmnt During Ct: {{ frmMain.FLAG_MovementDuringCount }}
+                Mvmnt During Ct: {% render_field frmMain.FLAG_MovementDuringCount class="need-Matl-Dt" %}
             </div>
             <div class="col-2">
-                Pkg ID/Desc: {% render_field frmMain.PKGID_Desc size="7" %}
+                Pkg ID/Desc: {% render_field frmMain.PKGID_Desc class="need-Matl-Dt" size="7" %}
             </div>
             <div class="col-2">
-                Tag Qty: {% render_field frmMain.TAGQTY size="7" %}
+                Tag Qty: {% render_field frmMain.TAGQTY class="need-Matl-Dt" size="7" %}
             </div>
-            <div class="col-4">Notes: {% render_field frmMain.Notes size="35" %}</div>
+            <div class="col-4">Notes: {% render_field frmMain.Notes class="need-Matl-Dt" size="35" %}</div>
         </div>
         <hr>
         <div class="row">
             {{ frmMatlInfo.id }} {# render_field frmMatlInfo.id hidden="true" #}
-            {{ frmMatlInfo.org }} {# render_field frmMatlInfo.org hidden="true" #}
-            {{ frmMatlInfo.Material }} {# render_field frmMatlInfo.Material hidden="true" #}
-            <div class="col-4">Desc: {% render_field frmMatlInfo.Description size="30" %}</div>
-            <div class="col-2">Pt Type: {% render_field frmMatlInfo.PartType style="width:7em" tabindex="-1" %}</div>
+            {# {{ frmMatlInfo.org }} {# render_field frmMatlInfo.org hidden="true" #}
+            {# {{ frmMatlInfo.Material }} {# render_field frmMatlInfo.Material hidden="true" #}
+            <div class="col-4">Desc: {% render_field frmMatlInfo.Description size="40" %}</div>
+            <div class="col-2">Pt Type: {% render_field frmMatlInfo.PartType class="need-Matl-Dt" style="width:7em" tabindex="-1" %}</div>
             <div class="col-6">
-                Typ Container Qty: {% render_field frmMatlInfo.TypicalContainerQty size="4" tabindex="-1" %}
-                Typ Plt Qty: {% render_field frmMatlInfo.TypicalPalletQty size="4" tabindex="-1" %}
+                Typ Container Qty: {% render_field frmMatlInfo.TypicalContainerQty class="need-Matl-Dt" size="4" tabindex="-1" %}
+                Typ Plt Qty: {% render_field frmMatlInfo.TypicalPalletQty class="need-Matl-Dt" size="4" tabindex="-1" %}
             </div>
+        </div>
+        <div class=row>
+            <div class="col-12">Material Notes: {% render_field frmMatlInfo.Notes size="100" class="need-Matl-Dt" tabindex="-1" %}</div>
         </div>
         </div>  <!-- container-fluid, on same level with rows -->
         <hr>
-        Schedule Info
+        <u>Schedule Info</u>
         <br>
         {% if noSchedInfo %}
             <div class="col-8">  <h3>MATERIAL NOT SCHEDULED FOR COUNT ON THIS DATE</h3>  </div>
-            <div class="col-4">  <button type="button">Schedule Count</button>  </div>
+            <div class="col-4">  <button type="button" class="need-Matl-Dt" >Schedule Count</button>  </div>
         {% else %}
             {# {{ frmSchedInfo }} #}
             {# render_field frmMain.org hidden="true" #}
@@ -146,14 +149,14 @@
                 <div class="card-body no-padding" style="height:70px; overflow: auto;">
                     <div class="row">
                         {{ frmSchedInfo.id }} {# render_field frmSchedInfo.id hidden="true" #}
-                        {{ frmSchedInfo.org }}  {# render_field frmSchedInfo.org hidden="true" #}
-                        {{ frmSchedInfo.Material }}  {# render_field frmSchedInfo.Material hidden="true" #}
+                        {# frmSchedInfo.org }}  {# render_field frmSchedInfo.org hidden="true" #}
+                        {# frmSchedInfo.Material }}  {# render_field frmSchedInfo.Material hidden="true" #}
                         <div class="col-1">{% render_field frmSchedInfo.CountDate size="10" disabled=true %}</div>
-                        <div class="col-2">{% render_field frmSchedInfo.Counter size="10" %}</div>
-                        <div class="col-1">{% render_field frmSchedInfo.Priority size="10" %}</div>
-                        <div class="col-3">{% render_field frmSchedInfo.ReasonScheduled size="40" %}</div>
-                        <div class="col-1">{{ frmSchedInfo.CMPrintFlag }}</div>
-                        <div class="col-4">{% render_field frmSchedInfo.Notes size="30" %}</div>
+                        <div class="col-2">{% render_field frmSchedInfo.Counter class="need-Matl-Dt" size="10" %}</div>
+                        <div class="col-1">{% render_field frmSchedInfo.Priority class="need-Matl-Dt" size="10" %}</div>
+                        <div class="col-3">{% render_field frmSchedInfo.ReasonScheduled class="need-Matl-Dt" size="40" %}</div>
+                        <div class="col-1">{% render_field frmSchedInfo.CMPrintFlag class="need-Matl-Dt" %}</div>
+                        <div class="col-4">{% render_field frmSchedInfo.Notes class="need-Matl-Dt" size="30" %}</div>
                     </div>
                 </div>
             </div>
@@ -165,7 +168,7 @@
     <div class="container">
         <div class="row mx-auto max-width=100%">
             <div class="col-2">
-                <button id="save_btn" type="submit" form="CEForm">Save changes</button>
+                <button id="save_btn" type="submit" form="CEForm" class="need-Matl-Dt" >Save changes</button>
             </div>
             <div class="col-8">
                 <button id="btn_firstrec" type="button" onclick="processGoToReq('First');">First</button>
@@ -187,6 +190,11 @@
 
     <script>
         var $form = $('.trackformchanges');
+        var thisRecNum = $('#RecPK').val();
+        var ctdtID = $('#{{frmMain.CountDate.id_for_label}}');
+        var orig_ctdt = ctdtID.val()
+        var mtlnmID = $('#{{frmMain.Material.id_for_label}}');
+        var orig_matl = mtlnmID.val()
         var initialState;
         var modalCloseCheckResult, modalCloseCheckClosed;
         // JAVASCRIPT DATES SUCK!!!!!!
@@ -209,15 +217,19 @@
         }
 
         document.body.onload = function() {
-            //document.getElementById("{{frmMain.CountDate.id_for_label}}").value = dtstr(Date(), "YYYY-MM-DD")
-            // nope - default s/b filled in if new, not always
 
             sCE();  // show calculated value of CTD_QTY
 
-            initialState = $form.serialize();
+            // if this is an existing record, disable CountDate and Material; allowing those to change is just too much work
+            if (thisRecNum > 0) {
+                ctdtID.prop("disabled", true);
+                mtlnmID.prop("disabled", true);
+            }
 
-            // if ({{ matlnum_changed }} != '' && {{ matlnum_changed }} != 'None') { document.getElementById("{{frmMain.Material.id_for_label}}").value = {{ matlnum_changed }} };
-            // the html on Material already does this ??
+            // turn off controls that need the Date and Material first
+            $(".need-Matl-Dt").prop("disabled", !isValid_Date_Material());
+
+            initialState = $form.serialize();
 
             }
 
@@ -227,8 +239,6 @@
 
         document.getElementById("{{frmMain.CTD_QTY_Expr.id_for_label}}").addEventListener("onfocus",
             function(){ SkipCountIfLocationOnly(); });
-        // document.getElementById("{{frmMain.CTD_QTY_Expr.id_for_label}}").addEventListener("onchange",
-        function sCE(){ showCountExpr('{{frmMain.CTD_QTY_Expr.id_for_label}}', 'EvalExpr'); };
 
         // later, duplicate this for closeform (see document.body.onbeforeunload)
         document.getElementById("close_btn").addEventListener("click",
@@ -237,10 +247,6 @@
                     window.close()
                 }
             });
-
-        function isFormChanged() {
-            return !(initialState === $form.serialize());
-        };
 
         function processGoToReq(goDir) {
             if (confirmLeave()) {
@@ -257,7 +263,7 @@
         */
         function confirmLeave(){
             if (isFormChanged()) {
-                return confirm("This record has changed\nDo you really want to leave without saving?");
+                return confirm("This record has changed\nDo you really want to leave without saving?\n");
                 // modalCloseCheckResult = false;
                 // modalCloseCheckClosed = false;
                 // $('#modalCloseCheck').modal();
@@ -270,51 +276,89 @@
                 return true;
             }
         };
+        function isFormChanged() {
+            return !(initialState === $form.serialize());
+        };
+
+        function sCE(){ showCountExpr('{{frmMain.CTD_QTY_Expr.id_for_label}}', 'EvalExpr'); };
 
 // move to common???
         function showCountExpr(expr_fld, rslt) {
             document.getElementById(rslt).innerHTML = "= " + EvalExpr(document.getElementById(expr_fld).value);
         };
 
-        function loadExtraInfo() {
-            thisRecNum = document.getElementById('RecPK').value;
-            ctdtID = document.getElementById('{{frmMain.CountDate.id_for_label}}');
-            mtlnmID = document.getElementById('{{frmMain.Material.id_for_label}}');
+        function isValid_Date_Material() {
+            return isValid_Date() && isValid_Material();
+        }
+        function isValid_Date() {
+            let dVal;
+
+            if (ctdtID.val().trim()=="") { 
+                return false; 
+            }
+            
             try {
-                dVal = Date(ctdtID.value)
+                dVal = new Date(ctdtID.val())
             }
             catch {
-                alert(ctdtID.value + " is not a valid date");
+                return false;
+            }
+            return true;
+        }
+        function isValid_Material() {
+            if (mtlnmID.val().trim()=="") {
+                 return false; 
+            }
+
+            let foundit = false;  i = 0;
+            while (!foundit && (i < $("#Material-list").children().length)) {
+                foundit = foundit || ($("#Material-list").children()[i].value==mtlnmID.val());
+                i++;
+            } 
+
+            return foundit;
+        }
+
+        function loadExtraInfo() {
+            let dVal;
+
+            if (!isValid_Date()) {
+                alert(ctdtID.val() + " is not a valid date");
                 ctdtID.focus();
                 return;
             }
-            {
-                if (typeof(dVal) == 'string') { dVal = new Date(dVal) };
-                dVal =  dtstr(dt = dVal, fmt = "YYYY-MM-DD")
+            else {
+                dVal = (new Date(ctdtID.val())).toISOString().substring(0,10)
             }
+            // if (typeof(dVal) == 'string') { dVal = new Date(dVal) };
+            // dVal =  dtstr(dt = dVal, fmt = "YYYY-MM-DD")
+            ctdtID.val(dVal)
+
+            if (!isValid_Material()) {
+                if (mtlnmID.val() != "") { alert(mtlnmID.val() + " is not a valid Material number"); }
+                mtlnmID.focus();
+                return;
+            }
+            
             newRec = "{% url 'CountEntryForm' 0 'passedCountDate' 'matl' %}"
             if (thisRecNum > 0) { newRec = newRec.replace("/0","/"+thisRecNum) };
             newRec = newRec.replace("passedCountDate",dVal)
-            mNum="None"; if (mtlnmID.value != "") {mNum = mtlnmID.value}
+            mNum="None"; if (mtlnmID.val() != "") {mNum = mtlnmID.val()}
             newRec = newRec.replace("/matl","/"+mNum)
             window.location = newRec;
         };
         function loadCountEntryRec(goDir) {
-            thisRecNum = document.getElementById('RecPK').value;
-            ctdtID = document.getElementById('{{frmMain.CountDate.id_for_label}}');
-
-            try {
-                dVal = Date(ctdtID.value)
+            if (!isValid_Date()) {return;}
+            else {
+                dVal = (new Date(ctdtID.val())).toISOString().substring(0,10)
             }
-            catch {
-                alert(ctdtID.value + " is not a valid date");
-                ctdtID.focus();
-                return;
-            }
+            
+            /****
             {
                 if (typeof(dVal) == 'string') { dVal = new Date(dVal) };
                 dVal =  dtstr(dt = dVal, fmt = "YYYY-MM-DD")
             }
+            *****/
             R = {{recNum}}
             if (R < 0) {R = 0};
             newRec = "{% url 'CountEntryFormGoto' 0 'passedCountDate' 'None' 'gotoCommand' %}"

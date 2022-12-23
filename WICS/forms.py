@@ -13,6 +13,8 @@ from django.http import HttpResponseRedirect
 from django.db.models.query import EmptyQuerySet
 
 ExcelWorkbook_fileext = ".XLSX"
+#_userorg = WICSuser.objects.none().org
+_userorg = None
 
 
 class MaterialForm(forms.ModelForm):
@@ -272,10 +274,10 @@ class CountEntryForm(forms.ModelForm):
 
 class RelatedMaterialInfo(forms.ModelForm):
     id = forms.IntegerField(required=False, widget=forms.HiddenInput)
-    org = forms.CharField(widget=forms.HiddenInput,  required=False)
+    # org = forms.CharField(widget=forms.HiddenInput,  required=False)
     #org = forms.ModelChoiceField(queryset=Organizations.objects.all(), required=False, widget=forms.HiddenInput)
     Material = forms.CharField(required=False, widget=forms.HiddenInput)
-    Description = forms.CharField(max_length=250, disabled=True)
+    Description = forms.CharField(max_length=250, disabled=True, required=False)
     PartType = forms.ModelChoiceField(queryset=WhsePartTypes.objects.none(), empty_label=None, required=False)
     TypicalContainerQty = forms.IntegerField(required=False)
     TypicalPalletQty = forms.IntegerField(required=False)
@@ -283,6 +285,10 @@ class RelatedMaterialInfo(forms.ModelForm):
         model = MaterialList
         fields = ['id', 'Material', 'Description', 'PartType', 
                 'TypicalContainerQty', 'TypicalPalletQty', 'Notes']
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self.fields['Material'].queryset=MaterialList.objects.filter(org=_userorg).all()
+        self.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
     def save(self, in_org):
         if not self.is_valid():
             return None
@@ -297,7 +303,7 @@ class RelatedMaterialInfo(forms.ModelForm):
             if fldnm=='id' or fldnm=='org': continue
             if fldnm=='Material':
                 # no special processing - Material is a string here, not a ForeignField
-                setattr(rec,fldnm, self.cleaned_data[fldnm])
+                setattr(rec, fldnm, self.cleaned_data[fldnm])
             else:
                 setattr(rec, fldnm, self.cleaned_data[fldnm])
         rec.org = in_org
@@ -307,11 +313,12 @@ class RelatedMaterialInfo(forms.ModelForm):
 
 class RelatedScheduleInfo(forms.ModelForm):
     id = forms.IntegerField(required=False, widget=forms.HiddenInput)
-    org = forms.CharField(widget=forms.HiddenInput,  required=False)
+    # org = forms.CharField(widget=forms.HiddenInput,  required=False)
     #org = forms.ModelChoiceField(queryset=Organizations.objects.all(), required=False, widget=forms.HiddenInput)
     CMPrintFlag = forms.BooleanField(disabled=True, required=False)
     CountDate = forms.DateField(disabled=True, required=False)
-    Material = forms.ModelChoiceField(MaterialList.objects.all(), required=False, widget=forms.HiddenInput)
+    # Material = forms.CharField(required=False, widget=forms.HiddenInput)
+    # Material = forms.ModelChoiceField(MaterialList.objects.all(), required=False, widget=forms.HiddenInput)
     Counter = forms.CharField(max_length=250, disabled=True, required=False)
     Priority = forms.CharField(max_length=50, disabled=True, required=False)
     ReasonScheduled = forms.CharField(max_length=250, disabled=True, required=False)
@@ -345,7 +352,7 @@ class RelatedScheduleInfo(forms.ModelForm):
 @login_required
 def fnCountEntryForm(req, formname, recNum = -1, 
     loadMatlInfo = None, 
-    passedCountDate=None, 
+    passedCountDate=str(datetime.date.today()), 
     gotoCommand=None
     ):
 
@@ -354,6 +361,7 @@ def fnCountEntryForm(req, formname, recNum = -1,
     # the string 'None' is not the same as the value None
     if loadMatlInfo=='None': loadMatlInfo=None
     if passedCountDate=='None': passedCountDate=None
+    if passedCountDate==None: passedCountDate=str(datetime.date.today())
     if gotoCommand=='None': gotoCommand=None
 
     # if a record number was passed in, retrieve it
@@ -364,20 +372,14 @@ def fnCountEntryForm(req, formname, recNum = -1,
         currRec = ActualCounts.objects.filter(org=_userorg).get(pk=recNum)
     # endif
     
-    # I need the Material record (or at least id), not the readable string (which is what the form stores)
-    # or do I?  CountEntry.save() overridden to handle this
-    #if req.method=='POST': MatlRec = MaterialList.objects.get(Material=req.POST['Material'])
-    #elseif loadMatlInfo: MatlRec = MaterialList.objects.get(Material=loadMatlInfo)
-    #else: MatlRec = None
-    
     prefixvals = {}
     prefixvals['main'] = 'counts'
     prefixvals['matl'] = 'matl'
     prefixvals['schedule'] = 'schedule'
     initialvals = {}
-    initialvals['main'] = {'org':_userorg, 'CountDate':datetime.date.today()}
+    initialvals['main'] = {'org':_userorg, 'CountDate':datetime.date.fromisoformat(passedCountDate)}
     initialvals['matl'] = {'org': _userorg}
-    initialvals['schedule'] = {'org': _userorg, 'CountDate':datetime.date.today()}
+    initialvals['schedule'] = {'org': _userorg, 'CountDate':datetime.date.fromisoformat(passedCountDate)}
 
     changes_saved = {
         'main': False,
@@ -389,8 +391,6 @@ def fnCountEntryForm(req, formname, recNum = -1,
         'matl': None, 
         'schedule': None
         }
-
-    prepNewRec = (req.method != 'POST' and recNum <= 0)
 
     if req.method == 'POST':
         # changed data is being submitted.  process and save it
@@ -415,7 +415,7 @@ def fnCountEntryForm(req, formname, recNum = -1,
         if matlSubFm.is_valid():
             if matlSubFm.has_changed():
                 matlSubFm.save(_userorg)
-                chgd_dat['matl'] = matlSubFm.changed_objects
+                chgd_dat['matl'] = matlSubFm.changed_data
                 changes_saved['matl'] = True
 
         # count schedule subform
@@ -423,7 +423,7 @@ def fnCountEntryForm(req, formname, recNum = -1,
         #if schedSet.is_valid():
         #    if schedSet.has_changed():
         #        schedSet.save(_userorg)
-        #        chgd_dat['schedule'] = schedSet.changed_objects
+        #        chgd_dat['schedule'] = schedSet.changed_data
         #        changes_saved['schedule'] = True
     #endif req.method=='POST'
 
@@ -485,8 +485,8 @@ def fnCountEntryForm(req, formname, recNum = -1,
 
     if matlinfo==[]: matlSubFm = RelatedMaterialInfo(initial=initialvals['matl'], prefix=prefixvals['matl']) 
     else: matlSubFm = RelatedMaterialInfo(instance=matlinfo, prefix=prefixvals['matl'])
-    matlSubFm.fields['Material'].queryset=MaterialList.objects.filter(org=_userorg).all()
-    matlSubFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
+    #matlSubFm.fields['Material'].queryset=MaterialList.objects.filter(org=_userorg).all()
+    #matlSubFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
 
     if schedinfo==[]: schedFm = RelatedScheduleInfo(initial=initialvals['schedule'], prefix=prefixvals['schedule'])
     else: schedFm = RelatedScheduleInfo(instance=schedinfo, prefix=prefixvals['schedule'])
