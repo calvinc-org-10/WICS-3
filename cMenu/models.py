@@ -40,3 +40,27 @@ class menuItems(models.Model):
     def __str__(self) -> str:
         return self.MenuGroup + ', ' + self.MenuID + '/' + self.OptionNumber + ', ' + self.OptionText
 
+
+class cParameters(models.Model):
+    ParmName = models.CharField(primary_key=True, max_length=100)
+    ParmValue = models.CharField(max_length=512, blank=True, null=False, default='')
+    UserModifiable = models.BooleanField(blank=True, null=False, default=True)
+    Comments = models.CharField(max_length=512, blank=True, null=False, default='')
+
+    class Meta:
+        ordering = ['ParmName']
+
+    def __str__(self) -> str:
+        return self.ParmName + ' (' + self.ParmValue + ')'
+
+def getcParm(parmname):
+    if cParameters.objects.filter(ParmName=parmname).exists():
+        return cParameters.objects.get(ParmName=parmname).ParmValue
+    else:
+        return ''
+
+def setcParm(parmname, parmvalue):
+    P = cParameters.objects.get_or_create(ParmName=parmname)
+    P.ParmValue = parmvalue
+    P.save()
+

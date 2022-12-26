@@ -1,6 +1,7 @@
 from django.db import models
 from sqlalchemy import UniqueConstraint
 from django.utils import timezone
+from cMenu.models import getcParm
 
 # Create your models here.
 # I'm quite happy with automaintained pk fields, so I don't specify any
@@ -38,7 +39,8 @@ class WhsePartTypes(models.Model):
     WhsePartType = models.CharField(max_length=50)
     PartTypePriority = models.SmallIntegerField()
     InactivePartType = models.BooleanField(blank=True, default=False)
-    #orgobjects = orgObjects()
+    objects = models.Manager()
+    orgobjects = orgObjects(org)
     UniqueConstraint('org', 'WhsePartType')
     UniqueConstraint('org', 'PartTypePriority')
 
@@ -61,8 +63,8 @@ class MaterialList(models.Model):
     TypicalContainerQty = models.IntegerField(null=True, blank=True)
     TypicalPalletQty = models.IntegerField(null=True, blank=True)
     Notes = models.CharField(max_length=250, blank=True)
-    #objects = models.Manager()
-    #orgobjects = orgObjects()
+    objects = models.Manager()
+    orgobjects = orgObjects(org)
     UniqueConstraint('org', 'Material')
 
     class Meta:
@@ -84,7 +86,8 @@ class CountSchedule(models.Model):
     ReasonScheduled = models.CharField(max_length=250, blank=True)
     CMPrintFlag = models.BooleanField(blank=True, default=False)
     Notes = models.CharField(max_length=250, blank=True)
-    #orgobjects = orgObjects()
+    objects = models.Manager()
+    orgobjects = orgObjects(org)
     UniqueConstraint('org', 'CountDate', 'Material')
 
     class Meta:
@@ -107,8 +110,9 @@ class ActualCounts(models.Model):
     TAGQTY = models.CharField(max_length=250, blank=True)
     FLAG_PossiblyNotRecieved = models.BooleanField(blank=True, default=False)
     FLAG_MovementDuringCount = models.BooleanField(blank=True, default=False)
-    #orgobjects = orgObjects()
     Notes = models.CharField(max_length = 250, blank=True)
+    objects = models.Manager()
+    orgobjects = orgObjects(org)
 
     class Meta:
         ordering = ['org', 'CountDate', 'Material']
@@ -121,9 +125,10 @@ class ActualCounts(models.Model):
 class SAPFiles(models.Model):
     uploaded_at = models.DateTimeField(default=timezone.now)
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
-    SAPFile = models.FileField(upload_to='SAP/')
+    SAPFile = models.FileField(upload_to="SAP\\")
     Notes = models.CharField(max_length=255, blank=True)
-    #orgobjects = orgObjects()
+    objects = models.Manager()
+    orgobjects = orgObjects(org)
     class Meta:
         get_latest_by = 'uploaded_at'
 #class SAP(models.Model):

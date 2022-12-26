@@ -4,6 +4,7 @@ from django.shortcuts import render, HttpResponse   #, redirect
 from userprofiles.views import fnWICSuserForm
 from userprofiles.models import WICSuser
 from WICS.forms import fnUploadSAP, fnMaterialForm, fnCountEntryForm
+from WICS.reports import fnCountSummaryRptPreview
 from WICS.SAPLists import fnSAPList #, SAProw
 
 
@@ -30,14 +31,16 @@ class MENUCOMMAND(Enum):
 # should this be handled via urls?
 def FormBrowse(req, formname, recNum = -1):
     theForm = 'Form ' + formname + ' is not built yet.  Calvin needs more coffee.'
-    if formname == 'frmcount-schedulehistory-by-counterdate': pass
+    if formname == 'frmcount-schedulehistory-by-counterdate': 
+        pass
     elif formname == 'l10-wics-uadmin':
         theForm = fnWICSuserForm(req)
     elif formname == 'l6-wics-uadmin':
         theForm = fnWICSuserForm(req)
     elif formname == 'frmcountentry':
         theForm = fnCountEntryForm(req, formname)
-    elif formname == 'frmCountSummaryPreview': pass
+    elif formname == 'frmcountsummarypreview': 
+        theForm = fnCountSummaryRptPreview(req)
     elif formname == 'frmExportCMCounts': pass
     elif formname == 'frmimportsap':
         theForm = fnUploadSAP(req, formname)
@@ -60,7 +63,7 @@ def ShowTable(req, tblname):
     # guess what - SAP is the first one I'm implementing!
     thetable = 'working on presenting table ' + tblname + '. Calvin still needs more coffee, and maybe for material to stay put sometimes!'
     if tblname == 'sap':
-        SAP_tbl = fnSAPList(req)
+        SAP_tbl = fnSAPList(_userorg)
         cntext = {'reqDate': SAP_tbl['reqDate'],
                 'SAPDate': SAP_tbl['SAPDate'],
                 'SAPSet': SAP_tbl['SAPTable'],

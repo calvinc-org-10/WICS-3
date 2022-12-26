@@ -15,11 +15,14 @@ class SAProw:
 
 
 # read the last SAP list before for_date into a list of SAProw
-def fnSAPList(req, for_date = datetime.datetime.now(), matl = None):
+def fnSAPList(org, for_date = datetime.datetime.now(), matl = None):
     """
     matl is a MaterialList object to list, or None if all records are to be listed
     """
-    _userorg = WICSuser.objects.get(user=req.user).org
+    #TODO: Allow matl to be a set or list
+    #TODO  Sort SList['SAPTable'] by Material
+    
+    _userorg = org
 
     try:
         SAPObj = SAPFiles.objects.filter(org=_userorg, uploaded_at__lte=for_date).latest()

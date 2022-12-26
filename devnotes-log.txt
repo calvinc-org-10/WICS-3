@@ -24,6 +24,11 @@ Implement the navigation buttons on Count Entry fm
 Getting Count Entry form to properly save is harder than I thought!!
 Got it to save new records.  Needs more work, which must come later
 
+2022 Dec 18-22
+Got Count Entry behaving (pretty much).  For new records, disable data fields until Count Date and Material given, for existing records, disallow Count Date or Material changes
+Saving Count Entry records/changes works now
+Added flds on Count Entry which are needed, continued to work on "pretty" placement
+Force Material to be a valid choicelist
 
 
 MISC NOTES:
@@ -32,4 +37,6 @@ When importing initial records, store blank char fields as '', not null.  That w
 
 TODO:
 Review ALL code and clean it up - developing while learning has made me write a lot of patchy and nasty-looking code
-DOITNOWDOITNOW!!!  Save the Count Entry records!!!
+Implement buttons: Abandon Changes, Delete Record
+BUGFIX: If new rec, Material chosen, then erased, erasure is not caught, and data fields are not disabled
+

@@ -22,9 +22,9 @@
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {% render_field form.org hidden="true" %}
-        <p>{{ form.uploaded_at }}</p>
+        <p>SAP Date: {{ form.uploaded_at }}</p>
         <p>{{ form.SAPFile }}</p>
-        <p>{{ form.Notes }}</p>
+        <p>Notes: {{ form.Notes }}</p>
 
         <!-- form footer -->
         <div class="container">
@@ -42,11 +42,14 @@
   </form>
 
     <script>
+        // JAVASCRIPT DATES SUCK!!!!!!
 
-        // expand this one day - this could be useful
-        function dtstr(dt, fmt = "YYYY-MM-DD HH:NN:SS")
+
+        // expand this one day - this could be useful - Fix it first!!!
+        function dtstr(dt = Date(), fmt = "YYYY-MM-DD HH:NN:SS")
         {
             dt = (dt == undefined) ? Date() : dt;   // how do I move dt to localtime??? - easy - by not introducing syntax errors!
+            if (typeof(dt) == 'string') { dt = new Date(dt) }
             d_str = fmt
             d_str = d_str.replaceAll('YYYY',("0000"+dt.getFullYear()).slice(-4))
             d_str = d_str.replaceAll('MM',("00"+(dt.getMonth()+1)).slice(-2))
@@ -57,6 +60,7 @@
             // if new_dt = Date(d_str) is invalid, replace with dt.toString()
             return d_str
         }
+
         document.getElementById("id_uploaded_at").value = dtstr()   // find a way to use {{form.uploaded_at.id}}
         // document.getElementById("id_uploaded_at").value = new Date().toLocaleTimeString()   // find a way to use {{form.uploaded_at.id}}
 

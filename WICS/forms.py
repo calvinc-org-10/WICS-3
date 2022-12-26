@@ -6,6 +6,7 @@ from django.db import models
 from django.forms import inlineformset_factory, formset_factory
 from django.shortcuts import render
 from django.db.models import Value
+from cMenu.models import getcParm
 from WICS.models import MaterialList, ActualCounts, CountSchedule, SAPFiles, WhsePartTypes, Organizations
 from WICS.SAPLists import fnSAPList
 from userprofiles.models import WICSuser
@@ -40,7 +41,7 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
     # get current record
     currRec = None
     if gotoRec:
-        currRec = MaterialList.objects.filter(org=_userorg,Material=req.GET['gotoID']).first()
+        currRec = MaterialList.objects.filter(org=_userorg, Material=req.GET['gotoID']).first()
     if not currRec:
         if recNum <= 0:
             currRec = MaterialList.objects.filter(org=_userorg).first()
@@ -53,7 +54,7 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
     else:
         thisPK = currRec.pk
 
-    SAP_SOH = fnSAPList(req, matl=currRec)
+    SAP_SOH = fnSAPList(_userorg, matl=currRec)
 
     gotoForm = {}
     gotoForm['gotoItem'] = currRec
@@ -197,10 +198,13 @@ def fnUploadSAP(req, formname):
     if req.method == 'POST':
         form = UploadSAPForm(req.POST, req.FILES, initial={'org':_userorg})
         if form.is_valid():
+            svdir = getcParm('SAP-FILELOC')
             instance = SAPFiles(SAPFile=req.FILES['SAPFile'])
             instance.org = _userorg
             instance.uploaded_at = req.POST['uploaded_at']
-            instance.SAPFile.upload_to="SAP/SAP" + str(time.ctime(time.time())).replace(":","-").strip() + ExcelWorkbook_fileext
+            # upload_to is handled by the model and django settings (MEDIA_ROOT)
+            #instance.SAPFile.upload_to=svdir + "SAP" + str(time.ctime(time.time())).replace(":","-").strip() + ExcelWorkbook_fileext
+            #instance.SAPFile.upload_to=svdir + "SAP/"
             instance.save()
             timetogo = True
             return HttpResponseRedirect('/success/url/')    #fixmefixmefixme - set up templt to handle timetogo

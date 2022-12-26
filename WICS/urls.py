@@ -14,11 +14,12 @@ Including another URLconf
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
 from django.urls import path
-from WICS import forms
+from WICS import forms, reports
 
-# should this be in cMenu?
+# should this be in cMenu? 12/24/2022 - I'm thinking no
 urlpatterns = [
     path('MaterialForm2/<int:recNum>',forms.fnMaterialForm, {'formname': 'frmmaterialform','gotoRec':True}, name='ReloadMatlForm'),
     path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>',forms.fnCountEntryForm, {'formname': 'frmcountentry'}, name='CountEntryForm'),
     path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>/<str:gotoCommand>',forms.fnCountEntryForm, {'formname': 'frmcountentry'}, name='CountEntryFormGoto'),
+    path('CountSummaryRpt/<str:passedCountDate>',reports.fnCountSummaryRptPreview, name='CountSummaryReport'),
 ]

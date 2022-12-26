@@ -3,6 +3,7 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.urls import reverse
 from django.utils.text import slugify
+from cMenu.utils import WrapInQuotes
 from cMenu import menucommand_handlers
 from cMenu.menucommand_handlers import MENUCOMMAND
 from cMenu.models import menuCommands, menuItems
@@ -10,11 +11,6 @@ from cMenu.models import menuCommands, menuItems
 from userprofiles.models import WICSuser
 
 # Create your views here.
-
-# move this to (or find it in) a utility package
-def WrapInQuotes(str, quotechar = chr(34)):
-    return quotechar + str + quotechar
-
 
 @login_required
 def LoadMenu(req, menuGroup, menuNum):
@@ -50,15 +46,12 @@ def LoadMenu(req, menuGroup, menuNum):
 
 
 def HandleMenuCommand(req,CommandNum,CommandArg):
-    tmpst = "Command " + menuCommands.objects.get(Command=CommandNum).__str__() + " will be performed with Argument " + CommandArg
+    retHTTP = "Command " + menuCommands.objects.get(Command=CommandNum).__str__() + " will be performed with Argument " + CommandArg
 
     if CommandNum == MENUCOMMAND.LoadMenu.value :
-        # work on this case
-        LoadMenu(req,int(CommandArg))
-        pass
+        retHTTP = LoadMenu(req,int(CommandArg))
     elif CommandNum == MENUCOMMAND.FormBrowse.value :
-        tmpst = menucommand_handlers.FormBrowse(req, CommandArg)
-        pass
+        retHTTP = menucommand_handlers.FormBrowse(req, CommandArg)
     elif CommandNum == MENUCOMMAND.FormAdd.value :
         pass
     elif CommandNum == MENUCOMMAND.ReportView.value :
@@ -72,7 +65,7 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
         pass
     elif CommandNum == MENUCOMMAND.RunCode.value :
         fn = getattr(menucommand_handlers, CommandArg)
-        return fn(req)
+        retHTTP = fn(req)
     elif CommandNum == MENUCOMMAND.RunSQLStatement.value:
         pass
     elif CommandNum == MENUCOMMAND.ConstructSQLStatement.value:
@@ -90,4 +83,4 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
     else:
         pass
 
-    return HttpResponse(tmpst)
+    return HttpResponse(retHTTP)
