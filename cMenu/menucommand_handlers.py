@@ -3,7 +3,7 @@ from django.shortcuts import render, HttpResponse   #, redirect
 #from django.utils.html import escape
 from userprofiles.views import fnWICSuserForm
 from userprofiles.models import WICSuser
-from WICS.forms import fnUploadSAP, fnMaterialForm, fnCountEntryForm
+from WICS.forms import fnUploadSAP, fnMaterialForm, fnCountEntryForm, CountScheduleForm
 from WICS.reports import fnCountSummaryRptPreview
 from WICS.SAPLists import fnSAPList #, SAProw
 
@@ -32,7 +32,8 @@ class MENUCOMMAND(Enum):
 def FormBrowse(req, formname, recNum = -1):
     theForm = 'Form ' + formname + ' is not built yet.  Calvin needs more coffee.'
     if formname == 'frmcount-schedulehistory-by-counterdate': 
-        pass
+        theView = CountScheduleForm.as_view()
+        theForm = theView(req).render()
     elif formname == 'l10-wics-uadmin':
         theForm = fnWICSuserForm(req)
     elif formname == 'l6-wics-uadmin':

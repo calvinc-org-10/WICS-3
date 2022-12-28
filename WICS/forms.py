@@ -10,8 +10,11 @@ from cMenu.models import getcParm
 from WICS.models import MaterialList, ActualCounts, CountSchedule, SAPFiles, WhsePartTypes, Organizations
 from WICS.SAPLists import fnSAPList
 from userprofiles.models import WICSuser
-from django.http import HttpResponseRedirect
-from django.db.models.query import EmptyQuerySet
+from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
+from django.db.models.query import EmptyQuerySet, QuerySet
+from django.views.generic import ListView
+from typing import Any, Dict
+
 
 ExcelWorkbook_fileext = ".XLSX"
 #_userorg = WICSuser.objects.none().org
@@ -679,4 +682,32 @@ def fnCountEntryForm_OLD(req, formname, recNum = -1,
             }
     templt = 'frm_CountEntry.html'
     return render(req, templt, cntext)
+
+#####################################################################
+#####################################################################
+#####################################################################
+
+class CountScheduleForm(ListView):
+    ordering = ['-CountDate', 'Material']
+    context_object_name = 'CtSchdList'
+    template_name = 'frm_CountScheduleList.html'
+    
+    def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
+        self._userorg = WICSuser.objects.get(user=req.user).org
+        self.queryset = CountSchedule.objects.filter(org=self._userorg).order_by('-CountDate', 'Material')   # figure out how to pass in self.ordering
+        return super().setup(req, *args, **kwargs)
+
+    def get_queryset(self) -> QuerySet[Any]:
+        return super().get_queryset()
+
+    # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+    #     return super().get(request, *args, **kwargs)
+
+    def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        return HttpResponse('Stop rushing me!!')
+
+    def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
+        # I want to break here to see what's going on
+        return super().render_to_response(context, **response_kwargs)
+
 

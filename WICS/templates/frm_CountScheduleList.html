@@ -1,0 +1,53 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+
+{# I gotta clean this template up too... #}
+
+
+{% block tTitle %}Count Entry{% endblock %}
+
+{% block boddy %}
+
+Count Schedule Records
+<hr>
+<div class="card-body no-padding" style="height:300px; overflow: auto;">
+    {% for itm in CtSchdList %}
+    <div class="row">
+        {{ itm.id }}
+        <div class="col-3">
+            <div class="row">
+                <div class="col-4">{{ itm.CountDate }}</div>
+                <div class="col-8">{{ itm.Counter }}</div>
+            </div>
+            <div class="row">
+                <div class="col">{{ itm.Material }}</div>
+            </div>
+        </div> 
+        <div class="col-3">
+            {{ itm.Priority }}
+            {{ itm.ReasonScheduled }}
+        </div>
+        <div class="col-1">{{ itm.CMPrintFlag }}</div>
+        <div class="col-3">{{ itm.Notes }}</div>
+        <div class="col-2"><button id="edit{{ itm.id }}" name="edit" value="{{ itm.id }} " type="button">Edit This Schedule Entry</button></div>
+    </div>
+    <hr>
+    {% endfor %}
+</div>
+
+<!-- form footer -->
+<hr>
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-2">
+            <button id="add_btn" type="button">Add Schedule Entry</button>
+        </div>
+        <div class="col-8">
+        </div>
+        <div class="col-2">
+            <button id="close_btn" type="button">Close Form</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
