@@ -38,7 +38,7 @@ class menuItems(models.Model):
         ordering = ['MenuGroup','MenuID', 'OptionNumber']
 
     def __str__(self) -> str:
-        return self.MenuGroup + ', ' + self.MenuID + '/' + self.OptionNumber + ', ' + self.OptionText
+        return str(self.MenuGroup) + ', ' + str(self.MenuID) + '/' + str(self.OptionNumber) + ', ' + self.OptionText
 
 
 class cParameters(models.Model):

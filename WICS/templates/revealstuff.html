@@ -1,0 +1,13 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+
+{% block tTitle %}Count Summary{% endblock %}
+
+{% block boddy %}
+
+<ul>
+{% for x in stuff %}
+    <li>{{ x }}</li>
+{% endfor %}
+
+{% endblock %}

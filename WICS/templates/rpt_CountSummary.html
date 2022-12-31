@@ -8,20 +8,19 @@
     <div class="row">
         <div class="col-10 fs-3">
             <u>{{ orgname }}</u>
-            <br>Count Entry
+            <br>Counts Scheduled and Performed
         </div>
         <div class="col-2 text-end"> {{ uname }} </div>
     </div>
 
-    <div class="container mx-auto">
+    <!-- GoTo Date -->
+    <div class="container text-center bg-info">
         <div class="row">
-            <div class="col-12">
-                Put the date selector here; get date from the input lists
-                {{ CountDate }}
+            <div class="col-1"></div>
+            <div class="col-5">
+                <h2>{{ CountDate|date:"l" }} <input id="CtDate" type="Date" value="{{ CountDate|date:'Y-m-d' }}" onchange="newCtDate();"></input></h2>
             </div>
-        </div>
-        <div class="row">
-            <div class="col-12 text-right">
+            <div class="col-5 text-right">
                 SAP Date {{ SAPDate }}
             </div>
         </div>
@@ -29,8 +28,8 @@
 </div>
 
 <hr>
-<div class="container mx-auto">
-    <u>Scheduled and Counted</u>
+<div class="container mx-auto"  style="height:350px; overflow:auto;" >
+    <h3><u>Scheduled and Counted</u></h3>
     <div class="row small">
         <div class="col-1">Count Date</div>
         <div class="col-1">Cyc Ct ID</div>
@@ -45,7 +44,7 @@
     {% for ent in Sched_Ctd %}
         {% if ent.type == 'Detail' %}
         <div class="row small">
-            <div class="col-1">{{ CountDate }}</div>
+            <div class="col-1">{{ CountDate|date:"Y-m-d" }}</div>
             <div class="col-1">{{ ent.CycCtID }}</div>
             <div class="col-2">{{ ent.Material }}</div>
             <div class="col-2">{{ ent.SchedCounter }}</div>
@@ -55,23 +54,28 @@
             <div class="col-1">{{ ent.PKGID }}</div>
             <div class="col-1">{{ ent.TAGQTY }}</div>
         </div>
+        <div class="row small">
+            <div class="col-11 text-end"><b>Actual Count: </b> {{ ent.CTD_QTY_Expr }}</div>
+            <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
+        </div>
         {% if ent.PossNotRec or ent.MovDurCt %}
         <div class="text-center">
             {% if ent.PossNotRec %}<b>POSSIBLY NOT RECIEVED</b>{% endif %}
             {% if ent.MovDurCt %}<b>MOVEMENT DURING COUNT</b>{% endif %}
         </div>
         {% endif %}
+        {% if ent.ActCountNotes %}
         <div class="row small">
-            <div class="col-11 text-end">{{ ent.CTD_QTY_Expr }}</div>
-            <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
+            <div class="col"><b>Count Notes: </b>{{ ent.ActCountNotes }}</div>
         </div>
+        {% endif %}
         {% elif ent.type == 'Summary' %}
         <div>
             <b>SAP:</b>
             {% for s in ent.SAPNum %}{{ s }}{% endfor %}
         </div>
         <div class="row">
-            <div class="col-3"><b>Totals for {{ ent.Material }}</b></div>
+            <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
             <div class="col-1">Counted</div>
             <div class="col-1">SAP</div>
             <div class="col-1">Diff</div>
@@ -79,11 +83,9 @@
             <div class="col-1"></div>
             <div class="col-1"></div>
             <div class="col-1"></div>
-            <div class="col-1"></div>
-            <div class="col-1"></div>
         </div>
         <div class="row">
-            <div class="col-3">Part Type {{ ent.PartType }}</div>
+            <div class="col-5">Part Type {{ ent.PartType }}</div>
             <div class="col-1">{{ ent.CountTotal }}</div>
             <div class="col-1">{{ ent.SAPTotal }}</div>
             <div class="col-1">{{ ent.Diff }}</div>
@@ -92,13 +94,21 @@
                 {% elif ent.Accuracy > 98.5 %} bg-success
                 {% elif ent.Accuracy > 95 %} bg-warning
                 {% endif %}
-            ">{{ ent.Accuracy|floatformat:2 }}%</div>
-            <div class="col-1"></div>
-            <div class="col-1"></div>
+            "><b>{{ ent.Accuracy|floatformat:2 }}%</b></div>
             <div class="col-1"></div>
             <div class="col-1"></div>
             <div class="col-1"></div>
         </div>
+        {% if ent.ReasonScheduled %}
+        <div class="row small">
+            <div class="col"><b>Reason Scheduled: </b>{{ ent.ReasonScheduled }}</div>
+        </div>
+        {% endif %}
+        {% if ent.SchedNotes %}
+        <div class="row small">
+            <div class="col"><b>Schedule Notes: </b>{{ ent.SchedNotes }}</div>
+        </div>
+        {% endif %}
         {% if not forloop.last %}
         <hr>
         <div class="row small">
@@ -118,8 +128,8 @@
         {% endif %}
     {% endfor %}
 
-    <hr>
-    <u>Uncheduled</u>
+    <hr><hr>
+    <h3><u>UnScheduled</u></h3>
     <div class="row small">
         <div class="col-1">Count Date</div>
         <div class="col-1">Cyc Ct ID</div>
@@ -134,7 +144,7 @@
     {% for ent in UnSched_Ctd %}
         {% if ent.type == 'Detail' %}
         <div class="row small">
-            <div class="col-1">{{ CountDate }}</div>
+            <div class="col-1">{{ CountDate|date:"Y-m-d" }}</div>
             <div class="col-1">{{ ent.CycCtID }}</div>
             <div class="col-2">{{ ent.Material }}</div>
             <div class="col-2">{{ ent.SchedCounter }}</div>
@@ -144,23 +154,28 @@
             <div class="col-1">{{ ent.PKGID }}</div>
             <div class="col-1">{{ ent.TAGQTY }}</div>
         </div>
+        <div class="row small">
+            <div class="col-11 text-end">{{ ent.CTD_QTY_Expr }}</div>
+            <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
+        </div>
         {% if ent.PossNotRec or ent.MovDurCt %}
         <div class="text-center">
             {% if ent.PossNotRec %}<b>POSSIBLY NOT RECIEVED</b>{% endif %}
             {% if ent.MovDurCt %}<b>MOVEMENT DURING COUNT</b>{% endif %}
         </div>
         {% endif %}
+        {% if ent.ActCountNotes %}
         <div class="row small">
-            <div class="col-11 text-end">{{ ent.CTD_QTY_Expr }}</div>
-            <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
+            <div class="col"><b>Count Notes: </b>{{ ent.ActCountNotes }}</div>
         </div>
+        {% endif %}
         {% elif ent.type == 'Summary' %}
         <div>
             <b>SAP:</b>
             {% for s in ent.SAPNum %}{{ s }}{% endfor %}
         </div>
         <div class="row">
-            <div class="col-3"><b>Totals for {{ ent.Material }}</b></div>
+            <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
             <div class="col-1">Counted</div>
             <div class="col-1">SAP</div>
             <div class="col-1">Diff</div>
@@ -168,11 +183,9 @@
             <div class="col-1"></div>
             <div class="col-1"></div>
             <div class="col-1"></div>
-            <div class="col-1"></div>
-            <div class="col-1"></div>
         </div>
         <div class="row">
-            <div class="col-3">Part Type {{ ent.PartType }}</div>
+            <div class="col-5">Part Type {{ ent.PartType }}</div>
             <div class="col-1">{{ ent.CountTotal }}</div>
             <div class="col-1">{{ ent.SAPTotal }}</div>
             <div class="col-1">{{ ent.Diff }}</div>
@@ -181,13 +194,21 @@
                 {% elif ent.Accuracy > 98.5 %} bg-success
                 {% elif ent.Accuracy > 95 %} bg-warning
                 {% endif %}
-            ">{{ ent.Accuracy|floatformat:2 }}%</div>
-            <div class="col-1"></div>
-            <div class="col-1"></div>
+            "><b>{{ ent.Accuracy|floatformat:2 }}%</b></div>
             <div class="col-1"></div>
             <div class="col-1"></div>
             <div class="col-1"></div>
         </div>
+        {% if ent.ReasonScheduled %}
+        <div class="row small">
+            <div class="col"><b>Reason Scheduled: </b>{{ ent.ReasonScheduled }}</div>
+        </div>
+        {% endif %}
+        {% if ent.SchedNotes %}
+        <div class="row small">
+            <div class="col"><b>Schedule Notes: </b>{{ ent.SchedNotes }}</div>
+        </div>
+        {% endif %}
         {% if not forloop.last %}
         <hr>
         <div class="row small">
@@ -208,8 +229,8 @@
     {% endfor %}
 
     
-    <hr>
-    <u>Scheduled but Not Counted</u>
+    <hr><hr>
+    <h3><u>Scheduled but Not Counted</u></h3>
     <div class="row small">
         <div class="col-1">Count Date</div>
         <div class="col-1">Cyc Ct ID</div>
@@ -224,7 +245,7 @@
     {% for ent in Sched_NotCtd %}
         {% if ent.type == 'Detail' %}
         <div class="row small">
-            <div class="col-1">{{ CountDate }}</div>
+            <div class="col-1">{{ CountDate|date:"Y-m-d" }}</div>
             <div class="col-1">{{ ent.CycCtID }}</div>
             <div class="col-2">{{ ent.Material }}</div>
             <div class="col-2">{{ ent.SchedCounter }}</div>
@@ -234,23 +255,23 @@
             <div class="col-1">{{ ent.PKGID }}</div>
             <div class="col-1">{{ ent.TAGQTY }}</div>
         </div>
+        <div class="row small">
+            <div class="col-11 text-end">{{ ent.CTD_QTY_Expr }}</div>
+            <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
+        </div>
         {% if ent.PossNotRec or ent.MovDurCt %}
         <div class="text-center">
             {% if ent.PossNotRec %}<b>POSSIBLY NOT RECIEVED</b>{% endif %}
             {% if ent.MovDurCt %}<b>MOVEMENT DURING COUNT</b>{% endif %}
         </div>
         {% endif %}
-        <div class="row small">
-            <div class="col-11 text-end">{{ ent.CTD_QTY_Expr }}</div>
-            <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
-        </div>
         {% elif ent.type == 'Summary' %}
         <div>
             <b>SAP:</b>
             {% for s in ent.SAPNum %}{{ s }}{% endfor %}
         </div>
         <div class="row">
-            <div class="col-3"><b>Totals for {{ ent.Material }}</b></div>
+            <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
             <div class="col-1">Counted</div>
             <div class="col-1">SAP</div>
             <div class="col-1">Diff</div>
@@ -258,11 +279,9 @@
             <div class="col-1"></div>
             <div class="col-1"></div>
             <div class="col-1"></div>
-            <div class="col-1"></div>
-            <div class="col-1"></div>
         </div>
         <div class="row">
-            <div class="col-3">Part Type {{ ent.PartType }}</div>
+            <div class="col-5">Part Type {{ ent.PartType }}</div>
             <div class="col-1">{{ ent.CountTotal }}</div>
             <div class="col-1">{{ ent.SAPTotal }}</div>
             <div class="col-1">{{ ent.Diff }}</div>
@@ -271,13 +290,21 @@
                 {% elif ent.Accuracy > 98.5 %} bg-success
                 {% elif ent.Accuracy > 95 %} bg-warning
                 {% endif %}
-            ">{{ ent.Accuracy|floatformat:2 }}%</div>
-            <div class="col-1"></div>
-            <div class="col-1"></div>
+            "><b>{{ ent.Accuracy|floatformat:2 }}%</b></div>
             <div class="col-1"></div>
             <div class="col-1"></div>
             <div class="col-1"></div>
         </div>
+        {% if ent.ReasonScheduled %}
+        <div class="row small">
+            <div class="col"><b>Reason Scheduled: </b>{{ ent.ReasonScheduled }}</div>
+        </div>
+        {% endif %}
+        {% if ent.SchedNotes %}
+        <div class="row small">
+            <div class="col"><b>Schedule Notes: </b>{{ ent.SchedNotes }}</div>
+        </div>
+        {% endif %}
         {% if not forloop.last %}
         <hr>
         <div class="row small">
@@ -296,8 +323,9 @@
             Unknown lineout.type {{ ent.type }}<br>
         {% endif %}
     {% endfor %}
+</div>
 
-    
+<div class="container">
     <!-- form footer -->
     <hr>
     <div class="container">
@@ -325,6 +353,10 @@
             }
         });
 
+    function newCtDate() {
+        var newRec = "{% url 'CountSummaryReport' 'PCD' %}".replace('/PCD','/'+$('#CtDate').val())
+        window.location = newRec;
+    }
 </script>
 
 {% endblock %}

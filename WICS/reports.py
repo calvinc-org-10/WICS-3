@@ -5,14 +5,26 @@ from WICS.models import ActualCounts, CountSchedule, MaterialList
 from WICS.SAPLists import fnSAPList
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
-from django.db.models import Q
+from django.db.models import Prefetch, FilteredRelation, Q
+
+
+
+#########################################
+#########################################
+#########################################
+from dateutil.parser import parse
+
+def isDate(testdate):
+    try:
+        td = parse(testdate)
+    except:
+        td = False
+    return td
 
 
 @login_required
-def fnCountSummaryRptPreview (req, passedCountDate=None):
+def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
     _userorg = WICSuser.objects.get(user=req.user).org
-
-    #TODO:  Incorporate SAP, summary calculations
 
     fldlist = "0 as id, cs.id as cs_id, cs.CountDate as cs_CountDate , cs.Counter as cs_Counter" \
         ", cs.Priority as cs_Priority, cs.ReasonScheduled as cs_ReasonScheduled, cs.CMPrintFlag as cs_CMPrintFlag" \
@@ -24,15 +36,16 @@ def fnCountSummaryRptPreview (req, passedCountDate=None):
         ", mtl.Material as Matl_PartNum, (SELECT WhsePartType FROM WICS_WhsePartTypes WHERE id=mtl.PartType_id) as PartType" \
         ", mtl.Description, mtl.Notes as mtl_Notes"
     org_condition = '(ac.org_id = ' + str(_userorg.pk) + ' OR cs.org_id = ' + str(_userorg.pk) + ') '
-    #datestr = 'CURRENT_DATE'
-    datestrM = "2022-10-07"
-    datestr = WrapInQuotes(datestrM)
-    if passedCountDate: datestr = WrapInQuotes(passedCountDate,"'","'")
+    if isDate(passedCountDate): datestr = WrapInQuotes(passedCountDate,"'","'")
+    else: datestr = passedCountDate
     date_condition = '(ac.CountDate = ' + datestr + ' OR cs.CountDate = ' + datestr + ') '
     order_by = 'Matl_PartNum'
+    # at this point, change passedCountDate to a real date
+    passedCountDate = isDate(passedCountDate)
+    if not passedCountDate: passedCountDate = datetime.datetime.today()
 
     # get the SAP data
-    SAP_SOH = fnSAPList(_userorg)
+    SAP_SOH = fnSAPList(_userorg,passedCountDate)
     
     A_Sched_Ctd_from = 'WICS_countschedule cs INNER JOIN WICS_materiallist mtl INNER JOIN WICS_actualcounts ac'    
     A_Sched_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id AND ac.Material_id=mtl.id'    
@@ -101,8 +114,12 @@ def fnCountSummaryRptPreview (req, passedCountDate=None):
         outputline['PossNotRec'] = rawrow.FLAG_PossiblyNotRecieved
         outputline['MovDurCt'] = rawrow.FLAG_MovementDuringCount
         outputline['CTD_QTY_Expr'] = rawrow.ac_CTD_QTY_Expr
-        outputline['CTD_QTY_Eval'] = eval(rawrow.ac_CTD_QTY_Expr)   # yes, I know the risks - I'll write my own parser later ...
-        lastrow['TotalCounted'] += outputline['CTD_QTY_Eval']
+        try:
+            outputline['CTD_QTY_Eval'] = eval(rawrow.ac_CTD_QTY_Expr)   # yes, I know the risks - I'll write my own parser later ...
+            lastrow['TotalCounted'] += outputline['CTD_QTY_Eval']
+        except:
+            # Exception('bad expression:'+rawrow.ac_CTD_QTY_Expr)
+            outputline['CTD_QTY_Eval'] = "????"
         outputline['ActCountNotes'] = rawrow.ac_Notes
         outputrows.append(outputline)
     # endfor
@@ -202,8 +219,12 @@ def fnCountSummaryRptPreview (req, passedCountDate=None):
         outputline['PossNotRec'] = rawrow.FLAG_PossiblyNotRecieved
         outputline['MovDurCt'] = rawrow.FLAG_MovementDuringCount
         outputline['CTD_QTY_Expr'] = rawrow.ac_CTD_QTY_Expr
-        outputline['CTD_QTY_Eval'] = eval(rawrow.ac_CTD_QTY_Expr)   # yes, I know the risks - I'll write my own parser later ...
-        lastrow['TotalCounted'] += outputline['CTD_QTY_Eval']
+        try:
+            outputline['CTD_QTY_Eval'] = eval(rawrow.ac_CTD_QTY_Expr)   # yes, I know the risks - I'll write my own parser later ...
+            lastrow['TotalCounted'] += outputline['CTD_QTY_Eval']
+        except:
+            # Exception('bad expression:'+rawrow.ac_CTD_QTY_Expr)
+            outputline['CTD_QTY_Eval'] = '????'
         outputline['ActCountNotes'] = rawrow.ac_Notes
         outputrows.append(outputline)
     # endfor
@@ -338,7 +359,7 @@ def fnCountSummaryRptPreview (req, passedCountDate=None):
 
     # display the form
     cntext = {
-            'CountDate': datestrM,
+            'CountDate': passedCountDate,
             'SAPDate': SAP_SOH['SAPDate'],
             'Sched_Ctd': A_Sched_Ctd_outputrows,
             'UnSched_Ctd': B_UnSched_Ctd_outputrows,

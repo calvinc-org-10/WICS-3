@@ -218,12 +218,10 @@ def f00test00_sch():
     print('\n\n')
 
 
-def f00test00(req):
-    # f00test00_act()
-    f00test00_sch()
 
+def f00test00(req):
     # r = render(req,"00test00.html")
     r = HttpResponse()
-    r.write('tables loaded!')
+    r.write('no current test fn!')
     return r
 
