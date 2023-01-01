@@ -33,7 +33,7 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
         ", ac.LocationOnly as ac_LocationOnly, ac.CTD_QTY_Expr as ac_CTD_QTY_Expr, ac.BLDG as ac_BLDG" \
         ", ac.LOCATION as ac_LOCATION, ac.PKGID_Desc as ac_PKGID_Desc, ac.TAGQTY as ac_TAGQTY" \
         ", ac.FLAG_PossiblyNotRecieved, ac.FLAG_MovementDuringCount, ac.Notes as ac_Notes" \
-        ", mtl.Material as Matl_PartNum, (SELECT WhsePartType FROM WICS_WhsePartTypes WHERE id=mtl.PartType_id) as PartType" \
+        ", mtl.Material as Matl_PartNum, (SELECT WhsePartType FROM WICS_whseparttypes WHERE id=mtl.PartType_id) as PartType" \
         ", mtl.Description, mtl.Notes as mtl_Notes"
     org_condition = '(ac.org_id = ' + str(_userorg.pk) + ' OR cs.org_id = ' + str(_userorg.pk) + ') '
     if isDate(passedCountDate): datestr = WrapInQuotes(passedCountDate,"'","'")

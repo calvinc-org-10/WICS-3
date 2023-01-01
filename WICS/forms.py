@@ -1,6 +1,7 @@
 import time
 import datetime
 from django.contrib.auth.decorators import login_required
+from django.urls import reverse
 from django import forms
 from django.db import models
 from django.forms import inlineformset_factory, formset_factory
@@ -196,7 +197,6 @@ class UploadSAPForm(forms.ModelForm):
 @login_required
 def fnUploadSAP(req, formname):
     _userorg = WICSuser.objects.get(user=req.user).org
-    timetogo = False
 
     if req.method == 'POST':
         form = UploadSAPForm(req.POST, req.FILES, initial={'org':_userorg})
@@ -209,13 +209,16 @@ def fnUploadSAP(req, formname):
             #instance.SAPFile.upload_to=svdir + "SAP" + str(time.ctime(time.time())).replace(":","-").strip() + ExcelWorkbook_fileext
             #instance.SAPFile.upload_to=svdir + "SAP/"
             instance.save()
-            timetogo = True
-            return HttpResponseRedirect('/success/url/')    #fixmefixmefixme - set up templt to handle timetogo
+            cntext = {'uploaded_at':instance.uploaded_at, 'filenm':instance.SAPFile.name, 'svdir':svdir,
+                    'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+                    }
+            templt = 'frm_upload_SAP_Success.html'
+            return render(req, templt, cntext)
     else:
         form = UploadSAPForm(initial={'org':_userorg})
     #endif
 
-    cntext = {'form': form, 'timetogo': timetogo,
+    cntext = {'form': form, 
             'formID':formname, 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
             }
     templt = 'frm_upload_SAP.html'
@@ -357,7 +360,7 @@ class RelatedScheduleInfo(forms.ModelForm):
 
 
 @login_required
-def fnCountEntryForm(req, formname, recNum = -1, 
+def fnCountEntryForm(req, formname, recNum = 0, 
     loadMatlInfo = None, 
     passedCountDate=str(datetime.date.today()), 
     gotoCommand=None
@@ -403,6 +406,8 @@ def fnCountEntryForm(req, formname, recNum = -1,
         # changed data is being submitted.  process and save it
         # process mainFm AND subforms.
 
+        gotoCommand = None
+
         # process main form
         if currRec: mainFm = CountEntryForm(req.POST, instance=currRec,  prefix=prefixvals['main'])   # do I need to pass in intial?
         else: mainFm = CountEntryForm(req.POST, initial=initialvals['main'],  prefix=prefixvals['main']) 
@@ -414,8 +419,10 @@ def fnCountEntryForm(req, formname, recNum = -1,
                 chgd_dat['main'] = mainFm.changed_data
                 changes_saved['main'] = True
 
-                # prepare a new empty record for next entry
-                gotoCommand = "New"
+            # prepare a new empty record for next entry
+            gotoCommand = "New"
+        else:
+            gotoCommand = "Invalid"
 
         # material info subform
         matlSubFm = RelatedMaterialInfo(req.POST, prefix=prefixvals['matl'], initial=initialvals['matl'])
@@ -434,9 +441,46 @@ def fnCountEntryForm(req, formname, recNum = -1,
         #        changes_saved['schedule'] = True
     #endif req.method=='POST'
 
-    # has the date or Material changed and we're looking for update Matl/Sched info?
+    # if this is a gotoCommand, get the correct record
+    if gotoCommand=="First" or (gotoCommand=="Prev" and recNum <=0):
+        currRec = ActualCounts.objects.filter(org=_userorg).order_by('id').first()
+        if currRec: recNum = currRec.id
+        else: recNum = 0
+    elif gotoCommand=="Prev":
+        currRec = ActualCounts.objects.filter(org=_userorg,pk__lt=recNum).order_by('id').last()
+        if currRec: recNum = currRec.id
+        else: recNum = 0
+    elif gotoCommand=="Next":
+        currRec = ActualCounts.objects.filter(org=_userorg,pk__gt=recNum).order_by('id').first()
+        if currRec: recNum = currRec.id
+        else: recNum = 0
+    elif gotoCommand=="Last":
+        currRec = ActualCounts.objects.filter(org=_userorg).order_by('id').last()
+        if currRec: recNum = currRec.id
+        else: recNum = 0
+    elif gotoCommand=="Invalid":
+        # this command occurs when a form (new or existing) is submitted, but it has errors
+        # currRec is already set above
+        if currRec: recNum = currRec.id
+        else: recNum = 0
+    elif gotoCommand=="New":
+        currRec = ActualCounts.objects.filter(org=_userorg).none()
+        loadMatlInfo = None
+        recNum=0
+    #endif
+
+    # CLEAN ME UP CLEAN ME UP!!!!
     matlinfo = schedinfo = []
-    if (loadMatlInfo!=None or passedCountDate!=None) and (gotoCommand==None):
+    # if there is a currRec by now, get matlInfo and schedinfo from it
+    if currRec:
+        matlinfo = currRec.Material
+        getDate = currRec.CountDate
+        if CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlinfo).exists():
+            schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlinfo)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
+        else:
+            schedinfo = []
+    # has the date or Material changed and we're looking for update Matl/Sched info?
+    elif (loadMatlInfo!=None or passedCountDate!=None) and (gotoCommand==None):
         # review and clean up this block!
         if loadMatlInfo != None:
             # fill in MatlInfo and CountSchedInfo
@@ -460,40 +504,20 @@ def fnCountEntryForm(req, formname, recNum = -1,
 
         # the rest of the processing is now a subcase of the gotoCommand logic
     
-    # process gotoCommand, if necessary
-    # later, handle record not found
-    # if this is a gotoCommand, get the correct record
-    if gotoCommand=="First" or (gotoCommand=="Prev" and recNum <=0):
-        currRec = ActualCounts.objects.filter(org=_userorg).order_by('CountDate','id').first()
-        if currRec: recNum = currRec.id
-        else: recNum = -1
-    elif gotoCommand=="Prev":
-        currRec = ActualCounts.objects.filter(org=_userorg,pk__lt=recNum).order_by('CountDate','id').last()
-        if currRec: recNum = currRec.id
-        else: recNum = -1
-    elif gotoCommand=="Next":
-        currRec = ActualCounts.objects.filter(org=_userorg,pk__gt=recNum).order_by('CountDate','id').first()
-        if currRec: recNum = currRec.id
-        else: recNum = -1
-    elif gotoCommand=="Last":
-        currRec = ActualCounts.objects.filter(org=_userorg).order_by('CountDate','id').last()
-        if currRec: recNum = currRec.id
-        else: recNum = -1
-    elif gotoCommand=="New":
-        currRec = ActualCounts.objects.filter(org=_userorg).none()
-        loadMatlInfo = None
-        recNum=-1
-    #endif
-
     # prep the forms for the template
-    if currRec: mainFm = CountEntryForm(instance=currRec, prefix=prefixvals['main'])
-    else:       mainFm = CountEntryForm(initial=initialvals['main'],  prefix=prefixvals['main'])
-    mainFm.fields['Material'].choices = MaterialList.objects.filter(org=_userorg).values('Material') 
+    if gotoCommand != "Invalid":
+        if currRec: mainFm = CountEntryForm(instance=currRec, prefix=prefixvals['main'])
+        else:       mainFm = CountEntryForm(initial=initialvals['main'],  prefix=prefixvals['main'])
+        mainFm.fields['Material'].choices = MaterialList.objects.filter(org=_userorg).values('Material') 
 
-    if matlinfo==[]: matlSubFm = RelatedMaterialInfo(initial=initialvals['matl'], prefix=prefixvals['matl']) 
-    else: matlSubFm = RelatedMaterialInfo(instance=matlinfo, prefix=prefixvals['matl'])
+    if matlinfo==[]: 
+        matlSubFm = RelatedMaterialInfo(initial=initialvals['matl'], prefix=prefixvals['matl']) 
+        todayscounts = ActualCounts.objects.none()
+    else: 
+        matlSubFm = RelatedMaterialInfo(instance=matlinfo, prefix=prefixvals['matl'])
+        todayscounts = ActualCounts.objects.filter(CountDate=passedCountDate,Material=matlinfo)
     #matlSubFm.fields['Material'].queryset=MaterialList.objects.filter(org=_userorg).all()
-    #matlSubFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
+    matlSubFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
 
     if schedinfo==[]: schedFm = RelatedScheduleInfo(initial=initialvals['schedule'], prefix=prefixvals['schedule'])
     else: schedFm = RelatedScheduleInfo(instance=schedinfo, prefix=prefixvals['schedule'])
@@ -501,7 +525,7 @@ def fnCountEntryForm(req, formname, recNum = -1,
     # CountEntryForm Material dropdown
     matlchoiceForm = {}
     if currRec:
-        matlchoiceForm['gotoItem'] =currRec
+        matlchoiceForm['gotoItem'] = currRec
     else:
         if loadMatlInfo==None: loadMatlInfo = ''
         matlchoiceForm['gotoItem'] = {'Material':loadMatlInfo}
@@ -510,6 +534,7 @@ def fnCountEntryForm(req, formname, recNum = -1,
     # display the form
     cntext = {'frmMain': mainFm,
             'frmMatlInfo': matlSubFm,
+            'todayscounts': todayscounts,
             'matlchoiceForm':matlchoiceForm,
             'noSchedInfo':(schedinfo==[]),
             'frmSchedInfo': schedFm,

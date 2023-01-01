@@ -59,7 +59,7 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
     elif CommandNum == MENUCOMMAND.ReportPrint.value :
         pass
     elif CommandNum == MENUCOMMAND.OpenTable.value :
-        tmpst = menucommand_handlers.ShowTable(req, CommandArg)
+        retHTTP = menucommand_handlers.ShowTable(req, CommandArg)
         pass
     elif CommandNum == MENUCOMMAND.OpenQuery.value :
         pass

@@ -17,9 +17,9 @@
 {% block boddy %}
     <!-- form head -->
     <div class="container">
+        {{ PW }} is default PW for new users
         <div class="row max-width=100%">
-            test {{ nChangedRecs }} // {{ PW }}   <!-- kill after testing -->
-            <div class="col-3 text-start">WICSuAdmin-success</div>
+            <div class="col-3 text-start"></div>
             <div class="col-6 text-center"><h1>WICS User Administration</h1></div>
             <div class="col-3 text-end">{{ orgname }}<br>{{ uname }}</div>
         </div>
@@ -50,8 +50,8 @@
                     {% render_field u.admin %}
                     {% render_field u.active %}
                     {% render_field u.last_login size="20" %}
-                    <button>Change Password (will work later...)</button>
-                    <Button>Remove (keep??)</Button>
+                    <button type="button">Change Password (will work later...)</button>
+                    <button style="visibility:hidden">Remove (keep??)</button>
                 </li>
                 <hr>
             {% endfor %}
@@ -85,8 +85,6 @@
                 {% render_field ulist.empty_form.admin %}
                 {% render_field ulist.empty_form.active %}
                 {% render_field ulist.empty_form.last_login size="20" %}
-                <!-- <button>Change Password</button> -->
-                <Button>Remove (keep??)</Button>
             </li>
             <hr>
         </div>

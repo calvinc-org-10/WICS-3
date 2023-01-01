@@ -1,5 +1,6 @@
 {% extends "WICS_common.html" %}
 {% load widget_tweaks %}
+{% load evaluate_arithmetic %}
 
 {# I gotta clean this template up too... #}
 
@@ -20,22 +21,22 @@
         {% if changes_saved.main %}
             <div class="alert alert-success p-0 alert-dismissible fade show">
                 <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
-                This Count record successfully saved.
-                ChDat: {{ changed_data.main }}
+                Count record successfully saved.
+                ChData: {{ changed_data.main }}
             </div>
         {% endif %}
         {% if changes_saved.matl %}
             <div class="alert alert-success p-0 alert-dismissible fade show">
                 <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
                 Material changes for this record successfully saved.
-                ChDat: {{ changed_data.matl }}
+                ChData: {{ changed_data.matl }}
             </div>
         {% endif %}
         {% if changes_saved.schedule %}
             <div class="alert alert-success p-0 alert-dismissible fade show">
                 <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
                 Count Schedule changes for this record successfully saved.
-                ChDat: {{ changed_data.schedule }}
+                ChData: {{ changed_data.schedule }}
             </div>
         {% endif %}
     </div><!-- row -->
@@ -82,7 +83,7 @@
                 </datalist>
             </div>
             <div class="col-3">Actual Ctr: {% render_field frmMain.Counter class="need-Matl-Dt" %}</div>
-            <div class="col-1">Loc Only: {% render_field frmMain.LocationOnly class="need-Matl-Dt" %} 
+            <div class="col-1">Loc Only: {% render_field frmMain.LocationOnly class="need-Matl-Dt" onchange="SkipCountIfLocationOnly();" %} 
                 {# onchange="" #}  <!-- skip CTD_QTY if clicked -->
             </div>
         </div>
@@ -125,6 +126,17 @@
             <div class="col-12">Material Notes: {% render_field frmMatlInfo.Notes size="100" class="need-Matl-Dt" tabindex="-1" %}</div>
         </div>
         </div>  <!-- container-fluid, on same level with rows -->
+        {% if todayscounts %}
+            <hr>
+            <u>All Counts for this date</u>
+            <div class="Container" style="height:70px; overflow-y:auto; overflow-x:clip">
+            {% for ctRec in todayscounts %}
+                <div class="row">
+                    <div class="col">{{ ctRec }} / {{ ctRec.CTD_QTY_Expr }} = {{ ctRec.CTD_QTY_Expr|eval_arith }}</div>
+                </div>
+            {% endfor %}
+            </div>
+        {% endif %}
         <hr>
         <u>Schedule Info</u>
         <br>
@@ -369,7 +381,11 @@
         };
 
         function SkipCountIfLocationOnly() {
-
+            if ($("#{{frmMain.LocationOnly.id_for_label}}").val()) {
+                $("#{{frmMain.CTD_QTY_Expr.id_for_label}}").attr('tabindex','-1');
+            } else {
+                $("#{{frmMain.CTD_QTY_Expr.id_for_label}}").removeAttr('tabindex');
+            }  
         };
 
     </script>

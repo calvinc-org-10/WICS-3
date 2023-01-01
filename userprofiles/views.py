@@ -26,18 +26,18 @@ class WICSUfrm(forms.Form):
     email = forms.EmailField(required=False)   # : u.user.email
     superuser = forms.BooleanField(required=False)   # : u.user.is_superuser
     admin = forms.BooleanField(required=False)   # : u.user.is_staff
-    active = forms.BooleanField(required=True)   # : u.user.is_active
+    active = forms.BooleanField(required=False)   # : u.user.is_active
     last_login = forms.DateTimeField(disabled = True, required=False)   # ,u.user.last_login
 
 
 @login_required
 def fnWICSuserForm(req):
-    uOrg = req.user.WICSuser.org
+    _userorg = req.user.WICSuser.org
     uFormSet_class = formset_factory(WICSUfrm,max_num=100,extra=0)      # , initial={'menuGroup':menuGroup for org}
-    qset = WICSuser.objects.filter(org=uOrg)
     templt = 'Uadmin.html'
     nChangedRecs = 0
     initdata = []
+    qset = WICSuser.objects.filter(org=_userorg)
     for u in qset:
         initdata.append({
         'uid': u.user.pk,
@@ -99,11 +99,11 @@ def fnWICSuserForm(req):
                             if fld in uFldMap: setattr(WuRec, uFldMap[fld], f.cleaned_data[fld])
                         #endfor
                         # guarantee the org and user are correctly set
-                        WuRec.org = uOrg
+                        WuRec.org = _userorg
                         WuRec.user = uRec
                     else:
                         WuRec = WICSuser(
-                            org=uOrg,
+                            org=_userorg,
                             menuGroup=f.cleaned_data['menuGroup'],
                             user=uRec
                             )
@@ -123,6 +123,12 @@ def fnWICSuserForm(req):
         uFormSet = uFormSet_class(initial=initdata)
     #endif
 
-    cntext = {'ulist': uFormSet, 'orgname':uOrg.orgname, 'uname':req.user.get_full_name(), 'nChangedRecs': nChangedRecs, 'PW':_defaultPW}
+    cntext = {
+        'ulist': uFormSet, 
+        'orgname':_userorg.orgname, 
+        'uname':req.user.get_full_name(), 
+        'nChangedRecs': nChangedRecs, 
+        'PW':_defaultPW
+        }
     return render(req, templt, cntext)
 
