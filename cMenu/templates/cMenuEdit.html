@@ -19,7 +19,7 @@
                 Menu <select id="menuID" onchange="loadNewMenu()">
                 {% for ch in menuGoto.menuID_choices %}
                     <option value="{{ ch.MenuID }}"
-                    {% if ch.id == menuGoto.menuID %}  selected {% endif %}
+                    {% if ch.MenuID == menuGoto.menuID %}  selected {% endif %}
                     >{{ ch }}</option>"
                 {% endfor %}
                 </select>

@@ -52,6 +52,10 @@ def EditMenu(req, menuGroup, menuNum):
     # next few lines (and their uses) is WICS-specific, not generic cMenu
     _userorg = WICSuser.objects.get(user=req.user).org
 
+    # things go bonkers if these are strings
+    menuGroup = int(menuGroup)
+    menuNum = int(menuNum)
+
     commandchoices = menuCommands.objects.all()
     def commandchoiceHTML(passedcommand):
         commandchoices_html = ""
