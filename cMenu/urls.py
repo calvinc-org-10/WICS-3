@@ -20,6 +20,8 @@ from cMenu import views, menucommand_handlers
 urlpatterns = [
     path('', views.LoadMenu,kwargs={'menuGroup':1, 'menuNum':0},name='initmenu'),
     path('loadmenu/<int:menuGroup>/<int:menuNum>/',views.LoadMenu,name='LoadMenu'),
+    path('editmenu', views.EditMenu,kwargs={'menuGroup':1, 'menuNum':0},name='EditMenu_init'),
+    path('editmenu/<menuGroup>/<menuNum>',views.EditMenu,name='EditMenu'),
     path('ProcessMenuCommand/<int:CommandNum>/<slug:CommandArg>',views.HandleMenuCommand,name='HandleCommand'),
     path('FormBrowse/<slug:formname>/<int:recNum>',menucommand_handlers.FormBrowse,name='FormBrowse'),
 ]

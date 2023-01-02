@@ -1,0 +1,96 @@
+{% extends "WICS_common.html" %}
+
+{% block tTitle %}{{ menuName }}{% endblock %}
+{% block boddy %}
+    <!-- menu head -->
+    <div class="container">
+        <div class="row max-width=100%">
+            <div class="col-2 text-start"></div>
+            <div class="col-8 text-center">
+                <h5>
+                Menu Group <select id="menuGroup" onchange="loadNewMenu()">
+                {% for ch in menuGoto.menuGroup_choices %}
+                    <option value="{{ ch.id }}"
+                    {% if ch.id == menuGoto.menuGroup %}  selected {% endif %}
+                    >{{ ch }}</option>"
+                {% endfor %}
+                </select>
+                <br>
+                Menu <select id="menuID" onchange="loadNewMenu()">
+                {% for ch in menuGoto.menuID_choices %}
+                    <option value="{{ ch.MenuID }}"
+                    {% if ch.id == menuGoto.menuID %}  selected {% endif %}
+                    >{{ ch }}</option>"
+                {% endfor %}
+                </select>
+                </h5>
+            </div>
+            <div class="col-2 text-end">{{ orgname }}<br>{{ uname }}</div>
+        </div>
+        <div class="row max-width=100%">
+            <div class="col-3 text-start"></div>
+            <div class="col-6 text-center">{{ menuName }}</div>
+        </div>
+        <div class="row"> <!-- status messages -->
+
+        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+
+        {% if changed_data %}
+            <div class="alert alert-success p-0 alert-dismissible fade show">
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                Changes successfully saved.
+                ChDat: {{ changed_data }}
+            </div>
+        {% endif %}
+
+    </div>
+    
+    </div>
+    <!-- menu body -->
+    {% comment %}
+         ctxt = {'menuName':mnuName , 
+                'menuGoto':mnuGoto,
+         mnuGoto = {'menuGroup':menuGroup,
+                    'menuGroup_choices': None,
+                    'menuID':menuNum,
+                    'menuID_choices':menuItems.objects.filter(menuGroup=menuGroup,OptionNumber=0)
+                    }
+               'menuContents':fullMenuHTML, 
+                'orgname':_userorg.orgname, 
+                'uname':req.user.get_full_name()}
+   {% endcomment %}
+    <form method="post">
+    {% csrf_token %}
+    <div class="container" style="height:350px;overflow:auto">
+        {% autoescape off %} {{ menuContents }} {% endautoescape %}
+    </div>
+    <br>
+    <!-- form footer -->
+    <br>
+    <div class="container">
+        <div class="row mx-auto max-width=100%">
+            <div class="col-4">
+                <button id="save_btn" type="submit">Save changes</button>
+            </div>
+            <div class="col-6"></div>
+            <div class="col">
+                <button id="close_btn" type="button" onclick="window.close();">Close Form</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    function loadNewMenu() {
+        var newRec = "{% url 'EditMenu' 'mGrp' 'mItm' %}"
+        newRec = newRec.replace('/mGrp','/'+$('#menuGroup').val())
+        newRec = newRec.replace('/mItm','/'+$('#menuID').val())
+        window.location = newRec;
+    }
+
+    document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
+    }
+
+</script>
+{% endblock %}
