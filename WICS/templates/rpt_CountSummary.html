@@ -28,7 +28,7 @@
 </div>
 
 <hr>
-<div class="container mx-auto"  style="height:350px; overflow:auto;" >
+<div id="mainReport" class="container mx-auto"  style="height:350px; overflow:auto;" >
     <h3><u>Scheduled and Counted</u></h3>
     <div class="row small">
         <div class="col-1">Count Date</div>
@@ -330,7 +330,9 @@
     <hr>
     <div class="container">
         <div class="row mx-auto max-width=100%">
-            <div class="col-10">
+            <div class="col-8"></div>
+            <div class="col-2">
+                <button id="swap_prt_disp_btn" type="button" onclick="swap_prt_disp();">Print Version</button>
             </div>
             <div class="col-2">
                 <button id="close_btn" type="button">Close Form</button>
@@ -340,6 +342,7 @@
 </div>
 
 <script>
+    var mainscroll = "height:350px; overflow:auto;"
 
     function confirmLeave(){
         // this is not an input form; we're always ready to leave
@@ -357,6 +360,19 @@
         var newRec = "{% url 'CountSummaryReport' 'PCD' %}".replace('/PCD','/'+$('#CtDate').val())
         window.location = newRec;
     }
+
+    function swap_prt_disp() {
+        // remove scroll from mainReport so it can be printed or put it back for a scrolling window
+        let scrollval = $("#mainReport").attr("style");
+        if (scrollval==undefined) {
+            $("#mainReport").attr("style",mainscroll)
+            $("#swap_prt_disp_btn").html("Print Version")
+        } else {
+            $("#mainReport").removeAttr("style")
+            $("#swap_prt_disp_btn").html("Display Version")
+        }
+    }
+
 </script>
 
 {% endblock %}
