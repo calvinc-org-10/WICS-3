@@ -46,7 +46,7 @@
    {{ frmMain.instance.id }}
     <input type="hidden" id="RecPK" value={{ recNum }} disabled>
     <input type="hidden" id="formID" value={{ formID }} >
- 
+
     <form id="CEForm" class="trackformchanges" method="post">
         {% csrf_token %}
         <!-- form header -->
@@ -61,18 +61,18 @@
         <div class="row">
             <div class="col-2">Count Dt: {% render_field frmMain.CountDate tabindex="-1" size="10" onchange="loadExtraInfo();" %}</div>
             <div class="col-2">CycCt ID: {% render_field frmMain.CycCtID tabindex="-1" size="8" %}</div>
-            <div class="col-4">Material: 
+            <div class="col-4">Material:
                 {# {% render_field frmMain.Material onchange="loadExtraInfo()" %}</div> #}
-                <input list="Material-list" 
-                    id="{{frmMain.Material.id_for_label}}" name="{{frmMain.Material.html_name}}" 
+                <input list="Material-list"
+                    id="{{frmMain.Material.id_for_label}}" name="{{frmMain.Material.html_name}}"
                     tabindex="1" autofocus
-                    onfocus="$(this).select();" 
-                    onchange="loadExtraInfo();" 
+                    onfocus="$(this).select();"
+                    onchange="loadExtraInfo();"
                     value="{{matlchoiceForm.gotoItem.Material}}"
                     required
                     style="width:20em;">
-                <span class="bi-caret-down-square" 
-                    style="position:relative;top:+0px;font-size:20px;left:-30px;" 
+                <span class="bi-caret-down-square"
+                    style="position:relative;top:+0px;font-size:20px;left:-30px;"
                     tabindex = "-1"
                     onclick="$('#{{frmMain.Material.id_for_label}}').focus();">
                 </span>
@@ -83,12 +83,12 @@
                 </datalist>
             </div>
             <div class="col-3">Actual Ctr: {% render_field frmMain.Counter class="need-Matl-Dt" %}</div>
-            <div class="col-1">Loc Only: {% render_field frmMain.LocationOnly class="need-Matl-Dt" onchange="SkipCountIfLocationOnly();" %} 
+            <div class="col-1">Loc Only: {% render_field frmMain.LocationOnly class="need-Matl-Dt" onchange="SkipCountIfLocationOnly();" %}
                 {# onchange="" #}  <!-- skip CTD_QTY if clicked -->
             </div>
         </div>
         <div class="row">
-            <div class="col-6">Ctd Qty: 
+            <div class="col-6">Ctd Qty:
                 {% render_field frmMain.CTD_QTY_Expr class="need-Matl-Dt" size="45" onchange="sCE();" %}
                 <span class="container-md" id="EvalExpr">????</span>
             </div>
@@ -180,7 +180,7 @@
     <div class="container">
         <div class="row mx-auto max-width=100%">
             <div class="col-2">
-                <button id="save_btn" type="submit" form="CEForm" class="need-Matl-Dt" >Save changes</button>
+                <button id="save_btn" type="button" form="CEForm" class="need-Matl-Dt" onclick="SubmMainFm();" >Save changes</button>
             </div>
             <div class="col-8">
                 <button id="btn_firstrec" type="button" onclick="processGoToReq('First');">First</button>
@@ -198,7 +198,7 @@
             </div>
         </div>
     </div>
-        
+
 
     <script>
         var $form = $('.trackformchanges');
@@ -305,10 +305,10 @@
         function isValid_Date() {
             let dVal;
 
-            if (ctdtID.val().trim()=="") { 
-                return false; 
+            if (ctdtID.val().trim()=="") {
+                return false;
             }
-            
+
             try {
                 dVal = new Date(ctdtID.val())
             }
@@ -319,14 +319,14 @@
         }
         function isValid_Material() {
             if (mtlnmID.val().trim()=="") {
-                 return false; 
+                 return false;
             }
 
             let foundit = false;  i = 0;
             while (!foundit && (i < $("#Material-list").children().length)) {
                 foundit = foundit || ($("#Material-list").children()[i].value==mtlnmID.val());
                 i++;
-            } 
+            }
 
             return foundit;
         }
@@ -351,7 +351,7 @@
                 mtlnmID.focus();
                 return;
             }
-            
+
             newRec = "{% url 'CountEntryForm' 0 'passedCountDate' 'matl' %}"
             if (thisRecNum > 0) { newRec = newRec.replace("/0","/"+thisRecNum) };
             newRec = newRec.replace("passedCountDate",dVal)
@@ -364,7 +364,7 @@
             else {
                 dVal = (new Date(ctdtID.val())).toISOString().substring(0,10)
             }
-            
+
             /****
             {
                 if (typeof(dVal) == 'string') { dVal = new Date(dVal) };
@@ -385,8 +385,12 @@
                 $("#{{frmMain.CTD_QTY_Expr.id_for_label}}").attr('tabindex','-1');
             } else {
                 $("#{{frmMain.CTD_QTY_Expr.id_for_label}}").removeAttr('tabindex');
-            }  
+            }
         };
+
+        function SubmMainFm() {
+            $("#CEForm").submit()
+        }
 
     </script>
     <script>
