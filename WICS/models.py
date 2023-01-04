@@ -17,14 +17,6 @@ class Organizations(models.Model):
         # return super().__str__()
 
 
-# is this table really needed?
-#class org_SAPPlant(models.Model):
-#    org = models.ForeignKey(Organizations, on_delete=models.CASCADE)
-#    SAPPlant = models.CharField(max_length=50)
-#    SAPStorLoc = models.CharField(max_length=50)
-#    UniqueConstraint('SAPPlant', 'SAPStorLoc')
-
-
 class orgObjects(models.Manager):
     def __init__(self, org_in) -> None:
         self.org = org_in
@@ -128,6 +120,23 @@ class ActualCounts(models.Model):
         return str(self.pk) + ": " + str(self.CountDate) + " / " + str(self.Material) + " / " + str(self.Counter) + " / " + str(self.BLDG) + "_" + str(self.LOCATION)
         # return super().__str__()
 
+def LastFoundAt(matl):
+    try:
+        lastCountDate = ActualCounts.objects.filter(Material=matl).latest('CountDate').CountDate
+    except:
+        lastCountDate = None
+    LFAString = ''
+    if lastCountDate:
+        countrecs = ActualCounts.objects.filter(Material=matl,CountDate=lastCountDate)\
+                    .order_by('BLDG','LOCATION')\
+                    .values('BLDG','LOCATION')\
+                    .distinct()
+        for rec in countrecs:
+            if LFAString: LFAString += ', '
+            LFAString += rec['BLDG'] + '_' + rec['LOCATION']
+    
+    return {'lastCountDate': lastCountDate, 'lastFoundAt': LFAString}
+
 
 class SAPFiles(models.Model):
     uploaded_at = models.DateTimeField(default=timezone.now)
@@ -138,21 +147,5 @@ class SAPFiles(models.Model):
     orgobjects = orgObjects(org)
     class Meta:
         get_latest_by = 'uploaded_at'
-#class SAP(models.Model):
-#    org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
-#    UpdateDate = models.DateField(null=False)
-#    Material = models.CharField(max_length=100)
-#    Description = models.CharField(max_length=250, blank=True)
-#    Plant = models.CharField(max_length=50, blank=True)
-#    SAPMaterialType = models.CharField(max_length=100, blank=True)
-#    StorageLocation = models.CharField(max_length=50, blank=True)
-#    BaseUnitofMeasure = models.CharField(max_length=50, blank=True)
-#    Unrestricted = models.FloatField(null=True, blank=True)
-#    Currency = models.CharField(max_length=50, blank=True)
-#    ValueUnrestricted = models.FloatField(null=True, blank=True)
-#    SpecialStock = models.CharField(max_length=50, blank=True)
-#    Batch = models.CharField(max_length=50, blank=True)
-#    class Meta:
-#        ordering = ['org', 'UpdateDate', 'Material']
 
 

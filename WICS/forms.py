@@ -8,7 +8,8 @@ from django.forms import inlineformset_factory, formset_factory
 from django.shortcuts import render
 from django.db.models import Value
 from cMenu.models import getcParm
-from WICS.models import MaterialList, ActualCounts, CountSchedule, SAPFiles, WhsePartTypes, Organizations
+from WICS.models import MaterialList, ActualCounts, CountSchedule, SAPFiles, \
+                        WhsePartTypes, Organizations, LastFoundAt
 from WICS.SAPLists import fnSAPList
 from userprofiles.models import WICSuser
 from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
@@ -172,6 +173,7 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
 
     # display the form
     cntext = {'frmMain': mtlFm,
+            'lastFoundAt': LastFoundAt(currRec),
             'gotoForm': gotoForm,
             'countset': countSet,
             'scheduleset': schedSet,
@@ -415,9 +417,9 @@ def fnCountEntryForm(req, formname, recNum = 0,
 
         if mainFm.is_valid():
             if mainFm.has_changed():
-                mainFm.save(_userorg)
+                s = mainFm.save(_userorg)
                 chgd_dat['main'] = mainFm.changed_data
-                changes_saved['main'] = True
+                changes_saved['main'] = s.pk
 
             # prepare a new empty record for next entry
             gotoCommand = "New"

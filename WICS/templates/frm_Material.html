@@ -43,7 +43,7 @@
     </div>
     <hr>
 
-    <input type="hidden" id="RecPK" value={{ frmMain.showPK.value }} >
+    {{ frmMain.showPK.value }}
     <input type="hidden" id="formID" value={{ formID }} >
 
     <!-- GoTo -->
@@ -51,7 +51,7 @@
     <div class="container text-center bg-secondary">
         <div class="row mx-auto max-width=95%">
             <div class="col mx-auto">
-            <h1><label for="Material-choice">GoTo Material #</label>
+                <h1><label for="Material-choice">GoTo Material #</label>
                 <input list="Material-list" id="gotoID" name="gotoID" onfocus="$(this).select();" onchange="processGoToReq();" value="{{gotoForm.gotoItem.Material}}">
                 <span class="bi-caret-down-square" style="position:relative;top:+0px;font-size:45px;left:-59px;" onclick="$gotoTextBox.focus();"></span>
             </h1>
@@ -100,10 +100,9 @@
             <hr>
             SAP Date: {{ SAPSet.SAPDate }}
             <div class="container">
-                <ul>
-                {{ SAPSet.SAPTable|unordered_list }}
-                </ul>
+                {% for s in SAPSet.SAPTable %}({{ s }}){% endfor %}
             </div>
+            Last Found At {{ lastFoundAt.lastFoundAt }} on {{ lastFoundAt.lastCountDate }}
         </div>
         <hr>
 

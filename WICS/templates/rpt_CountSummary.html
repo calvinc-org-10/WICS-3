@@ -16,6 +16,7 @@
     <!-- GoTo Date -->
     <div class="container text-center bg-info">
         <div class="row">
+            <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
             <div class="col-1"></div>
             <div class="col-5">
                 <h2>{{ CountDate|date:"l" }} <input id="CtDate" type="Date" value="{{ CountDate|date:'Y-m-d' }}" onchange="newCtDate();"></input></h2>
@@ -343,6 +344,10 @@
 
 <script>
     var mainscroll = "height:350px; overflow:auto;"
+
+    document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
+        }
 
     function confirmLeave(){
         // this is not an input form; we're always ready to leave
