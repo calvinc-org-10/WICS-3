@@ -282,7 +282,8 @@ class CountEntryForm(forms.ModelForm):
                 setattr(rec, fldnm, self.cleaned_data[fldnm])
         rec.org = in_org
         
-        return rec.save()
+        rec.save()
+        return rec
 
 class RelatedMaterialInfo(forms.ModelForm):
     id = forms.IntegerField(required=False, widget=forms.HiddenInput)
@@ -320,7 +321,8 @@ class RelatedMaterialInfo(forms.ModelForm):
                 setattr(rec, fldnm, self.cleaned_data[fldnm])
         rec.org = in_org
         
-        return rec.save()
+        rec.save()
+        return rec
 
 
 class RelatedScheduleInfo(forms.ModelForm):
@@ -358,7 +360,8 @@ class RelatedScheduleInfo(forms.ModelForm):
                 setattr(rec, fldnm, self.cleaned_data[fldnm])
         rec.org = in_org
         
-        return rec.save()
+        rec.save()
+        return rec
 
 
 @login_required
@@ -419,7 +422,7 @@ def fnCountEntryForm(req, formname, recNum = 0,
             if mainFm.has_changed():
                 s = mainFm.save(_userorg)
                 chgd_dat['main'] = mainFm.changed_data
-                changes_saved['main'] = s.pk
+                changes_saved['main'] = s.id
 
             # prepare a new empty record for next entry
             gotoCommand = "New"
