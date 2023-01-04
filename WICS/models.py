@@ -73,6 +73,13 @@ class MaterialList(models.Model):
     def __str__(self) -> str:
         return self.Material
         # return super().__str__()
+class tmpMaterialListUpdate(models.Model):
+    Material = models.CharField(primary_key=True, max_length=100, blank=False)
+    Description = models.CharField(max_length=250, blank=True)
+    SAPMaterialType = models.CharField(max_length=100, blank=True)
+    SAPMaterialGroup = models.CharField(max_length=100, blank=True)
+    Price = models.FloatField(null=True, blank=True)
+    PriceUnit = models.PositiveIntegerField(null=True, blank=True)
 
 
 class CountSchedule(models.Model):

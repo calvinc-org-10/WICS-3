@@ -1,0 +1,62 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+
+{% block tTitle %}Update Material List from SAP Spreadsheet{% endblock %}
+
+{% block boddy %}
+<div class="container text-center mx-auto">
+    <div class="row">
+        <div class="col-10 fs-1">
+            <u>{{ orgname }}</u><br>
+            Update Material List Finished
+        </div>
+        <div class="col-2 text-end"> {{ uname }} </div>
+    </div>
+    <div class="row"> <!-- status messages -->
+        <div id="wait_spinner" class="spinner-border text-success" style="display:none"> Processing... </div>
+    </div>
+</div>
+<hr>
+<hr>
+Material Added:
+<ul>
+    {% for rec in AddedMatls %}
+        <li>
+        {{ rec.Material }} - 
+        {{ rec.Description }} - 
+        {{ rec.SAPMaterialType }} -
+        {{ rec.SAPMaterialGroup }} -
+        {{ rec.Price }} -
+        {{ rec.PriceUnit }}
+        </li>
+    {% endfor %}
+</ul>
+
+<!-- form footer -->
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-4">
+            <input type="hidden" name="NextPhase" value="99-DONE"></input>
+        </div>
+        <div class="col-6"></div>
+        <div class="col">
+            <button id="close_btn" type="button">Close Form</button>
+        </div>
+    </div>
+</div>
+<script>
+
+    /****
+     document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
+        }
+    ****/
+
+    document.getElementById("close_btn").addEventListener("click",
+        function(){
+            window.close();
+        });
+
+</script>
+
+{% endblock %}

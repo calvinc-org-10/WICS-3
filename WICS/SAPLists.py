@@ -15,7 +15,7 @@ class SAProw:
 
 
 # read the last SAP list before for_date into a list of SAProw
-def fnSAPList(org, for_date = datetime.datetime.now(), matl = None):
+def fnSAPList(org, for_date = datetime.datetime.today(), matl = None):
     """
     matl is a MaterialList object to list, or None if all records are to be listed
     """
@@ -25,7 +25,7 @@ def fnSAPList(org, for_date = datetime.datetime.now(), matl = None):
     _userorg = org
 
     try:
-        SAPObj = SAPFiles.objects.filter(org=_userorg, uploaded_at__lte=for_date).latest()
+        SAPObj = SAPFiles.objects.filter(org=_userorg, uploaded_at__date__lte=for_date).latest()
     except (SAPFiles.DoesNotExist):
         SAPObj = SAPFiles.objects.filter(org=_userorg).order_by('uploaded_at').first()
 

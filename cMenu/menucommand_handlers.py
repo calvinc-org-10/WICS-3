@@ -5,7 +5,8 @@ from userprofiles.views import fnWICSuserForm
 from userprofiles.models import WICSuser
 from WICS.forms import fnUploadSAP, fnMaterialForm, fnCountEntryForm, CountScheduleForm
 from WICS.reports import fnCountSummaryRptPreview
-from WICS.SAPLists import fnSAPList #, SAProw
+from WICS.SAPLists import fnSAPList, SAProw
+from WICS.SAPMatlUpdt import fnUpdateMatlListfromSAP
 
 
 # Menu Command Constants
@@ -51,6 +52,8 @@ def FormBrowse(req, formname, recNum = -1):
     elif formname == 'frmPrintAgendas': pass
     elif formname == 'frmRandCountScheduler': pass
     elif formname == 'frmSchedule AddPicks': pass
+    elif formname == 'matllistupdt': 
+        theForm = fnUpdateMatlListfromSAP(req)
     elif formname == 'zutilShowColor': pass
     else: pass
 
