@@ -1,6 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
-from django.http import HttpResponse
+from django.http import HttpResponse, HttpResponseRedirect
 from django.urls import reverse, resolve
 from django.utils.text import slugify
 from cMenu.utils import WrapInQuotes
@@ -26,13 +26,14 @@ def LoadMenu(req, menuGroup, menuNum):
     for m in mnItem_qset:
         if m['OptionNumber']==0: continue
         mHTML = "<a href="
-        if m['Command'] == 1:
+        if m['Command'] == MENUCOMMAND.LoadMenu.value:
             mHTML = mHTML + reverse('LoadMenu', kwargs={'menuGroup': menuGroup, 'menuNum':m['Argument']})
         else:
             cmArg = slugify(m['Argument'])
-            if cmArg == '': cmArg = 'no-arg-no'
+            if not cmArg: cmArg = 'no-arg-no'
             mHTML = mHTML + reverse('HandleCommand', kwargs={'CommandNum':m['Command'], 'CommandArg': cmArg})
-            mHTML = mHTML + " target=" + WrapInQuotes("_blank")
+            if m['Command'] != MENUCOMMAND.ExitApplication.value:
+                mHTML = mHTML + " target=" + WrapInQuotes("_blank")
         # endif
         mHTML = mHTML + " class=" + WrapInQuotes("btn btn-lg bd-btn-lg btn-outline-secondary mx-auto") + ">" + m['OptionText'] + "</a>"
         mnItem_list[m['OptionNumber']-1] = mHTML
@@ -216,7 +217,8 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
         if not G: G = menuGroups(id=0)
         M = menuItems.objects.filter(MenuGroup=G, OptionNumber=0).order_by('MenuID').first()
         if not M: M = menuItems(MenuGroup=G,MenuID=0,OptionNumber=0)
-        retHTTP = resolve(reverse('EditMenu_init')).func(req,G.id,M.MenuID)
+        # retHTTP = resolve(reverse('EditMenu_init')).func(req,G.id,M.MenuID)
+        return HttpResponseRedirect(reverse('EditMenu_init'))
     elif CommandNum == MENUCOMMAND.EditParameters.value :
         pass
     elif CommandNum == MENUCOMMAND.EditGreetings.value :
@@ -224,7 +226,7 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
     elif CommandNum == MENUCOMMAND.EditPasswords.value :
         pass
     elif CommandNum == MENUCOMMAND.ExitApplication.value :
-        pass
+        return HttpResponseRedirect(reverse('WICSlogout'))
     else:
         pass
 

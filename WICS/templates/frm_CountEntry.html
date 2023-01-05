@@ -10,7 +10,7 @@
 {% block boddy %}
     <div class="container text-center mx-auto">
     <div class="row">
-        <div class="col-10 fs-1">
+        <div class="col-10 fs-3">
             <u>{{ orgname }}</u>
             <br>Count Entry
         </div>
@@ -43,7 +43,7 @@
     </div><!-- container -->
     <hr>
 
-   {{ frmMain.instance.id }}
+   {{ frmMain.id.value }}
     <input type="hidden" id="RecPK" value={{ recNum }} disabled>
     <input type="hidden" id="formID" value={{ formID }} >
 

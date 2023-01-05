@@ -8,7 +8,7 @@
             <div class="col-2 text-start"></div>
             <div class="col-8 text-center">
                 <h5>
-                Menu Group <select id="menuGroup" onchange="loadNewMenu()">
+                Menu Group <select id="menuGroup" onchange="loadNewMenu(true);">
                 {% for ch in menuGoto.menuGroup_choices %}
                     <option value="{{ ch.id }}"
                     {% if ch.id == menuGoto.menuGroup %}  selected {% endif %}
@@ -16,7 +16,7 @@
                 {% endfor %}
                 </select>
                 <br>
-                Menu <select id="menuID" onchange="loadNewMenu()">
+                Menu <select id="menuID" onchange="loadNewMenu(false);">
                 {% for ch in menuGoto.menuID_choices %}
                     <option value="{{ ch.MenuID }}"
                     {% if ch.MenuID == menuGoto.menuID %}  selected {% endif %}
@@ -81,10 +81,14 @@
 </form>
 
 <script>
-    function loadNewMenu() {
+    function loadNewMenu(newGrp) {
         var newRec = "{% url 'EditMenu' 'mGrp' 'mItm' %}"
         newRec = newRec.replace('/mGrp','/'+$('#menuGroup').val())
-        newRec = newRec.replace('/mItm','/'+$('#menuID').val())
+        if (newGrp) {
+            newRec = newRec.replace('/mItm','/0')
+        } else {
+            newRec = newRec.replace('/mItm','/'+$('#menuID').val())
+        }
         window.location = newRec;
     }
 
