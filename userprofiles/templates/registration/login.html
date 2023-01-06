@@ -52,7 +52,8 @@
             <div class="col-4"></div>
             <div class="col-6"></div>
             <div class="col">
-                <button id="close_btn" type="button" onclick="window.close();">Close</button>
+                {# <button id="close_btn" type="button" onclick="window.close();">Close</button> #}
+                <button id="close_btn" type="button" onclick="open(location, '_self').close();">Close</button>
             </div>
         </div>
     </div>

@@ -250,7 +250,7 @@ class CountEntryForm(forms.ModelForm):
         # later, create a DropdownText widget??
     Counter = forms.CharField(required=True)
     LocationOnly = forms.BooleanField(required=False)
-    BLDG = forms.CharField(required=False)
+    BLDG = forms.CharField(required=True)
     LOCATION = forms.CharField(required=False)
     CTD_QTY_Expr = forms.CharField(required=False)
     FLAG_PossiblyNotRecieved = forms.BooleanField(required=False)
@@ -424,6 +424,7 @@ def fnCountEntryForm(req, formname, recNum = 0,
                 chgd_dat['main'] = mainFm.changed_data
                 changes_saved['main'] = s.id
 
+            # rethink this, in light of the subforms
             # prepare a new empty record for next entry
             gotoCommand = "New"
         else:
@@ -431,6 +432,7 @@ def fnCountEntryForm(req, formname, recNum = 0,
 
         # material info subform
         matlSubFm = RelatedMaterialInfo(req.POST, prefix=prefixvals['matl'], initial=initialvals['matl'])
+        matlSubFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
         if matlSubFm.is_valid():
             if matlSubFm.has_changed():
                 matlSubFm.save(_userorg)
