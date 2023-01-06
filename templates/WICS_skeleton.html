@@ -1,0 +1,70 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+
+{# I gotta clean this template up too... #}
+
+
+{% block tTitle %}Count Entry{% endblock %}
+
+{% block boddy %}
+
+Count Schedule Records
+<!-- header row -->
+<div class="row">
+    <div class="col-1">
+    </div>
+    <div class="col-3">
+        Count Date - Counter - Material
+    </div> 
+    <div class="col-3">
+        Priority - Reason Sched.
+    </div>
+    <div class="col-1">CM Print Flag</div>
+    <div class="col-3">Notes</div>
+</div>
+<hr>
+<div class="container" style="height:350px; overflow: auto;">
+    {% for itm in CtSchdList %}
+    <div class="row">
+        <div class="col-1">
+        {{ itm.id }}
+        </div>
+        <div class="col-3">
+            {{ itm.CountDate }}
+            {{ itm.Counter }}
+            <br>
+            {{ itm.Material }}
+        </div> 
+        <div class="col-3">
+            {{ itm.Priority }}
+            {{ itm.ReasonScheduled }}
+        </div>
+        <div class="col-1">
+            <input type="checkbox" value="{{ itm.CMPrintFlag }}" readonly>
+        </div>
+        <div class="col-3">{{ itm.Notes }}</div>
+        <div class="col-1"><button id="edit{{ itm.id }}" name="edit" value="{{ itm.id }} " type="button">Edit This Schedule Entry</button></div>
+    </div>
+    <hr>
+    {% endfor %}
+</div>
+
+<!-- form footer -->
+<hr>
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-2">
+            <button id="add_btn" type="button">Add Schedule Entry</button>
+        </div>
+        <div class="col-8">
+        </div>
+        <div class="col-2">
+            <button 
+                id="close_btn" 
+                type="button" 
+                onclick="window.close();">Close Form</button>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

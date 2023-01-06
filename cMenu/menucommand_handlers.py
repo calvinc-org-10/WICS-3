@@ -1,6 +1,6 @@
-from django.shortcuts import render, HttpResponse   #, redirect
-#from django.urls import reverse
-#from django.utils.html import escape
+from re import L
+from django.shortcuts import render, HttpResponse, redirect
+from django.urls import reverse, resolve
 from userprofiles.views import fnWICSuserForm
 from userprofiles.models import WICSuser
 from WICS.forms import fnUploadSAP, fnMaterialForm, fnCountEntryForm, CountScheduleForm
@@ -32,29 +32,31 @@ class MENUCOMMAND(Enum):
 # should this be handled via urls?
 def FormBrowse(req, formname, recNum = -1):
     theForm = 'Form ' + formname + ' is not built yet.  Calvin needs more coffee.'
-    if formname == 'frmcount-schedulehistory-by-counterdate': 
+    if formname.lower() == 'frmcount-schedulehistory-by-counterdate'.lower(): 
         theView = CountScheduleForm.as_view()
         theForm = theView(req).render()
-    elif formname == 'l10-wics-uadmin':
+    elif formname.lower() == 'l10-wics-uadmin'.lower():
         theForm = fnWICSuserForm(req)
-    elif formname == 'l6-wics-uadmin':
+    elif formname.lower() == 'l6-wics-uadmin'.lower():
         theForm = fnWICSuserForm(req)
-    elif formname == 'frmcountentry':
+    elif formname.lower() == 'frmcountentry'.lower():
         theForm = fnCountEntryForm(req, formname)
-    elif formname == 'frmcountsummarypreview': 
+    elif formname.lower() == 'frmcountsummarypreview'.lower(): 
         theForm = fnCountSummaryRptPreview(req)
-    elif formname == 'frmExportCMCounts': pass
-    elif formname == 'frmimportsap':
+    elif formname.lower() == 'frmExportCMCounts': pass
+    elif formname.lower() == 'frmimportsap'.lower():
         theForm = fnUploadSAP(req, formname)
-    elif formname == 'frmmaterial':
+    elif formname.lower() == 'frmmaterial'.lower():
         theForm = fnMaterialForm(req, formname, recNum)
-    elif formname == 'frmPartTypes with CountInfo': pass
-    elif formname == 'frmPrintAgendas': pass
-    elif formname == 'frmRandCountScheduler': pass
-    elif formname == 'frmSchedule AddPicks': pass
-    elif formname == 'matllistupdt': 
+    elif formname.lower() == 'frmPartTypes with CountInfo'.lower(): pass
+    elif formname.lower() == 'frmParts-By-Type-with-LastCounts'.lower():
+        theForm = resolve(reverse('MatlByPartType')).func(req).render()
+    elif formname.lower() == 'frmPrintAgendas'.lower(): pass
+    elif formname.lower() == 'frmRandCountScheduler'.lower(): pass
+    elif formname.lower() == 'frmSchedule AddPicks'.lower(): pass
+    elif formname.lower() == 'matllistupdt'.lower(): 
         theForm = fnUpdateMatlListfromSAP(req)
-    elif formname == 'zutilShowColor': pass
+    elif formname.lower() == 'zutilShowColor'.lower(): pass
     else: pass
 
     return theForm

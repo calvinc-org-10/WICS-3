@@ -26,5 +26,6 @@ urlpatterns = [
     path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>',forms.fnCountEntryForm, {'formname': 'frmcountentry'}, name='CountEntryForm'),
     path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>/<str:gotoCommand>',forms.fnCountEntryForm, {'formname': 'frmcountentry'}, name='CountEntryFormGoto'),
     path('CountSummaryRpt/<str:passedCountDate>',reports.fnCountSummaryRptPreview, name='CountSummaryReport'),
+    path('MatlByPartType',forms.MaterialByPartType.as_view(), name='MatlByPartType'),
     path('logout',logout.WICSlogout, name='WICSlogout'),
 ]

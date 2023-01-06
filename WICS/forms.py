@@ -54,7 +54,7 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
             currRec = MaterialList.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
         # endif
     #endif
-    if not currRec: #there are no Material records for this org!!
+    if not currRec: #there are no MaterialList records for this org!!
         thisPK = 0
     else:
         thisPK = currRec.pk
@@ -529,13 +529,13 @@ def fnCountEntryForm(req, formname, recNum = 0,
     if schedinfo==[]: schedFm = RelatedScheduleInfo(initial=initialvals['schedule'], prefix=prefixvals['schedule'])
     else: schedFm = RelatedScheduleInfo(instance=schedinfo, prefix=prefixvals['schedule'])
 
-    # CountEntryForm Material dropdown
+    # CountEntryForm MaterialList dropdown
     matlchoiceForm = {}
     if currRec:
         matlchoiceForm['gotoItem'] = currRec
     else:
         if loadMatlInfo==None: loadMatlInfo = ''
-        matlchoiceForm['gotoItem'] = {'Material':loadMatlInfo}
+        matlchoiceForm['gotoItem'] = {'MaterialList':loadMatlInfo}
     matlchoiceForm['choicelist'] = MaterialList.objects.filter(org=_userorg).values('id','Material')
 
     # display the form
@@ -684,13 +684,13 @@ def fnCountEntryForm_OLD(req, formname, recNum = -1,
     #endif
 
     # load dropdowns
-    # CountEntryForm Material
+    # CountEntryForm MaterialList
     matlchoiceForm = {}
     if currRec:
         matlchoiceForm['gotoItem'] =currRec
     else:
         if loadMatlInfo==None: loadMatlInfo = ''
-        matlchoiceForm['gotoItem'] = {'Material':loadMatlInfo}
+        matlchoiceForm['gotoItem'] = {'MaterialList':loadMatlInfo}
     matlchoiceForm['choicelist'] = MaterialList.objects.filter(org=_userorg).values('id','Material')
 
 
@@ -737,6 +737,39 @@ class CountScheduleForm(ListView):
 
     def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
         return HttpResponse('Stop rushing me!!')
+
+    def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
+        # I want to break here to see what's going on
+        return super().render_to_response(context, **response_kwargs)
+
+
+class MaterialByPartType(ListView):
+    ordering = ['PartType__PartTypePriority', 'Material']
+    context_object_name = 'MatlList'
+    template_name = 'frm_MatlByPartTypeList.html'
+    
+    def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
+        self._userorg = WICSuser.objects.get(user=req.user).org
+        self.queryset = MaterialList.objects.filter(org=self._userorg).order_by('PartType__PartTypePriority', 'Material').annotate(LFADate=Value(0), LFALocation=Value(''), enumerate_in_group=Value(0))   # figure out how to pass in self.ordering
+        return super().setup(req, *args, **kwargs)
+
+    def get_queryset(self) -> QuerySet[Any]:
+        qs = super().get_queryset()
+        LastPT = None
+        enIG = 0
+        for rec in qs:
+            enIG += 1
+            L = LastFoundAt(rec)
+            rec.LFADate = L['lastCountDate']
+            rec.LFALocation = L['lastFoundAt']
+            if rec.PartType != LastPT:
+                enIG = 1
+                LastPT = rec.PartType
+            rec.enumerate_in_group = enIG
+        return qs
+
+    # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+    #     return super().get(request, *args, **kwargs)
 
     def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
         # I want to break here to see what's going on
