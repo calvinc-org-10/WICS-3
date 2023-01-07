@@ -1,7 +1,6 @@
 from userprofiles.models import WICSuser
-from WICS.models import SAPFiles
+from WICS.models import SAP_SOHRecs
 from openpyxl import load_workbook
-from django.db.models import Model
 import datetime
 
 
@@ -17,45 +16,32 @@ class SAProw:
 # read the last SAP list before for_date into a list of SAProw
 def fnSAPList(org, for_date = datetime.datetime.today(), matl = None):
     """
-    matl is a MaterialList object to list, or None if all records are to be listed
+    matl is a Material (string, NOT object!), or list, tuple or queryset of Materials to list, or None if all records are to be listed
+    the SAPDate returned is the last one prior or equal to for_date
     """
     #TODO: Allow matl to be a set or list
     #TODO  Sort SList['SAPTable'] by Material
     
     _userorg = org
-
-    try:
-        SAPObj = SAPFiles.objects.filter(org=_userorg, uploaded_at__date__lte=for_date).latest()
-    except (SAPFiles.DoesNotExist):
-        SAPObj = SAPFiles.objects.filter(org=_userorg).order_by('uploaded_at').first()
-
-    SList = {'reqDate': for_date, 'SAPDate': for_date, 'SAPTable':[]}
-    if SAPObj == None:
-        # return an empty SAPList
-        pass
+    if SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__date__lte=for_date).exists():
+        SAPDate = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__date__lte=for_date).latest().uploaded_at
     else:
-        SList['SAPDate'] = SAPObj.uploaded_at
-        wb = load_workbook(filename=SAPObj.SAPFile, read_only=True)
-        ws = wb.active
-        SAPcolmnNames = ws[1]
-        SAPcol = {'Material': None, 'StorageLocation': None, 'Amount': None,}
-        for col in SAPcolmnNames:
-            if col.value == 'Material':
-                SAPcol['Material'] = col.column - 1
-            if col.value == 'Storage location':
-                SAPcol['StorageLocation'] = col.column - 1
-            if col.value == 'Unrestricted':
-                SAPcol['Amount'] = col.column - 1
-        if (SAPcol['Material'] == None or SAPcol['StorageLocation'] == None or SAPcol['Amount'] == None):
-            raise Exception('SAP Spreadsheet has bad header row.  See Calvin to fix this.')
+        SAPDate = SAP_SOHRecs.objects.filter(org=_userorg).order_by('uploaded_at').first().uploaded_at
 
-        for row in ws.iter_rows(min_row=2, values_only=True):
-            if (matl == None or matl.Material == row[SAPcol['Material']]):
-                x = SAProw(row[SAPcol['Material']], row[SAPcol['StorageLocation']], row[SAPcol['Amount']])
-                SList['SAPTable'].append(x)
-            #endif
-        #endfor
-    #endif
+    SList = {'reqDate': for_date, 'SAPDate': SAPDate, 'SAPTable':[]}
+
+    if matl:
+        STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate).values()
+    else:
+        if isinstance(matl,str):
+            STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate, Material=matl).values()
+        else:   # it better be an iterable!
+            STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate, Material__in=matl).values()
+    
+    # yea, building SList is sorta wasteful, but a lot of existing code depends on it
+    # won't be changing it until a total revamp of WICS
+    SList['SAPDate'] = SAPDate
+    SList['SAPTable'] = STable
 
     return SList
 

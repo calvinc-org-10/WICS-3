@@ -138,14 +138,24 @@ def LastFoundAt(matl):
     return {'lastCountDate': lastCountDate, 'lastFoundAt': LFAString}
 
 
-class SAPFiles(models.Model):
+class SAP_SOHRecs(models.Model):
     uploaded_at = models.DateTimeField(default=timezone.now)
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
-    SAPFile = models.FileField(upload_to="SAP\\")
-    Notes = models.CharField(max_length=255, blank=True)
-    objects = models.Manager()
-    orgobjects = orgObjects(org)
+    Material = models.CharField(max_length=100)
+    Description = models.CharField(max_length=250, blank=True)
+    Plant = models.CharField(max_length=20, blank=True)
+    MaterialType = models.CharField(max_length=50, blank=True)
+    StorageLocation = models.CharField(max_length=20, blank=True)
+    BaseUnitofMeasure = models.CharField(max_length=20, blank=True)
+    Amount = models.FloatField(blank=True)
+    Currency = models.CharField(max_length=20, blank=True)
+    ValueUnrestricted = models.FloatField(blank=True)
+    SpecialStock = models.CharField(max_length=20, blank=True)
+    Batch = models.CharField(max_length=20, blank=True)
+
     class Meta:
         get_latest_by = 'uploaded_at'
+        ordering = ['uploaded_at', 'org', 'Material']
+
 
 

@@ -5,6 +5,7 @@ from django.shortcuts import render
 from django.core.files.uploadedfile import TemporaryUploadedFile, InMemoryUploadedFile
 from openpyxl import load_workbook
 from io import open
+import os
 import uuid
 
 """
@@ -29,7 +30,8 @@ def fnUpdateMatlListfromSAP(req):
             fName = svdir+"tmpMatlList"+str(uuid.uuid4())+".xlsx"
             with open(fName, "wb") as destination:
                 for chunk in SAPFile.chunks():
-                    destination.write(chunk)                
+                    destination.write(chunk)
+
             tmpMaterialListUpdate.objects.all().delete()
 
             wb = load_workbook(filename=fName, read_only=True)
@@ -61,6 +63,7 @@ def fnUpdateMatlListfromSAP(req):
                                 ).save()
             # endfor
 
+            
             # later, save (FileMatList - MaterialList) and (MaterialList - FileMatList)
             # ask permission to correct each to the other
             # that will involve a temp table 
@@ -80,6 +83,11 @@ def fnUpdateMatlListfromSAP(req):
                         Price = newRec.Price,
                         PriceUnit = newRec.PriceUnit
                         ).save()
+
+            # delete the temporary table and the temporary file
+            tmpMaterialListUpdate.objects.all().delete()
+            wb.close()
+            os.remove(fName)
 
         # endif req.POST['NextPhase']=='02-Upl-Sprsht'
         cntext = {'AddedMatls':AddedMatls}

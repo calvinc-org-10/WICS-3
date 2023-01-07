@@ -21,10 +21,8 @@
     <hr>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
-        {% render_field form.org hidden="true" %}
         <p>SAP Date: {{ form.uploaded_at }}</p>
         <p>{{ form.SAPFile }}</p>
-        <p>Notes: {{ form.Notes }}</p>
 
         <!-- form footer -->
         <div class="container">

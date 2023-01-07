@@ -1,6 +1,7 @@
-import time
-import datetime
+import time, datetime
+import os, uuid
 from django.contrib.auth.decorators import login_required
+from django.utils import timezone
 from django.urls import reverse
 from django import forms
 from django.db import models
@@ -8,13 +9,15 @@ from django.forms import inlineformset_factory, formset_factory
 from django.shortcuts import render
 from django.db.models import Value
 from cMenu.models import getcParm
-from WICS.models import MaterialList, ActualCounts, CountSchedule, SAPFiles, \
+from WICS.models import MaterialList, ActualCounts, CountSchedule, \
+                        SAP_SOHRecs, \
                         WhsePartTypes, Organizations, LastFoundAt
 from WICS.SAPLists import fnSAPList
 from userprofiles.models import WICSuser
 from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
 from django.db.models.query import EmptyQuerySet, QuerySet
 from django.views.generic import ListView
+from openpyxl import load_workbook
 from typing import Any, Dict
 
 
@@ -82,6 +85,8 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
         # process main form
         #if currRec:
         mtlFm = MaterialForm(req.POST, instance=currRec,  initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg},  prefix='material')
+        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
+
         #else:
         #    mtlFm = MaterialForm(req.POST, initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg},  prefix='material')
         #endif
@@ -126,6 +131,7 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
     else: # request.method == 'GET' or something else
         #if currRec:
         mtlFm = MaterialForm(instance=currRec, initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg}, prefix='material')
+        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
         #else:
         #    mtlFm = MaterialForm(initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg}, prefix='material')
 
@@ -191,39 +197,70 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
 #####################################################################################################
 #####################################################################################################
 
-class UploadSAPForm(forms.ModelForm):
-    class Meta:
-        model = SAPFiles
-        fields = ('org', 'uploaded_at', 'SAPFile', 'Notes', )
+class UploadSAPForm(forms.Form):
+    uploaded_at = forms.DateTimeField()
+    SAPFile = forms.FileField()
 
 @login_required
 def fnUploadSAP(req, formname):
     _userorg = WICSuser.objects.get(user=req.user).org
 
     if req.method == 'POST':
-        form = UploadSAPForm(req.POST, req.FILES, initial={'org':_userorg})
+        form = UploadSAPForm(req.POST, req.FILES)
         if form.is_valid():
+            # save the file so we can open it as an excel file
+            SAPFile = req.FILES['SAPFile']
             svdir = getcParm('SAP-FILELOC')
-            instance = SAPFiles(SAPFile=req.FILES['SAPFile'])
-            instance.org = _userorg
-            instance.uploaded_at = req.POST['uploaded_at']
-            # upload_to is handled by the model and django settings (MEDIA_ROOT)
-            #instance.SAPFile.upload_to=svdir + "SAP" + str(time.ctime(time.time())).replace(":","-").strip() + ExcelWorkbook_fileext
-            #instance.SAPFile.upload_to=svdir + "SAP/"
-            instance.save()
-            cntext = {'uploaded_at':instance.uploaded_at, 'filenm':instance.SAPFile.name, 'svdir':svdir,
+            fName = svdir+"tmpSAP"+str(uuid.uuid4())+".xlsx"
+            with open(fName, "wb") as destination:
+                for chunk in SAPFile.chunks():
+                    destination.write(chunk)
+
+            wb = load_workbook(filename=fName, read_only=True)
+            ws = wb.active
+
+            SAPcolmnMap = {
+                        'Material': 0,
+                        'Description': 1,
+                        'Plant': 2,
+                        'MaterialType': 3,
+                        'StorageLocation': 4,
+                        'BaseUnitofMeasure': 5,
+                        'Amount': 6,
+                        'Currency': 7,
+                        'ValueUnrestricted': 8,
+                        'SpecialStock': 9,
+                        'Batch': 10,
+                        }
+
+            nRows = 0
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if row[SAPcolmnMap['Material']]:
+                    SRec = SAP_SOHRecs(
+                                org = _userorg,
+                                uploaded_at = req.POST['uploaded_at']
+                                )
+                    for fldName, colNum in SAPcolmnMap.items():
+                        setattr(SRec, fldName, row[colNum])
+                    SRec.save()
+                    nRows += 1
+
+            # close and kill temp files
+            wb.close()
+            os.remove(fName)
+
+            cntext = {'uploaded_at':req.POST['uploaded_at'], 'nRows':nRows,
                     'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
                     }
             templt = 'frm_upload_SAP_Success.html'
-            return render(req, templt, cntext)
     else:
-        form = UploadSAPForm(initial={'org':_userorg})
+        form = UploadSAPForm()
+        cntext = {'form': form, 
+                'formID':formname, 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+                }
+        templt = 'frm_upload_SAP.html'
     #endif
 
-    cntext = {'form': form, 
-            'formID':formname, 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
-            }
-    templt = 'frm_upload_SAP.html'
     return render(req, templt, cntext)
 
 #####################################################################################################
@@ -750,7 +787,8 @@ class MaterialByPartType(ListView):
     
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._userorg = WICSuser.objects.get(user=req.user).org
-        self.queryset = MaterialList.objects.filter(org=self._userorg).order_by('PartType__PartTypePriority', 'Material').annotate(LFADate=Value(0), LFALocation=Value(''), enumerate_in_group=Value(0))   # figure out how to pass in self.ordering
+        self.SAPDate = None
+        self.queryset = MaterialList.objects.filter(org=self._userorg).order_by('PartType__PartTypePriority', 'Material').annotate(LFADate=Value(0), LFALocation=Value(''), enumerate_in_group=Value(0), SAPQty=Value(0))   # figure out how to pass in self.ordering
         return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
@@ -766,7 +804,17 @@ class MaterialByPartType(ListView):
                 enIG = 1
                 LastPT = rec.PartType
             rec.enumerate_in_group = enIG
+            SAP = fnSAPList(self._userorg, matl=rec)
+            if not self.SAPDate: self.SAPDate = SAP['SAPDate']
+            for SAPLine in SAP['SAPTable']:
+                rec.SAPQty += SAPLine.Amount
+
         return qs
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        ctxt = super().get_context_data(**kwargs)
+        ctxt['SAPDate'] = self.SAPDate
+        return ctxt
 
     # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
     #     return super().get(request, *args, **kwargs)
