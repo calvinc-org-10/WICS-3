@@ -70,10 +70,9 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
                 outputline = dict()
                 outputline['type'] = 'Summary'
                 outputline['SAPNum'] = []
-                for SAProw in SAP_SOH['SAPTable']:  # change this to a loop until SAProw.Material > rawrow.Matl_PartNum or SAPRow exhausted
-                    if SAProw.Material == lastrow['Material']:
-                        outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
-                        SAPTot += SAProw.Amount
+                for SAProw in SAP_SOH['SAPTable'].filter(Material=lastrow['Material']): 
+                    outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
+                    SAPTot += SAProw.Amount
                 
                 outputline['Material'] = lastrow['Material']
                 outputline['PartType'] = lastrow['PartType']
@@ -131,10 +130,9 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
         outputline = dict()
         outputline['type'] = 'Summary'
         outputline['SAPNum'] = []
-        for SAProw in SAP_SOH['SAPTable']:  # change this to a loop until SAProw.Material > rawrow.Matl_PartNum or SAPRow exhausted
-            if SAProw.Material == lastrow['Material']:
-                outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
-                SAPTot += SAProw.Amount
+        for SAProw in SAP_SOH['SAPTable'].filter(Material=lastrow['Material']):
+            outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
+            SAPTot += SAProw.Amount
         
         outputline['Material'] = lastrow['Material']
         outputline['PartType'] = lastrow['PartType']
@@ -175,10 +173,9 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
                 outputline = dict()
                 outputline['type'] = 'Summary'
                 outputline['SAPNum'] = []
-                for SAProw in SAP_SOH['SAPTable']:  # change this to a loop until SAProw.Material > rawrow.Matl_PartNum or SAPRow exhausted
-                    if SAProw.Material == lastrow['Material']:
-                        outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
-                        SAPTot += SAProw.Amount
+                for SAProw in SAP_SOH['SAPTable'].filter(Material=lastrow['Material']):
+                    outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
+                    SAPTot += SAProw.Amount
                 
                 outputline['Material'] = lastrow['Material']
                 outputline['PartType'] = lastrow['PartType']
@@ -236,10 +233,9 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
         outputline = dict()
         outputline['type'] = 'Summary'
         outputline['SAPNum'] = []
-        for SAProw in SAP_SOH['SAPTable']:  # change this to a loop until SAProw.Material > rawrow.Matl_PartNum or SAPRow exhausted
-            if SAProw.Material == lastrow['Material']:
-                outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
-                SAPTot += SAProw.Amount
+        for SAProw in SAP_SOH['SAPTable'].filter(Material=lastrow['Material']):
+            outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
+            SAPTot += SAProw.Amount
         
         outputline['Material'] = lastrow['Material']
         outputline['PartType'] = lastrow['PartType']
@@ -280,10 +276,9 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
                 outputline = dict()
                 outputline['type'] = 'Summary'
                 outputline['SAPNum'] = []
-                for SAProw in SAP_SOH['SAPTable']:  # change this to a loop until SAProw.Material > rawrow.Matl_PartNum or SAPRow exhausted
-                    if SAProw.Material == lastrow['Material']:
-                        outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
-                        SAPTot += SAProw.Amount
+                for SAProw in SAP_SOH['SAPTable'].filter(Material=lastrow['Material']):
+                    outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
+                    SAPTot += SAProw.Amount
                 
                 outputline['Material'] = lastrow['Material']
                 outputline['PartType'] = lastrow['PartType']
@@ -337,10 +332,9 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
         outputline = dict()
         outputline['type'] = 'Summary'
         outputline['SAPNum'] = []
-        for SAProw in SAP_SOH['SAPTable']:  # change this to a loop until SAProw.Material > rawrow.Matl_PartNum or SAPRow exhausted
-            if SAProw.Material == lastrow['Material']:
-                outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
-                SAPTot += SAProw.Amount
+        for SAProw in SAP_SOH['SAPTable'].filter(Material=lastrow['Material']):
+            outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
+            SAPTot += SAProw.Amount
         
         outputline['Material'] = lastrow['Material']
         outputline['PartType'] = lastrow['PartType']

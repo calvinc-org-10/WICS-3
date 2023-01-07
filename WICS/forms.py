@@ -7,7 +7,7 @@ from django import forms
 from django.db import models
 from django.forms import inlineformset_factory, formset_factory
 from django.shortcuts import render
-from django.db.models import Value
+from django.db.models import Value, Sum
 from cMenu.models import getcParm
 from WICS.models import MaterialList, ActualCounts, CountSchedule, \
                         SAP_SOHRecs, \
@@ -62,7 +62,7 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
     else:
         thisPK = currRec.pk
 
-    SAP_SOH = fnSAPList(_userorg, matl=currRec)
+    SAP_SOH = fnSAPList(_userorg, matl=currRec.Material)
 
     gotoForm = {}
     gotoForm['gotoItem'] = currRec
@@ -804,10 +804,9 @@ class MaterialByPartType(ListView):
                 enIG = 1
                 LastPT = rec.PartType
             rec.enumerate_in_group = enIG
-            SAP = fnSAPList(self._userorg, matl=rec)
+            SAP = fnSAPList(self._userorg, matl=rec.Material)
+            rec.SAPQty += SAP['SAPTable'].aggregate(Sum('Amount',default=0))['Amount__sum']
             if not self.SAPDate: self.SAPDate = SAP['SAPDate']
-            for SAPLine in SAP['SAPTable']:
-                rec.SAPQty += SAPLine.Amount
 
         return qs
 

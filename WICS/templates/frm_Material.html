@@ -100,7 +100,7 @@
             <hr>
             SAP Date: {{ SAPSet.SAPDate }}
             <div class="container">
-                {% for s in SAPSet.SAPTable %}({{ s }}){% endfor %}
+                {% for s in SAPSet.SAPTable %}({{ s.Material }}, {{ s.StorageLocation }}, {{ s.Amount }}){% endfor %}
             </div>
             Last Found At {{ lastFoundAt.lastFoundAt }} on {{ lastFoundAt.lastCountDate }}
         </div>

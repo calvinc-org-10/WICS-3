@@ -19,9 +19,7 @@ def fnSAPList(org, for_date = datetime.datetime.today(), matl = None):
     matl is a Material (string, NOT object!), or list, tuple or queryset of Materials to list, or None if all records are to be listed
     the SAPDate returned is the last one prior or equal to for_date
     """
-    #TODO: Allow matl to be a set or list
-    #TODO  Sort SList['SAPTable'] by Material
-    
+   
     _userorg = org
     if SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__date__lte=for_date).exists():
         SAPDate = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__date__lte=for_date).latest().uploaded_at
@@ -30,13 +28,13 @@ def fnSAPList(org, for_date = datetime.datetime.today(), matl = None):
 
     SList = {'reqDate': for_date, 'SAPDate': SAPDate, 'SAPTable':[]}
 
-    if matl:
-        STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate).values()
+    if not matl:
+        STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate).order_by('Material')
     else:
         if isinstance(matl,str):
-            STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate, Material=matl).values()
+            STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate, Material=matl).order_by('Material')
         else:   # it better be an iterable!
-            STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate, Material__in=matl).values()
+            STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate, Material__in=matl).order_by('Material')
     
     # yea, building SList is sorta wasteful, but a lot of existing code depends on it
     # won't be changing it until a total revamp of WICS
