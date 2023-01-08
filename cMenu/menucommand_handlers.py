@@ -1,4 +1,3 @@
-from re import L
 from django.shortcuts import render, HttpResponse, redirect
 from django.urls import reverse, resolve
 from userprofiles.views import fnWICSuserForm
@@ -27,6 +26,21 @@ class MENUCOMMAND(Enum):
     EditGreetings = 93
     EditPasswords = 94
     ExitApplication = 200
+
+
+# this could be generally useful...
+def makebool(strngN, numtype = bool):
+    # the built-in bool function is good with one set of exceptions
+    if (strngN.upper()=='FALSE' or strngN.upper()=='NO' or strngN.upper()=='0'):
+        strngN = False
+    else:
+        strngN = numtype(strngN)
+    return strngN
+def iif(cond, ifTrue, ifFalse=None):
+    if (makebool(cond)):
+        return ifTrue
+    else:
+        return ifFalse
 
 
 # should this be handled via urls?
@@ -97,20 +111,6 @@ def f00test00_orig(req):
 
 import csv, os
 from WICS.models import ActualCounts, CountSchedule,  MaterialList
-
-# this could be generally useful...
-def makebool(strngN, numtype = bool):
-    # the built-in bool function is good with one set of exceptions
-    if (strngN.upper()=='FALSE' or strngN.upper()=='NO' or strngN.upper()=='0'):
-        strngN = False
-    else:
-        strngN = numtype(strngN)
-    return strngN
-def iif(cond, ifTrue, ifFalse=None):
-    if (cond):
-        return ifTrue
-    else:
-        return ifFalse
 
 def f00test00_act():
     ExportOutFile = 'ActCounts.csv'

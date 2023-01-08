@@ -14,10 +14,21 @@
     <!-- menu body -->
     req Date: {{ reqDate }},
     SAP Date: {{ SAPDate }}
+    <!-- <h2>{{ CountDate|date:"l" }} <input id="CtDate" type="Date" value="{{ CountDate|date:'Y-m-d' }}" onchange="newCtDate();"></input></h2> -->
     <hr>
     <div class="container">
         <ul>
-        {{ SAPSet|unordered_list }}
+        {% for SAProw in SAPSet %}
+        <li>
+            {{ SAProw.Material }} | 
+            {{ SAProw.Description }} |
+            {{ SAProw.StorageLocation }} | 
+            {{ SAProw.Amount }} |
+            {{ SAProw.Currency }} {{ SAProw.ValueUnrestricted|floatformat:"2" }} | 
+            {{ SAProw.SpecialStock }} | 
+            {{ SAProw.Batch }}
+        </ul>
+        {% endfor %}
         </ul>
     </div>
 {% endblock %}

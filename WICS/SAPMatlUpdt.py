@@ -1,3 +1,4 @@
+from django.contrib.auth.decorators import login_required
 from userprofiles.models import WICSuser
 from WICS.models import WhsePartTypes, MaterialList, tmpMaterialListUpdate
 from cMenu.models import getcParm
@@ -19,7 +20,7 @@ import uuid
     Price = Price
     PriceUnit = Price unit
 """
-
+@login_required
 def fnUpdateMatlListfromSAP(req):
     _userorg = WICSuser.objects.get(user=req.user).org
 
@@ -37,8 +38,8 @@ def fnUpdateMatlListfromSAP(req):
             wb = load_workbook(filename=fName, read_only=True)
             ws = wb.active
             SAPcolmnNames = ws[1]
-            SAPcol = {}
-            SAPcolmap = {
+            SAPcol = {'Material': None}
+            SAP_SSName_TableName_map = {
                     'Material': 'Material', 
                     'Material description': 'Description', 
                     'Material type': 'SAPMaterialType',
@@ -47,10 +48,10 @@ def fnUpdateMatlListfromSAP(req):
                     'Price unit': 'PriceUnit',
                     }
             for col in SAPcolmnNames:
-                if col.value in SAPcolmap:
-                    SAPcol[SAPcolmap[col.value]] = col.column - 1
-            #if (SAPcol['Material'] == None or SAPcol['StorageLocation'] == None or SAPcol['Amount'] == None):
-            #    raise Exception('SAP Spreadsheet has bad header row.  See Calvin to fix this.')
+                if col.value in SAP_SSName_TableName_map:
+                    SAPcol[SAP_SSName_TableName_map[col.value]] = col.column - 1
+            if (SAPcol['Material'] == None):   # or SAPcol['StorageLocation'] == None or SAPcol['Amount'] == None):
+                raise Exception('SAP Spreadsheet has bad header row.  See Calvin to fix this.')
 
             for row in ws.iter_rows(min_row=2, values_only=True):
                 tmpMaterialListUpdate(

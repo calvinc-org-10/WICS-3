@@ -219,6 +219,9 @@ def fnUploadSAP(req, formname):
             wb = load_workbook(filename=fName, read_only=True)
             ws = wb.active
 
+            # I map Table Fields directly to spreadsheet columns because the SOH spreadsheets
+            # are fairly stable.  If that changes, see fnUpdateMatlListfromSAP in SAPMatlUpdt.py
+            # for an alternative way of handling this mapping
             SAPcolmnMap = {
                         'Material': 0,
                         'Description': 1,
@@ -278,7 +281,7 @@ def fnUploadSAP(req, formname):
 # controls and growing CountEntryForm from a simple Form
 class CountEntryForm(forms.ModelForm):
     id = forms.IntegerField(required=False, widget=forms.HiddenInput)
-    org = forms.CharField(widget=forms.HiddenInput,  required=False)
+    #org = forms.CharField(widget=forms.HiddenInput,  required=False)
     #org = forms.ModelChoiceField(queryset=Organizations.objects.all(), widget=forms.HiddenInput,  required=False)
     CountDate = forms.DateField(required=True, initial=datetime.date.today())
     CycCtID = forms.CharField(required=False)
@@ -323,7 +326,7 @@ class CountEntryForm(forms.ModelForm):
         return rec
 
 class RelatedMaterialInfo(forms.ModelForm):
-    id = forms.IntegerField(required=False, widget=forms.HiddenInput)
+    id = forms.IntegerField(required=False)
     # org = forms.CharField(widget=forms.HiddenInput,  required=False)
     #org = forms.ModelChoiceField(queryset=Organizations.objects.all(), required=False, widget=forms.HiddenInput)
     Material = forms.CharField(required=False, widget=forms.HiddenInput)
@@ -412,8 +415,6 @@ def fnCountEntryForm(req, formname, recNum = 0,
 
     # the string 'None' is not the same as the value None
     if loadMatlInfo=='None': loadMatlInfo=None
-    if passedCountDate=='None': passedCountDate=None
-    if passedCountDate==None: passedCountDate=str(datetime.date.today())
     if gotoCommand=='None': gotoCommand=None
 
     # if a record number was passed in, retrieve it
@@ -429,9 +430,9 @@ def fnCountEntryForm(req, formname, recNum = 0,
     prefixvals['matl'] = 'matl'
     prefixvals['schedule'] = 'schedule'
     initialvals = {}
-    initialvals['main'] = {'org':_userorg, 'CountDate':datetime.date.fromisoformat(passedCountDate)}
-    initialvals['matl'] = {'org': _userorg}
-    initialvals['schedule'] = {'org': _userorg, 'CountDate':datetime.date.fromisoformat(passedCountDate)}
+    initialvals['main'] = {'CountDate':datetime.date.fromisoformat(passedCountDate)}
+    initialvals['matl'] = {}
+    initialvals['schedule'] = {'CountDate':datetime.date.fromisoformat(passedCountDate)}
 
     changes_saved = {
         'main': False,
@@ -455,6 +456,8 @@ def fnCountEntryForm(req, formname, recNum = 0,
         else: mainFm = CountEntryForm(req.POST, initial=initialvals['main'],  prefix=prefixvals['main']) 
         mainFm.fields['Material'].choices = MaterialList.objects.filter(org=_userorg).values('Material','id')
 
+        s = ActualCounts.objects.none()
+
         if mainFm.is_valid():
             if mainFm.has_changed():
                 s = mainFm.save(_userorg)
@@ -468,7 +471,7 @@ def fnCountEntryForm(req, formname, recNum = 0,
             gotoCommand = "Invalid"
 
         # material info subform
-        matlSubFm = RelatedMaterialInfo(req.POST, prefix=prefixvals['matl'], initial=initialvals['matl'])
+        matlSubFm = RelatedMaterialInfo(req.POST, instance=s.Material, prefix=prefixvals['matl'])
         matlSubFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
         if matlSubFm.is_valid():
             if matlSubFm.has_changed():
@@ -524,7 +527,7 @@ def fnCountEntryForm(req, formname, recNum = 0,
         else:
             schedinfo = []
     # has the date or Material changed and we're looking for update Matl/Sched info?
-    elif (loadMatlInfo!=None or passedCountDate!=None) and (gotoCommand==None):
+    elif (loadMatlInfo!=None) and (gotoCommand==None):
         # review and clean up this block!
         if loadMatlInfo != None:
             # fill in MatlInfo and CountSchedInfo
@@ -554,7 +557,7 @@ def fnCountEntryForm(req, formname, recNum = 0,
         else:       mainFm = CountEntryForm(initial=initialvals['main'],  prefix=prefixvals['main'])
         mainFm.fields['Material'].choices = MaterialList.objects.filter(org=_userorg).values('Material') 
 
-    if matlinfo==[]: 
+    if not matlinfo: 
         matlSubFm = RelatedMaterialInfo(initial=initialvals['matl'], prefix=prefixvals['matl']) 
         todayscounts = ActualCounts.objects.none()
     else: 
@@ -563,7 +566,7 @@ def fnCountEntryForm(req, formname, recNum = 0,
     #matlSubFm.fields['Material'].queryset=MaterialList.objects.filter(org=_userorg).all()
     matlSubFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
 
-    if schedinfo==[]: schedFm = RelatedScheduleInfo(initial=initialvals['schedule'], prefix=prefixvals['schedule'])
+    if not schedinfo: schedFm = RelatedScheduleInfo(initial=initialvals['schedule'], prefix=prefixvals['schedule'])
     else: schedFm = RelatedScheduleInfo(instance=schedinfo, prefix=prefixvals['schedule'])
 
     # CountEntryForm MaterialList dropdown
@@ -572,7 +575,7 @@ def fnCountEntryForm(req, formname, recNum = 0,
         matlchoiceForm['gotoItem'] = currRec
     else:
         if loadMatlInfo==None: loadMatlInfo = ''
-        matlchoiceForm['gotoItem'] = {'MaterialList':loadMatlInfo}
+        matlchoiceForm['gotoItem'] = {'Material':loadMatlInfo}
     matlchoiceForm['choicelist'] = MaterialList.objects.filter(org=_userorg).values('id','Material')
 
     # display the form
