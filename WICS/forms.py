@@ -784,29 +784,35 @@ class MaterialByPartType(ListView):
     ordering = ['PartType__PartTypePriority', 'Material']
     context_object_name = 'MatlList'
     template_name = 'frm_MatlByPartTypeList.html'
+    SAPSums = {}
     
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._userorg = WICSuser.objects.get(user=req.user).org
-        self.SAPDate = None
         self.queryset = MaterialList.objects.filter(org=self._userorg).order_by('PartType__PartTypePriority', 'Material').annotate(LFADate=Value(0), LFALocation=Value(''), enumerate_in_group=Value(0), SAPQty=Value(0))   # figure out how to pass in self.ordering
+        
+        # it's more efficient to pull this all now and store it for the upcoming qs request
+        SAP = fnSAPList(self._userorg)
+        self.SAPDate = SAP['SAPDate']
+        rawsums = SAP['SAPTable'].values('Material').annotate(TotalAmount=Sum('Amount',default=0))
+        for x in rawsums: self.SAPSums[x['Material']] = x['TotalAmount']
+        
         return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
         qs = super().get_queryset()
         LastPT = None
-        enIG = 0
+        enumInGrp = 0
         for rec in qs:
-            enIG += 1
+            enumInGrp += 1
             L = LastFoundAt(rec)
             rec.LFADate = L['lastCountDate']
             rec.LFALocation = L['lastFoundAt']
             if rec.PartType != LastPT:
-                enIG = 1
+                enumInGrp = 1
                 LastPT = rec.PartType
-            rec.enumerate_in_group = enIG
-            SAP = fnSAPList(self._userorg, matl=rec.Material)
-            rec.SAPQty += SAP['SAPTable'].aggregate(Sum('Amount',default=0))['Amount__sum']
-            if not self.SAPDate: self.SAPDate = SAP['SAPDate']
+            rec.enumerate_in_group = enumInGrp
+            rec.SAPQty = 0
+            if rec.Material in self.SAPSums: rec.SAPQty = self.SAPSums[rec.Material]
 
         return qs
 
