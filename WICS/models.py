@@ -102,7 +102,7 @@ class ActualCounts(models.Model):
     Material = models.ForeignKey(MaterialList, on_delete=models.RESTRICT)
     Counter = models.CharField(max_length=250, blank=False, null=False)
     LocationOnly = models.BooleanField(blank=True, default=False)
-    CTD_QTY_Expr = models.CharField(max_length=500, blank=False)
+    CTD_QTY_Expr = models.CharField(max_length=500, blank=True)
     BLDG = models.CharField(max_length=100, blank=True)
     LOCATION = models.CharField(max_length=250, blank=True)
     PKGID_Desc = models.CharField(max_length=250, blank=True)

@@ -1,3 +1,6 @@
+### TODO: Split into procs_Material, procs_ActualCounts, procs_ScheduledCounts, procs_SAPData
+###       fold in reports.py, too
+
 import time, datetime
 import os, uuid
 from django.contrib.auth.decorators import login_required
@@ -238,7 +241,7 @@ def fnUploadSAP(req, formname):
 
             nRows = 0
             for row in ws.iter_rows(min_row=2, values_only=True):
-                if row[SAPcolmnMap['Material']]:
+                if len(row[SAPcolmnMap['Material']]):
                     SRec = SAP_SOHRecs(
                                 org = _userorg,
                                 uploaded_at = req.POST['uploaded_at']

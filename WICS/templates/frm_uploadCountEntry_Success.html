@@ -1,0 +1,36 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+
+{% block tTitle %}Upload CountEntry Results{% endblock %}
+
+{% block boddy %}
+    <div class="container text-center mx-auto">
+    <div class="row">
+        <div class="col-10 fs-1">
+            <u>{{ orgname }}</u>
+            <br>
+            Upload Count Entry Results
+        </div>
+        <div class="col-2 text-end"> {{ uname }} </div>
+    </div>
+    </div>
+    <hr>
+
+    <h4>{{ nRowsAdded }} Count Entry records successfully uploaded</h4>
+
+    <br>
+    Fix this later ...<br>
+    {{ UplResults }}
+
+    <!-- form footer -->
+    <div class="container">
+        <div class="row mx-auto max-width=100%">
+            <div class="col-4"></div>
+            <div class="col-6"></div>
+            <div class="col">
+                <button id="close_btn" type="button" onclick="window.close();" >Close Form</button>
+            </div>
+        </div>
+    </div>
+    
+{% endblock %}

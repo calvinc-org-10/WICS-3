@@ -6,6 +6,8 @@ from WICS.forms import fnUploadSAP, fnMaterialForm, fnCountEntryForm, CountSched
 from WICS.reports import fnCountSummaryRptPreview
 from WICS.SAPLists import fnSAPList, SAProw
 from WICS.SAPMatlUpdt import fnUpdateMatlListfromSAP
+from WICS.procs_ActualCounts import fnUploadActCountSprsht
+from cMenu.utils import makebool, iif
 
 
 # Menu Command Constants
@@ -28,21 +30,6 @@ class MENUCOMMAND(Enum):
     ExitApplication = 200
 
 
-# this could be generally useful...
-def makebool(strngN, numtype = bool):
-    # the built-in bool function is good with one set of exceptions
-    if (strngN.upper()=='FALSE' or strngN.upper()=='NO' or strngN.upper()=='0'):
-        strngN = False
-    else:
-        strngN = numtype(strngN)
-    return strngN
-def iif(cond, ifTrue, ifFalse=None):
-    if (makebool(cond)):
-        return ifTrue
-    else:
-        return ifFalse
-
-
 # should this be handled via urls?
 def FormBrowse(req, formname, recNum = -1):
     theForm = 'Form ' + formname + ' is not built yet.  Calvin needs more coffee.'
@@ -55,6 +42,8 @@ def FormBrowse(req, formname, recNum = -1):
         theForm = fnWICSuserForm(req)
     elif formname.lower() == 'frmcountentry'.lower():
         theForm = fnCountEntryForm(req, formname)
+    elif formname.lower() == 'frmUploadCountEntry'.lower():
+        theForm = fnUploadActCountSprsht(req)
     elif formname.lower() == 'frmcountsummarypreview'.lower(): 
         theForm = fnCountSummaryRptPreview(req)
     elif formname.lower() == 'frmExportCMCounts': pass
