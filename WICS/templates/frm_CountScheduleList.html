@@ -3,47 +3,49 @@
 
 {# I gotta clean this template up too... #}
 
-
-{% block tTitle %}Count Entry{% endblock %}
+{% block tTitle %}Count Schedule{% endblock %}
 
 {% block boddy %}
-
-Count Schedule Records
-<!-- header row -->
+<div class="container text-center mx-auto">
 <div class="row">
-    <div class="col-1">
+    <div class="col-10 fs-1">
+        <u>{{ orgname }}</u>
+        <br>
+        Count Schedule Records
     </div>
+    <div class="col-2 text-end"> {{ uname }} </div>
+</div>
+<!-- header row -->
+<div class="row g-0">
+    .......
     <div class="col-3">
-        Count Date - Counter - Material
+        Count Date | Counter | Material
     </div> 
-    <div class="col-3">
-        Priority - Reason Sched.
+    <div class="col-2">
+        Priority | Reason Sched.
     </div>
-    <div class="col-1">CM Print Flag</div>
-    <div class="col-3">Notes</div>
+    <div class="col-1">CM Flag</div>
+    <div class="col-4">Notes</div>
 </div>
 <hr>
 <div class="container" style="height:350px; overflow: auto;">
     {% for itm in CtSchdList %}
-    <div class="row">
-        <div class="col-1">
+    <div class="row g-0">
         {{ itm.id }}
-        </div>
         <div class="col-3">
-            {{ itm.CountDate }}
-            {{ itm.Counter }}
-            <br>
-            {{ itm.Material }}
+            {{ itm.CountDate }} | 
+            {{ itm.Counter }} |
+            {{ itm.Material }} |
         </div> 
-        <div class="col-3">
-            {{ itm.Priority }}
+        <div class="col-2">
+            {{ itm.Priority }} |
             {{ itm.ReasonScheduled }}
         </div>
         <div class="col-1">
             <input type="checkbox" value="{{ itm.CMPrintFlag }}" readonly>
         </div>
-        <div class="col-3">{{ itm.Notes }}</div>
-        <div class="col-1"><button id="edit{{ itm.id }}" name="edit" value="{{ itm.id }} " type="button">Edit This Schedule Entry</button></div>
+        <div class="col-4">{{ itm.Notes }}</div>
+        <div class="col-1"><button id="edit{{ itm.id }}" name="edit" value="{{ itm.id }} " type="button">Edit</button></div>
     </div>
     <hr>
     {% endfor %}

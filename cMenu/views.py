@@ -77,7 +77,7 @@ def EditMenu(req, menuGroup, menuNum):
 
     if req.method == 'POST':
         # construict mnItem_list from POST data
-        for pdat in req.POST.items():   #items() #lists()
+        for pdat in req.POST.items():
             if "csrf" in pdat[0]: continue
             pdat_line = pdat[0].split('-')
             idx = int(pdat_line[1])-1
@@ -93,33 +93,43 @@ def EditMenu(req, menuGroup, menuNum):
                 mnRec = mnItem_qset.get(OptionNumber=i)
             except:
                 mnRec = None
-            if mnRec:
-                if mnRec.OptionText != thisItem['OptionText'] \
-                  or mnRec.Command_id != thisItem['Command'] \
-                  or mnRec.Argument != thisItem['Argument']:
-                    # mnRec exists, and mnItem_list is changed
-                    mnRec.OptionText = thisItem['OptionText']
-                    mnRec.Command_id = thisItem['Command'] 
-                    mnRec.Argument = thisItem['Argument']
-                    mnRec.save()
-                    if changed_data: changed_data += ", "
-                    changed_data += " Option " + str(i) + " changed"
+
+            if thisItem.get('Remove',False):    # later, use makebool since values may be 'on' or 'off'
+                if mnRec:
+                    mnRec.delete()
+                mnItem_list[i_0based] = {'OptionText':'',
+                                'Command':'',
+                                'Argument':''}
+                if changed_data: changed_data += ", "
+                changed_data += " Option " + str(i) + " removed"
             else:
-                if thisItem['OptionText'] \
-                  or thisItem['Command'] \
-                  or thisItem['Argument']:
-                    # mnRec does not exist, but mnItem_list is new (has values)
-                    mnRec = menuItems(MenuGroup_id = menuGroup,
-                         MenuID = menuNum,
-                         OptionNumber = i,
-                         OptionText = thisItem['OptionText'],
-                         Command_id = thisItem['Command'],
-                         Argument = thisItem['Argument']
-                         )
-                    mnRec.save()
-                    if changed_data: changed_data += ", "
-                    changed_data += " Option " + str(i) + " added"
-            #endif mnRec 
+                if mnRec:
+                    if mnRec.OptionText != thisItem['OptionText'] \
+                    or mnRec.Command_id != thisItem['Command'] \
+                    or mnRec.Argument != thisItem['Argument']:
+                        # mnRec exists, and mnItem_list is changed
+                        mnRec.OptionText = thisItem['OptionText']
+                        mnRec.Command_id = thisItem['Command'] 
+                        mnRec.Argument = thisItem['Argument']
+                        mnRec.save()
+                        if changed_data: changed_data += ", "
+                        changed_data += " Option " + str(i) + " changed"
+                else:
+                    if thisItem['OptionText'] \
+                    or thisItem['Command'] \
+                    or thisItem['Argument']:
+                        # mnRec does not exist, but mnItem_list is new (has values)
+                        mnRec = menuItems(MenuGroup_id = menuGroup,
+                            MenuID = menuNum,
+                            OptionNumber = i,
+                            OptionText = thisItem['OptionText'],
+                            Command_id = thisItem['Command'],
+                            Argument = thisItem['Argument']
+                            )
+                        mnRec.save()
+                        if changed_data: changed_data += ", "
+                        changed_data += " Option " + str(i) + " added"
+                #endif mnRec 
         #raise Exception('look at POST data')
 
     else:
@@ -150,11 +160,15 @@ def EditMenu(req, menuGroup, menuNum):
         fullMenuHTML += "<div class='col m-1'> Command: "
         fullMenuHTML += "<select style='width:15em' name='Command-" + istr + "'>"
         fullMenuHTML += commandchoiceHTML(mnItem_list[i_0based]['Command'])
-        fullMenuHTML += "</select></div>"
+        fullMenuHTML += "</select>"
+        fullMenuHTML += " Remove:<input type='checkbox' name='Remove-" + istr + "'></input>"
+        fullMenuHTML += "</div>"
         fullMenuHTML += "<div class='col m-1'> Command: "
         fullMenuHTML += "<select style='width:15em' name='Command-" + i2str + "'>"
         fullMenuHTML += commandchoiceHTML(mnItem_list[i_0based+10]['Command'])
-        fullMenuHTML += "</select></div>"
+        fullMenuHTML += "</select>"
+        fullMenuHTML += " Remove:<input type='checkbox' name='Remove-" + i2str + "'></input>"
+        fullMenuHTML += "</div>"
         fullMenuHTML += "</div>"
 
         fullMenuHTML += "<div class='row'>"
@@ -213,10 +227,10 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
     elif CommandNum == MENUCOMMAND.ConstructSQLStatement.value:
         pass
     elif CommandNum == MENUCOMMAND.EditMenu.value :
-        G = menuGroups.objects.first()
-        if not G: G = menuGroups(id=0)
-        M = menuItems.objects.filter(MenuGroup=G, OptionNumber=0).order_by('MenuID').first()
-        if not M: M = menuItems(MenuGroup=G,MenuID=0,OptionNumber=0)
+        # G = menuGroups.objects.first()
+        # if not G: G = menuGroups(id=0)
+        # M = menuItems.objects.filter(MenuGroup=G, OptionNumber=0).order_by('MenuID').first()
+        # if not M: M = menuItems(MenuGroup=G,MenuID=0,OptionNumber=0)
         # retHTTP = resolve(reverse('EditMenu_init')).func(req,G.id,M.MenuID)
         return HttpResponseRedirect(reverse('EditMenu_init'))
     elif CommandNum == MENUCOMMAND.EditParameters.value :

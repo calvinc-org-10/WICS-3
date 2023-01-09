@@ -765,6 +765,7 @@ class CountScheduleForm(ListView):
     template_name = 'frm_CountScheduleList.html'
     
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
+        self._user = req.user
         self._userorg = WICSuser.objects.get(user=req.user).org
         self.queryset = CountSchedule.objects.filter(org=self._userorg).order_by('-CountDate', 'Material')   # figure out how to pass in self.ordering
         return super().setup(req, *args, **kwargs)
@@ -780,6 +781,7 @@ class CountScheduleForm(ListView):
 
     def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
         # I want to break here to see what's going on
+        context.update({'orgname': self._userorg.orgname,  'uname':self._user.get_full_name()})
         return super().render_to_response(context, **response_kwargs)
 
 
