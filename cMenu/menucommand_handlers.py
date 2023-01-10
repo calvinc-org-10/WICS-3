@@ -23,6 +23,7 @@ class MENUCOMMAND(Enum):
     RunCode = 21
     RunSQLStatement = 31
     ConstructSQLStatement = 32
+    ChangePW = 51
     EditMenu = 91
     EditParameters = 92
     EditGreetings = 93

@@ -226,12 +226,9 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
         pass
     elif CommandNum == MENUCOMMAND.ConstructSQLStatement.value:
         pass
+    elif CommandNum == MENUCOMMAND.ChangePW.value:
+        return HttpResponseRedirect(reverse('change_password'))
     elif CommandNum == MENUCOMMAND.EditMenu.value :
-        # G = menuGroups.objects.first()
-        # if not G: G = menuGroups(id=0)
-        # M = menuItems.objects.filter(MenuGroup=G, OptionNumber=0).order_by('MenuID').first()
-        # if not M: M = menuItems(MenuGroup=G,MenuID=0,OptionNumber=0)
-        # retHTTP = resolve(reverse('EditMenu_init')).func(req,G.id,M.MenuID)
         return HttpResponseRedirect(reverse('EditMenu_init'))
     elif CommandNum == MENUCOMMAND.EditParameters.value :
         pass

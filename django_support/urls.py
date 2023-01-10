@@ -27,5 +27,6 @@ urlpatterns = [
     path('menu/', include("cMenu.urls")),
     path('WICS/', include("WICS.urls")),
     path('admin/',admin.site.urls),
-    path('akntt/',include('django.contrib.auth.urls')),
+    path('akntt/',include("userprofiles.urls")),
+    path('akntt/',include("django.contrib.auth.urls")),
 ]

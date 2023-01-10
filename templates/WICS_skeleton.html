@@ -7,6 +7,43 @@
 {% block tTitle %}Count Entry{% endblock %}
 
 {% block boddy %}
+<div class="container text-center mx-auto">
+    <div class="row">
+        <div class="col-10 fs-1">
+            <u>{{ orgname }}</u>
+        </div>
+        <div class="col-2 text-end"> {{ uname }} </div>
+    </div>
+    <div class="row"> <!-- status messages -->
+
+        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+
+        {% if changes_saved.main %}
+            <div class="alert alert-success p-0 alert-dismissible fade show">
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                This Material record successfully saved.
+                ChDat: {{ changed_data.main }}
+            </div>
+        {% endif %}
+        {% if changes_saved.counts %}
+            <div class="alert alert-success p-0 alert-dismissible fade show">
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                Count changes for this Material record successfully saved.
+                ChDat: {{ changed_data.counts }}
+            </div>
+        {% endif %}
+        {% if changes_saved.schedule %}
+            <div class="alert alert-success p-0 alert-dismissible fade show">
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                Count Schedule changes for this Material record successfully saved.
+                ChDat: {{ changed_data.schedule }}
+            </div>
+        {% endif %}
+
+    </div>
+    </div>
+    <hr>
+
 
 Count Schedule Records
 <!-- header row -->
