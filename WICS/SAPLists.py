@@ -21,8 +21,18 @@ def fnSAPList(org, for_date = datetime.datetime.today(), matl = None):
     """
    
     _userorg = org
-    if SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__date__lte=for_date).exists():
-        SAPDate = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__date__lte=for_date).latest().uploaded_at
+
+    _myDtFmt = '%Y-%m-%d %H:%M'
+
+    if isinstance(for_date,str):
+        dateObj = datetime.datetime.strptime(for_date, _myDtFmt)
+    elif isinstance(for_date,datetime.datetime):
+        dateObj = for_date.date()
+    else:
+        dateObj = for_date
+
+    if SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__date__lte=dateObj).exists():
+        SAPDate = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__date__lte=dateObj).latest().uploaded_at
     else:
         SAPDate = SAP_SOHRecs.objects.filter(org=_userorg).order_by('uploaded_at').first().uploaded_at
 

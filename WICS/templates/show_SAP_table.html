@@ -1,34 +1,98 @@
 {% extends "WICS_common.html" %}
 
-{% block tTitle %}{{ formID }}{% endblock %}
+{% block tTitle %}SAP Table{% endblock %}
 {% block boddy %}
-    <!-- menu head -->
-    <div class="container">
-        <div class="row max-width=100%">
-            <div class="col-3 text-start">Calvin is testing here - please add coffee!!</div>
-            <div class="col-6 text-center"><h1>{{ formID }}</h1></div>
-            <div class="col-3 text-end">{{ orgname }}<br>{{ uname }}</div>
+<!-- menu head -->
+<div class="container text-center mx-auto">
+    <div class="row max-width=100%">
+        <div class="col-3 text-start">Calvin is testing here - please add coffee!!</div>
+        <div class="col-7 fs-2">
+            <u>{{ orgname }}</u>
+            <br>
+            SAP Table 
+            <span class="container">
+                <select id="gotoID" onchange="loadSAPDate();">
+                {% for SD in SAPDateList %}
+                    <option value="{{SD}}" 
+                    {% if SD == SAPDate %} selected{% endif %}
+                    >{{SD}}</option>
+                {% endfor %}
+                </select>
+            </span>
+        </div>
+        <div class="col-2 text-end"> {{ uname }} </div>
+    </div>
+    <div class="row"> <!-- status messages -->
+        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+    </div>
+</div>
+
+<hr>
+<!-- body -->
+<div class="container" style="height:350px; overflow-y:auto;">
+    <ul>
+    {% for SAProw in SAPSet %}
+    <li>
+        {{ SAProw.Material }} | 
+        {{ SAProw.Description }} |
+        {{ SAProw.StorageLocation }} | 
+        {{ SAProw.Amount }} |
+        {{ SAProw.Currency }} {{ SAProw.ValueUnrestricted|floatformat:"2" }} | 
+        {{ SAProw.SpecialStock }} | 
+        {{ SAProw.Batch }}
+    </li>
+    {% endfor %}
+    </ul>
+</div>
+
+<!-- footer -->
+<hr>
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-2">
+        </div>
+        <div class="col-8">
+        </div>
+        <div class="col-2">
+            <button 
+                id="close_btn" 
+                type="button">Close Form</button>
         </div>
     </div>
+</div>
 
-    <!-- menu body -->
-    req Date: {{ reqDate }},
-    SAP Date: {{ SAPDate }}
-    <!-- <h2>{{ CountDate|date:"l" }} <input id="CtDate" type="Date" value="{{ CountDate|date:'Y-m-d' }}" onchange="newCtDate();"></input></h2> -->
-    <hr>
-    <div class="container">
-        <ul>
-        {% for SAProw in SAPSet %}
-        <li>
-            {{ SAProw.Material }} | 
-            {{ SAProw.Description }} |
-            {{ SAProw.StorageLocation }} | 
-            {{ SAProw.Amount }} |
-            {{ SAProw.Currency }} {{ SAProw.ValueUnrestricted|floatformat:"2" }} | 
-            {{ SAProw.SpecialStock }} | 
-            {{ SAProw.Batch }}
-        </ul>
-        {% endfor %}
-        </ul>
-    </div>
+
+<script>
+    var $gotoTextBox = $("#gotoID");
+
+
+    document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
+        }
+
+    // later, duplicate this for closeform (see document.body.onbeforeunload)
+    document.getElementById("close_btn").addEventListener("click",
+        function(evobj){
+            if (confirmLeave()) {
+                window.close()
+            }
+        });
+
+    function confirmLeave(){
+        // there's no form, so
+        return true;
+    };
+
+    function loadSAPDate() {
+        // send #gotoID back into the showSAP url
+        dVal = $("#gotoID").val().replace(" ","%20")
+        
+        newRec = "{% url 'showtable-SAP' 'passedDate' %}"
+        newRec = newRec.replace("/passedDate","/"+dVal);
+        window.location = newRec;
+
+    };
+
+</script>
+
 {% endblock %}

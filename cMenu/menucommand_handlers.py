@@ -2,7 +2,9 @@ from django.shortcuts import render, HttpResponse, redirect
 from django.urls import reverse, resolve
 from userprofiles.views import fnWICSuserForm
 from userprofiles.models import WICSuser
-from WICS.forms import fnUploadSAP, fnMaterialForm, fnCountEntryForm, CountScheduleForm
+from WICS.forms import fnUploadSAP, fnMaterialForm, fnCountEntryForm
+from WICS.procs_CountSchedule import CountScheduleListForm
+from WICS.procs_SAP import fnShowSAP
 from WICS.reports import fnCountSummaryRptPreview
 from WICS.SAPLists import fnSAPList, SAProw
 from WICS.SAPMatlUpdt import fnUpdateMatlListfromSAP
@@ -35,7 +37,7 @@ class MENUCOMMAND(Enum):
 def FormBrowse(req, formname, recNum = -1):
     theForm = 'Form ' + formname + ' is not built yet.  Calvin needs more coffee.'
     if formname.lower() == 'frmcount-schedulehistory-by-counterdate'.lower(): 
-        theView = CountScheduleForm.as_view()
+        theView = CountScheduleListForm.as_view()
         theForm = theView(req).render()
     elif formname.lower() == 'l10-wics-uadmin'.lower():
         theForm = fnWICSuserForm(req)
@@ -73,15 +75,7 @@ def ShowTable(req, tblname):
     # guess what - SAP is the first one I'm implementing!
     thetable = 'working on presenting table ' + tblname + '. Calvin still needs more coffee, and maybe for material to stay put sometimes!'
     if tblname == 'sap':
-        SAP_tbl = fnSAPList(_userorg)
-        cntext = {'reqDate': SAP_tbl['reqDate'],
-                'SAPDate': SAP_tbl['SAPDate'],
-                'SAPSet': SAP_tbl['SAPTable'],
-                'formID':tblname, 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
-                }
-        tmplt = 'show_SAP_table.html'
-        thetable = render(req, tmplt, cntext)
-        pass
+        thetable = fnShowSAP(req)
     else:
         pass
     #endif

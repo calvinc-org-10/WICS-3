@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.urls import path, reverse
 from django.shortcuts import redirect
-from WICS import forms, reports, userinit
+from WICS import forms, reports, userinit, procs_SAP
 from userprofiles import logout
 
 # should this be in cMenu? 12/24/2022 - I'm thinking no
@@ -27,5 +27,6 @@ urlpatterns = [
     path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>/<str:gotoCommand>',forms.fnCountEntryForm, {'formname': 'frmcountentry'}, name='CountEntryFormGoto'),
     path('CountSummaryRpt/<str:passedCountDate>',reports.fnCountSummaryRptPreview, name='CountSummaryReport'),
     path('MatlByPartType',forms.MaterialByPartType.as_view(), name='MatlByPartType'),
+    path('SAP/<str:reqDate>',procs_SAP.fnShowSAP,name='showtable-SAP'),
     path('logout',logout.WICSlogout, name='WICSlogout'),
 ]

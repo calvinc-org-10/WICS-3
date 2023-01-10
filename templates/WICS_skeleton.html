@@ -104,4 +104,93 @@ Count Schedule Records
     </div>
 </div>
 
+<script>
+    var $forms = $(".trackformchanges");
+    var initialState
+    var $gotoTextBox = $("#gotoID");
+
+
+    $(document).ready(function() {
+        initialState = $forms.serialize();
+        // fill in the Count evals
+        // I'll clean this up later, I promise!
+        for (let i=0; i < document.getElementById("id_countset-TOTAL_FORMS").value; i++) {
+            CQtyID = 'id_countset-' + i + '-CTD_QTY_Expr';
+            EvID = 'EvalExpr' + i;
+            showCountExpr(CQtyID, EvID);
+            //fbody = "function CQE_" + i + "_df () { showCountExpr(this.id, '" + EvID + "'); };"
+            fbody = Function("function dummyCE" + i + "() { showCountExpr(this.id, '" + EvID + "'); };");
+            // console.log(fbody);
+            //jIDName = "#" + CQtyID
+            //$(jIDName).on("change", fbody);
+        };
+        });
+    document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
+        }
+
+    // later, duplicate this for closeform (see document.body.onbeforeunload)
+    document.getElementById("close_btn").addEventListener("click",
+        function(evobj){
+            if (confirmLeave()) {
+                window.close()
+            }
+        });
+
+    function processGoToReq() {
+        if (confirmLeave()) {
+            loadMaterialRec();
+        }
+    };
+
+    function isFormChanged() {
+        currState = $forms.serialize();
+        return !(initialState === currState);
+    };
+
+    // I'd like to use Bootstrap modals for this, but they're not really modal; they don't halt execution until dismissal
+    document.getElementById('modalCloseCheck').addEventListener('hidden.bs.modal',
+        function() {
+           modalCloseCheckClosed = true;
+        });
+        //TODO: only check if the forms I care about have changed - multi-form and serialize by form
+    function confirmLeave(){
+        if (isFormChanged()) {
+            return confirm("This record has changed\nDo you really want to leave without saving?");
+            // modalCloseCheckResult = false;
+            // modalCloseCheckClosed = false;
+            // $('#modalCloseCheck').modal();
+            // while (!modalCloseCheckClosed) {
+            //     // do nothing!
+            //     } ;
+            // alert(modalCloseCheckResult);
+            // return modalCloseCheckResult;
+        } else {
+            return true;
+        }
+    };
+
+    // to become obsolete??
+    function loadMaterialRec() {
+      fmID = document.getElementById("formID");
+      goID = document.getElementById('gotoID');
+      if (goID.value != null || goID.value == thisMtlGPN) {
+          // later, use reverse      path('FormBrowse/<slug:formname>/<int:recNum>',forms.FormBrowse,name='WICS_FormBrowse'),
+          document.getElementById("gotoForm").submit()
+          // newRec_base = "{% url 'FormBrowse' formID 0 %}"
+          // newRec = newRec_base.replace("/0","/"+goID.value)
+          // newRec = "/WICS/FormBrowse/" + fmID.value + "/" + goID.value;
+          // window.location = newRec;
+      } else {
+          goID.value = thisMtlGPN;
+      }
+    };
+
+// move to common???
+    function showCountExpr(expr_fld, rslt) {
+        document.getElementById(rslt).innerHTML = "= " + EvalExpr(document.getElementById(expr_fld).value);
+    };
+
+</script>
+
 {% endblock %}

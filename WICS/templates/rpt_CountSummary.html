@@ -31,7 +31,7 @@
 <hr>
 <div id="mainReport" class="container mx-auto"  style="height:350px; overflow:auto;" >
     <h3><u>Scheduled and Counted</u></h3>
-    <div class="row small">
+    <div class="row g-0 small">
         <div class="col-1">Count Date</div>
         <div class="col-1">Cyc Ct ID</div>
         <div class="col-2">Material</div>
@@ -44,7 +44,7 @@
     </div>
     {% for ent in Sched_Ctd %}
         {% if ent.type == 'Detail' %}
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col-1">{{ CountDate|date:"Y-m-d" }}</div>
             <div class="col-1">{{ ent.CycCtID }}</div>
             <div class="col-2">{{ ent.Material }}</div>
@@ -55,7 +55,7 @@
             <div class="col-1">{{ ent.PKGID }}</div>
             <div class="col-1">{{ ent.TAGQTY }}</div>
         </div>
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col-11 text-end"><b>Actual Count: </b> {{ ent.CTD_QTY_Expr }}</div>
             <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
         </div>
@@ -66,7 +66,7 @@
         </div>
         {% endif %}
         {% if ent.ActCountNotes %}
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col"><b>Count Notes: </b>{{ ent.ActCountNotes }}</div>
         </div>
         {% endif %}
@@ -75,7 +75,7 @@
             <b>SAP:</b>
             {% for s in ent.SAPNum %}{{ s }}{% endfor %}
         </div>
-        <div class="row">
+        <div class="row g-0">
             <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
             <div class="col-1">Counted</div>
             <div class="col-1">SAP</div>
@@ -85,7 +85,7 @@
             <div class="col-1"></div>
             <div class="col-1"></div>
         </div>
-        <div class="row">
+        <div class="row g-0">
             <div class="col-5">Part Type {{ ent.PartType }}</div>
             <div class="col-1">{{ ent.CountTotal }}</div>
             <div class="col-1">{{ ent.SAPTotal }}</div>
@@ -101,18 +101,18 @@
             <div class="col-1"></div>
         </div>
         {% if ent.ReasonScheduled %}
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col"><b>Reason Scheduled: </b>{{ ent.ReasonScheduled }}</div>
         </div>
         {% endif %}
         {% if ent.SchedNotes %}
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col"><b>Schedule Notes: </b>{{ ent.SchedNotes }}</div>
         </div>
         {% endif %}
         {% if not forloop.last %}
         <hr>
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col-1">Count Date</div>
             <div class="col-1">Cyc Ct ID</div>
             <div class="col-2">Material</div>
@@ -131,7 +131,7 @@
 
     <hr><hr>
     <h3><u>UnScheduled</u></h3>
-    <div class="row small">
+    <div class="row g-0 small">
         <div class="col-1">Count Date</div>
         <div class="col-1">Cyc Ct ID</div>
         <div class="col-2">Material</div>
@@ -144,7 +144,7 @@
     </div>
     {% for ent in UnSched_Ctd %}
         {% if ent.type == 'Detail' %}
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col-1">{{ CountDate|date:"Y-m-d" }}</div>
             <div class="col-1">{{ ent.CycCtID }}</div>
             <div class="col-2">{{ ent.Material }}</div>
@@ -155,7 +155,7 @@
             <div class="col-1">{{ ent.PKGID }}</div>
             <div class="col-1">{{ ent.TAGQTY }}</div>
         </div>
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col-11 text-end">{{ ent.CTD_QTY_Expr }}</div>
             <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
         </div>
@@ -166,7 +166,7 @@
         </div>
         {% endif %}
         {% if ent.ActCountNotes %}
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col"><b>Count Notes: </b>{{ ent.ActCountNotes }}</div>
         </div>
         {% endif %}
@@ -175,7 +175,7 @@
             <b>SAP:</b>
             {% for s in ent.SAPNum %}{{ s }}{% endfor %}
         </div>
-        <div class="row">
+        <div class="row g-0">
             <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
             <div class="col-1">Counted</div>
             <div class="col-1">SAP</div>
@@ -185,7 +185,7 @@
             <div class="col-1"></div>
             <div class="col-1"></div>
         </div>
-        <div class="row">
+        <div class="row g-0">
             <div class="col-5">Part Type {{ ent.PartType }}</div>
             <div class="col-1">{{ ent.CountTotal }}</div>
             <div class="col-1">{{ ent.SAPTotal }}</div>
@@ -201,18 +201,18 @@
             <div class="col-1"></div>
         </div>
         {% if ent.ReasonScheduled %}
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col"><b>Reason Scheduled: </b>{{ ent.ReasonScheduled }}</div>
         </div>
         {% endif %}
         {% if ent.SchedNotes %}
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col"><b>Schedule Notes: </b>{{ ent.SchedNotes }}</div>
         </div>
         {% endif %}
         {% if not forloop.last %}
         <hr>
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col-1">Count Date</div>
             <div class="col-1">Cyc Ct ID</div>
             <div class="col-2">Material</div>
@@ -232,7 +232,7 @@
     
     <hr><hr>
     <h3><u>Scheduled but Not Counted</u></h3>
-    <div class="row small">
+    <div class="row g-0 small">
         <div class="col-1">Count Date</div>
         <div class="col-1">Cyc Ct ID</div>
         <div class="col-2">Material</div>
@@ -245,7 +245,7 @@
     </div>
     {% for ent in Sched_NotCtd %}
         {% if ent.type == 'Detail' %}
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col-1">{{ CountDate|date:"Y-m-d" }}</div>
             <div class="col-1">{{ ent.CycCtID }}</div>
             <div class="col-2">{{ ent.Material }}</div>
@@ -256,7 +256,7 @@
             <div class="col-1">{{ ent.PKGID }}</div>
             <div class="col-1">{{ ent.TAGQTY }}</div>
         </div>
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col-11 text-end">{{ ent.CTD_QTY_Expr }}</div>
             <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
         </div>
@@ -271,7 +271,7 @@
             <b>SAP:</b>
             {% for s in ent.SAPNum %}{{ s }}{% endfor %}
         </div>
-        <div class="row">
+        <div class="row g-0">
             <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
             <div class="col-1">Counted</div>
             <div class="col-1">SAP</div>
@@ -281,7 +281,7 @@
             <div class="col-1"></div>
             <div class="col-1"></div>
         </div>
-        <div class="row">
+        <div class="row g-0">
             <div class="col-5">Part Type {{ ent.PartType }}</div>
             <div class="col-1">{{ ent.CountTotal }}</div>
             <div class="col-1">{{ ent.SAPTotal }}</div>
@@ -297,18 +297,18 @@
             <div class="col-1"></div>
         </div>
         {% if ent.ReasonScheduled %}
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col"><b>Reason Scheduled: </b>{{ ent.ReasonScheduled }}</div>
         </div>
         {% endif %}
         {% if ent.SchedNotes %}
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col"><b>Schedule Notes: </b>{{ ent.SchedNotes }}</div>
         </div>
         {% endif %}
         {% if not forloop.last %}
         <hr>
-        <div class="row small">
+        <div class="row g-0 small">
             <div class="col-1">Count Date</div>
             <div class="col-1">Cyc Ct ID</div>
             <div class="col-2">Material</div>
