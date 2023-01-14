@@ -15,17 +15,26 @@ Including another URLconf
 """
 from django.urls import path, reverse
 from django.shortcuts import redirect
-from WICS import forms, reports, userinit, procs_SAP
+from WICS import forms, reports, userinit, procs_SAP, procs_CountSchedule, procs_ActualCounts, procs_Material
 from userprofiles import logout
 
-# should this be in cMenu? 12/24/2022 - I'm thinking no
 urlpatterns = [
     path('', lambda request: redirect(reverse('login'),permanent=False), name='WICSlogin'),       # this is actually the entry point to WICS
     path('inituser', userinit.inituser , name='initWICSuser'),
-    path('MaterialForm2/<int:recNum>',forms.fnMaterialForm, {'formname': 'frmmaterialform','gotoRec':True}, name='ReloadMatlForm'),
-    path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>',forms.fnCountEntryForm, {'formname': 'frmcountentry'}, name='CountEntryForm'),
-    path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>/<str:gotoCommand>',forms.fnCountEntryForm, {'formname': 'frmcountentry'}, name='CountEntryFormGoto'),
-    path('CountSummaryRpt/<str:passedCountDate>',reports.fnCountSummaryRptPreview, name='CountSummaryReport'),
+    path('MaterialForm2/<int:recNum>',
+            forms.fnMaterialForm, {'formname': 'frmmaterialform','gotoRec':True}, name='ReloadMatlForm'),
+    path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>',
+            procs_ActualCounts.fnCountEntryForm, {'formname': 'frmcountentry'}, name='CountEntryForm'),
+    path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>/<str:gotoCommand>',
+            procs_ActualCounts.fnCountEntryForm, {'formname': 'frmcountentry'}, name='CountEntryFormGoto'),
+    path('CountSummaryRpt/<str:passedCountDate>',
+            reports.fnCountSummaryRptPreview, name='CountSummaryReport'),
+    path('CountScheduleList/',
+            procs_CountSchedule.CountScheduleListForm.as_view(),name='CountScheduleList'),
+    path('CountScheduleForm/',
+            procs_CountSchedule.fnCountScheduleRecordForm,name='CountScheduleForm'),
+    path('CountScheduleForm/<int:recNum>/<str:passedMatlNum>/<str:passedCountDate>/<str:gotoCommand>',
+            procs_CountSchedule.fnCountScheduleRecordForm,name='CountScheduleForm'),
     path('MatlByPartType',forms.MaterialByPartType.as_view(), name='MatlByPartType'),
     path('SAP/<str:reqDate>',procs_SAP.fnShowSAP,name='showtable-SAP'),
     path('logout',logout.WICSlogout, name='WICSlogout'),

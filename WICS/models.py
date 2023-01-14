@@ -42,11 +42,9 @@ class WhsePartTypes(models.Model):
 
 
 class MaterialList(models.Model):
-    # oldWICSID = models.IntegerField(null=True, blank=True)      # kill this field once data is tied to new ID in WICS2
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
     Material = models.CharField(max_length=100)
     Description = models.CharField(max_length=250, blank=True)
-    # oldWICSPartType = models.IntegerField(null=True, blank=True)      # kill this field once data is tied to new ID in WICS2
     PartType = models.ForeignKey(WhsePartTypes, null=True, on_delete=models.RESTRICT)
     SAPMaterialType = models.CharField(max_length=100, blank=True)
     SAPMaterialGroup = models.CharField(max_length=100, blank=True)
@@ -75,10 +73,8 @@ class tmpMaterialListUpdate(models.Model):
 
 
 class CountSchedule(models.Model):
-    # oldWICSID = models.IntegerField(null=True, blank=True)      # kill this field once data is tied to new ID in WICS2
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
     CountDate = models.DateField(null=False)
-    # oldWICSMaterial = models.IntegerField(null=True, blank=True)      # kill this field once data is tied to new ID in WICS2
     Material = models.ForeignKey(MaterialList, on_delete=models.RESTRICT)
     Counter = models.CharField(max_length=250, blank=True)
     Priority = models.CharField(max_length=50, blank=True)
@@ -91,6 +87,9 @@ class CountSchedule(models.Model):
 
     class Meta:
         ordering = ['org','CountDate', 'Material']
+    def __str__(self) -> str:
+        return str(self.pk) + ": " + str(self.CountDate) + " / " + str(self.Material) + " / " + str(self.Counter)
+        # return super().__str__()
 
 
 class ActualCounts(models.Model):

@@ -1,275 +1,92 @@
-### TODO: Split into procs_Material, procs_ActualCounts, procs_ScheduledCounts, procs_SAPData
-###       fold in reports.py, too
-
-import time, datetime
-import os, uuid
+import datetime
+# TODO: skip Sat, Sun using dateutil, dateutil.rrule, dateutil.rruleset
+# implement skipping holidays
 from django.contrib.auth.decorators import login_required
 from django.utils import timezone
 from django.urls import reverse
 from django import forms
-from django.db import models
-from django.forms import inlineformset_factory, formset_factory
+from django.forms import inlineformset_factory
 from django.shortcuts import render
-from django.db.models import Value, Sum
+from WICS.forms import CountScheduleForm
 from cMenu.models import getcParm
 from WICS.models import MaterialList, ActualCounts, CountSchedule, \
-                        SAP_SOHRecs, \
-                        WhsePartTypes, Organizations, LastFoundAt
-from WICS.SAPLists import fnSAPList
+                        WhsePartTypes, LastFoundAt
 from userprofiles.models import WICSuser
 from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
-from django.db.models.query import EmptyQuerySet, QuerySet
+from django.db.models.query import QuerySet
 from django.views.generic import ListView
-from openpyxl import load_workbook
-from typing import Any, Dict
+from typing import *
 
 
 _userorg = None
 
-
-class MaterialForm(forms.ModelForm):
-    showPK = forms.IntegerField(label='ID', disabled=True, required=False)
-    class Meta:
-        model = MaterialList
-        fields = ['id', 'org', 'Material', 'Description','PartType',
-                'SAPMaterialType', 'SAPMaterialGroup', 'Price',
-                'TypicalContainerQty', 'TypicalPalletQty', 'PriceUnit', 'Notes']
-        # fields = '__all__'
-
-class MaterialCountSummary(forms.Form):
-    Material = forms.CharField(max_length=100, disabled=True)
-    CountDate = forms.DateField(required=False, disabled=True)
-    CountQTY_Eval = forms.IntegerField(required=False, disabled=True)
+from django.core.files.base import File
+from django.db.models.base import Model
+#from django.db.models.query import QuerySet, _BaseQuerySet
+from django.forms.utils import ErrorList
 
 
-@login_required
-def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
-    _userorg = WICSuser.objects.get(user=req.user).org
-    if not _userorg: raise Exception('User is corrupted!!')
-
-    # get current record
-    currRec = None
-    if gotoRec:
-        currRec = MaterialList.objects.filter(org=_userorg, Material=req.GET['gotoID']).first()
-    if not currRec:
-        if recNum <= 0:
-            currRec = MaterialList.objects.filter(org=_userorg).first()
-        else:
-            currRec = MaterialList.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
-        # endif
-    #endif
-    if not currRec: #there are no MaterialList records for this org!!
-        thisPK = 0
-    else:
-        thisPK = currRec.pk
-
-    SAP_SOH = fnSAPList(_userorg, matl=currRec.Material)
-
-    gotoForm = {}
-    gotoForm['gotoItem'] = currRec
-    gotoForm['choicelist'] = MaterialList.objects.filter(org=_userorg).values('id','Material')
-
-    changes_saved = {
-        'main': False,
-        'counts': False,
-        'schedule': False
-        }
-    chgd_dat = {'main':None, 'counts': None, 'schedule': None}
-
-    CountSubFormFields = ('id', 'CountDate', 'CycCtID', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'PKGID_Desc', 'TAGQTY', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',)
-    ScheduleSubFormFields = ('id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'CMPrintFlag', 'Notes',)
-
-    if req.method == 'POST':
-        # changed data is being submitted.  process and save it
-        # process mtlFm AND subforms.
-
-        # process main form
-        #if currRec:
-        mtlFm = MaterialForm(req.POST, instance=currRec,  initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg},  prefix='material')
-        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
-
-        #else:
-        #    mtlFm = MaterialForm(req.POST, initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg},  prefix='material')
-        #endif
-        if mtlFm.is_valid():
-            if mtlFm.has_changed():
-                mtlFm.save()
-                chgd_dat['main'] = mtlFm.changed_data
-                changes_saved['main'] = True
-                #raise Exception('main saved')
-
-        # count detail subform
-        countSubFm_class = inlineformset_factory(MaterialList,ActualCounts,
-                    fields=CountSubFormFields,
-                    extra=0,can_delete=False)
-        #if currRec:
-        countSet = countSubFm_class(req.POST, instance=currRec, prefix='countset', initial={'org': _userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
-        #else:
-        #    countSet = countSubFm_class(req.POST, prefix='countset', initial={'org': _userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
-        if countSet.is_valid():
-            if countSet.has_changed():
-                countSet.save()
-                chgd_dat['counts'] = countSet.changed_objects
-                changes_saved['counts'] = True
-                #raise Exception('counts saved')
-
-        # count schedule subform
-        SchedSubFm_class = inlineformset_factory(MaterialList,CountSchedule,
-                    fields=ScheduleSubFormFields,
-                    extra=0,can_delete=False)
-        #if currRec:
-        schedSet = SchedSubFm_class(req.POST, instance=currRec, prefix='schedset', initial={'org': _userorg}, queryset=CountSchedule.objects.order_by('-CountDate'))
-        #else:
-        #    schedSet = SchedSubFm_class(req.POST, prefix='schedset', initial={'org': _userorg}, queryset=CountSchedule.objects.order_by('-CountDate'))
-        if schedSet.is_valid():
-            if schedSet.has_changed():
-                schedSet.save()
-                chgd_dat['schedule'] = schedSet.changed_objects
-                changes_saved['schedule'] = True
-                #raise Exception('sched saved')
-
-        # count summary form is r/o.  It will not be changed
-    else: # request.method == 'GET' or something else
-        #if currRec:
-        mtlFm = MaterialForm(instance=currRec, initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg}, prefix='material')
-        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
-        #else:
-        #    mtlFm = MaterialForm(initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg}, prefix='material')
-
-        CountSubFm_class = inlineformset_factory(MaterialList,ActualCounts,
-                    fields=CountSubFormFields,
-                    extra=0,can_delete=False)
-        #if currRec:
-        countSet = CountSubFm_class(instance=currRec, prefix='countset', initial={'org':_userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
-        #else:
-        #    countSet = CountSubFm_class(prefix='countset', initial={'org':_userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
-
-        SchedSubFm_class = inlineformset_factory(MaterialList,CountSchedule,
-                    fields=ScheduleSubFormFields,
-                    extra=0,can_delete=False)
-        #if currRec:
-        schedSet = SchedSubFm_class(instance=currRec, prefix='schedset', initial={'org':_userorg}, queryset=CountSchedule.objects.order_by('-CountDate'))
-        #else:
-        #    schedSet = SchedSubFm_class(prefix='schedset', initial={'org':_userorg}, queryset=CountSchedule.objects.order_by('-CountDate'))
-    # endif
-
-    # count summary subform
-    raw_countdata = ActualCounts.objects.filter(Material=currRec).order_by('Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
-    LastMaterial = None ; LastCountDate = None
-    initdata = []
-    for r in raw_countdata:
-        try:
-            r.QtyEval = eval(r.CTD_QTY_Expr)    # later, use ast.literal_eval
-        # except (ValueError, SyntaxError):
-        except:
-            r.QtyEval = 0
-        if (r.Material != LastMaterial or r.CountDate != LastCountDate):
-            LastMaterial = r.Material ; LastCountDate = r.CountDate
-            initdata.append({
-                'Material': r.Material,
-                'CountDate': r.CountDate,
-                'CountQTY_Eval': 0,
-            })
-        n = initdata[-1]['CountQTY_Eval'] + r.QtyEval
-        initdata[-1]['CountQTY_Eval'] = n
-    subFm_class = formset_factory(MaterialCountSummary,extra=0)
-    summarySet = subFm_class(initial=initdata, prefix='summaryset')
-
-    #countSet['org'].is_hidden = True
-    #schedSet['org'].is_hidden = True
-
-    # display the form
-    cntext = {'frmMain': mtlFm,
-            'lastFoundAt': LastFoundAt(currRec),
-            'gotoForm': gotoForm,
-            'countset': countSet,
-            'scheduleset': schedSet,
-            'countsummset': summarySet,
-            'SAPSet': SAP_SOH,
-            'changes_saved': changes_saved,
-            'changed_data': chgd_dat,
-            'recNum': recNum,
-            'formID':formname, 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
-            }
-    templt = 'frm_Material.html'
-    return render(req, templt, cntext)
-
-#####################################################################################################
-#####################################################################################################
-#####################################################################################################
-
-# between org and the way I present Material on the CountEntry form (<input type="list">/<datalist>),
-# ModelForms want to do way too much in the verification and cleaning.  So I'm taking the 
-# controls and growing CountEntryForm from a simple Form
-class CountEntryForm(forms.ModelForm):
+class CountScheduleRecordForm(forms.ModelForm):
     id = forms.IntegerField(required=False, widget=forms.HiddenInput)
-    #org = forms.CharField(widget=forms.HiddenInput,  required=False)
-    #org = forms.ModelChoiceField(queryset=Organizations.objects.all(), widget=forms.HiddenInput,  required=False)
     CountDate = forms.DateField(required=True, initial=datetime.date.today())
-    CycCtID = forms.CharField(required=False)
     Material = forms.CharField(required=True)
         # Material is handled this way because of the way it's done in the html.
         # later, create a DropdownText widget??
-    Counter = forms.CharField(required=True)
-    LocationOnly = forms.BooleanField(required=False)
-    BLDG = forms.CharField(required=True)
-    LOCATION = forms.CharField(required=False)
-    CTD_QTY_Expr = forms.CharField(required=False)
-    FLAG_PossiblyNotRecieved = forms.BooleanField(required=False)
-    FLAG_MovementDuringCount = forms.BooleanField(required=False)
-    PKGID_Desc = forms.CharField(required=False)
-    TAGQTY = forms.CharField(required=False)
+    Counter = forms.CharField(required=False)
+    Priority = forms.CharField(max_length=50, required=False)
+    ReasonScheduled = forms.CharField(max_length=250, required=False)
+    CMPrintFlag = forms.BooleanField(required=False, initial=False)
     Notes  = forms.CharField(required=False)
+
     class Meta:
-        model = ActualCounts
-        fields = ['id', 'CountDate', 'CycCtID', 'Counter', 'LocationOnly', 
-                'BLDG', 'LOCATION', 'CTD_QTY_Expr', 'PKGID_Desc', 'TAGQTY',
-                'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes']
-    def save(self, in_org):
+        model = CountSchedule
+        fields = ['CountDate', 'Counter', 'Priority', 'ReasonScheduled', 'CMPrintFlag', 'Notes']
+    def __init__(self, org, *args, **kwargs):
+        self.org = org
+        super().__init__(*args, **kwargs)
+    def save(self):
         if not self.is_valid():
             return None
         dbmodel = self.Meta.model
-        required_fields = ['CountDate', 'Material', 'Counter'] #id, org handled separately
+        required_fields = ['CountDate', 'Material'] #id, org handled separately
         PriK = self['id'].value()
-        M = MaterialList.objects.get(org=in_org, Material=self.cleaned_data['Material']) 
+        M = MaterialList.objects.get(org=self.org, Material=self.cleaned_data['Material']) 
         if not str(PriK).isnumeric(): PriK = -1
         existingrec = dbmodel.objects.filter(pk=PriK).exists()
         if existingrec: rec = dbmodel.objects.get(pk=PriK)
-        else:   rec = dbmodel()
+        else: rec = dbmodel()
         for fldnm in self.changed_data + required_fields:
             if fldnm=='id' or fldnm=='org': continue
-            if fldnm=='Material':
+            elif fldnm=='Material':
                 setattr(rec,fldnm, M)
             else:
                 setattr(rec, fldnm, self.cleaned_data[fldnm])
-        rec.org = in_org
+        rec.org = self.org
         
         rec.save()
         return rec
 
 class RelatedMaterialInfo(forms.ModelForm):
-    id = forms.IntegerField(required=False)
-    # org = forms.CharField(widget=forms.HiddenInput,  required=False)
-    #org = forms.ModelChoiceField(queryset=Organizations.objects.all(), required=False, widget=forms.HiddenInput)
-    Material = forms.CharField(required=False, widget=forms.HiddenInput)
-    Description = forms.CharField(max_length=250, disabled=True, required=False)
-    PartType = forms.ModelChoiceField(queryset=WhsePartTypes.objects.none(), empty_label=None, required=False)
+    Description = forms.CharField(max_length=250, required=False)
+    PartType = forms.ModelChoiceField(queryset=WhsePartTypes.objects.filter(org=_userorg))
     TypicalContainerQty = forms.IntegerField(required=False)
     TypicalPalletQty = forms.IntegerField(required=False)
+    Notes = forms.CharField(max_length=250, required=False)
     class Meta:
         model = MaterialList
-        fields = ['id', 'Material', 'Description', 'PartType', 
+        fields = ['Description', 'PartType', 
                 'TypicalContainerQty', 'TypicalPalletQty', 'Notes']
-    def __init__(self, *args, **kwargs) -> None:
+    def __init__(self, org, id, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
-        self.fields['Material'].queryset=MaterialList.objects.filter(org=_userorg).all()
-        self.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
-    def save(self, in_org):
+        self.id = id
+        self.org = org
+        self.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=org).all()
+    def save(self):
         if not self.is_valid():
             return None
         dbmodel = self.Meta.model
         required_fields = [] #id, org handled separately
-        PriK = self['id'].value()
+        PriK = self.id
         if not str(PriK).isnumeric(): PriK = -1
         existingrec = dbmodel.objects.filter(pk=PriK).exists()
         if existingrec: rec = dbmodel.objects.get(pk=PriK)
@@ -281,14 +98,14 @@ class RelatedMaterialInfo(forms.ModelForm):
                 setattr(rec, fldnm, self.cleaned_data[fldnm])
             else:
                 setattr(rec, fldnm, self.cleaned_data[fldnm])
-        rec.org = in_org
+        rec.org = self.org
         
         rec.save()
         return rec
 
 @login_required
-def fnCountEntryForm(req, formname, recNum = 0, 
-    loadMatlInfo = None, 
+def fnCountScheduleRecordForm(req, recNum = 0, 
+    passedMatlNum = None, 
     passedCountDate=str(datetime.date.today()), 
     gotoCommand=None
     ):
@@ -296,35 +113,41 @@ def fnCountEntryForm(req, formname, recNum = 0,
     _userorg = WICSuser.objects.get(user=req.user).org
 
     # the string 'None' is not the same as the value None
-    if loadMatlInfo=='None': loadMatlInfo=None
+    if passedMatlNum=='None': passedMatlNum=None
     if gotoCommand=='None': gotoCommand=None
+
+    # this is used often enough to have it as a baseline
+    allCtSchdRecs = CountSchedule.objects.filter(org=_userorg)
 
     # if a record number was passed in, retrieve it
     # # later, handle record not found (i.e. - invalid recNum passed in)
     if recNum <= 0:
-        currRec = ActualCounts.objects.filter(org=_userorg).none()
+        currRec = allCtSchdRecs.none()
+        # set Matl flds
+        if passedMatlNum:
+            matlRec = MaterialList.objects.get(Material=passedMatlNum)
+        else:
+            matlRec = MaterialList.objects.none()
     else:
-        currRec = ActualCounts.objects.filter(org=_userorg).get(pk=recNum)
+        currRec = allCtSchdRecs.get(pk=recNum)
+        matlRec = currRec.Material
     # endif
+    MaterialID = getattr(matlRec, 'pk', None)
     
     prefixvals = {}
-    prefixvals['main'] = 'counts'
+    prefixvals['main'] = 'sched'
     prefixvals['matl'] = 'matl'
-    prefixvals['schedule'] = 'schedule'
     initialvals = {}
     initialvals['main'] = {'CountDate':datetime.date.fromisoformat(passedCountDate)}
     initialvals['matl'] = {}
-    initialvals['schedule'] = {'CountDate':datetime.date.fromisoformat(passedCountDate)}
 
     changes_saved = {
         'main': False,
         'matl': False,
-        'schedule': False
         }
     chgd_dat = {
         'main':None, 
         'matl': None, 
-        'schedule': None
         }
 
     if req.method == 'POST':
@@ -334,147 +157,150 @@ def fnCountEntryForm(req, formname, recNum = 0,
         gotoCommand = None
 
         # process main form
-        if currRec: mainFm = CountEntryForm(req.POST, instance=currRec,  prefix=prefixvals['main'])   # do I need to pass in intial?
-        else: mainFm = CountEntryForm(req.POST, initial=initialvals['main'],  prefix=prefixvals['main']) 
-        mainFm.fields['Material'].choices = MaterialList.objects.filter(org=_userorg).values('Material','id')
+        if currRec: mainFm = CountScheduleRecordForm(_userorg, req.POST, instance=currRec,  prefix=prefixvals['main'])
+        else: mainFm = CountScheduleRecordForm(_userorg, req.POST, initial=initialvals['main'],  prefix=prefixvals['main']) 
+        matlSubFm = RelatedMaterialInfo(_userorg, MaterialID, req.POST, instance=matlRec, prefix=prefixvals['matl'])
 
-        s = ActualCounts.objects.none()
+        s = CountSchedule.objects.none()
 
-        if mainFm.is_valid():
+        if mainFm.is_valid() and matlSubFm.is_valid():
             if mainFm.has_changed():
-                s = mainFm.save(_userorg)
+                s = mainFm.save()
                 chgd_dat['main'] = mainFm.changed_data
                 changes_saved['main'] = s.id
+            # material info subform
+            if matlSubFm.has_changed():
+                matlSubFm.save()
+                chgd_dat['matl'] = matlSubFm.changed_data
+                changes_saved['matl'] = True
 
-            # rethink this, in light of the subforms
-            # prepare a new empty record for next entry
             gotoCommand = "New"
         else:
             gotoCommand = "Invalid"
 
-        # material info subform
-        matlSubFm = RelatedMaterialInfo(req.POST, instance=s.Material, prefix=prefixvals['matl'])
-        matlSubFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
-        if matlSubFm.is_valid():
-            if matlSubFm.has_changed():
-                matlSubFm.save(_userorg)
-                chgd_dat['matl'] = matlSubFm.changed_data
-                changes_saved['matl'] = True
-
-        # count schedule subform
-        #schedSet = RelatedScheduleInfo(req.POST, prefix=prefixvals['schedule'], initial=initialvals['schedule'])
-        #if schedSet.is_valid():
-        #    if schedSet.has_changed():
-        #        schedSet.save(_userorg)
-        #        chgd_dat['schedule'] = schedSet.changed_data
-        #        changes_saved['schedule'] = True
-    #endif req.method=='POST'
-
     # if this is a gotoCommand, get the correct record
     if gotoCommand=="First" or (gotoCommand=="Prev" and recNum <=0):
-        currRec = ActualCounts.objects.filter(org=_userorg).order_by('id').first()
-        if currRec: recNum = currRec.id
+        currRec = allCtSchdRecs.order_by('id').first()
+        if currRec: 
+            recNum = currRec.id
+            passedMatlNum = currRec.Material.Material
+            matlRec = currRec.Material
+            MaterialID = matlRec.id
         else: recNum = 0
     elif gotoCommand=="Prev":
-        currRec = ActualCounts.objects.filter(org=_userorg,pk__lt=recNum).order_by('id').last()
-        if currRec: recNum = currRec.id
+        currRec = allCtSchdRecs.filter(pk__lt=recNum).order_by('id').last()
+        if currRec: 
+            recNum = currRec.id
+            passedMatlNum = currRec.Material.Material
+            matlRec = currRec.Material
+            MaterialID = matlRec.id
         else: recNum = 0
     elif gotoCommand=="Next":
-        currRec = ActualCounts.objects.filter(org=_userorg,pk__gt=recNum).order_by('id').first()
-        if currRec: recNum = currRec.id
+        currRec = allCtSchdRecs.filter(pk__gt=recNum).order_by('id').first()
+        if currRec: 
+            recNum = currRec.id
+            passedMatlNum = currRec.Material.Material
+            matlRec = currRec.Material
+            MaterialID = matlRec.id
         else: recNum = 0
     elif gotoCommand=="Last":
-        currRec = ActualCounts.objects.filter(org=_userorg).order_by('id').last()
-        if currRec: recNum = currRec.id
+        currRec = allCtSchdRecs.order_by('id').last()
+        if currRec: 
+            recNum = currRec.id
+            passedMatlNum = currRec.Material.Material
+            matlRec = currRec.Material
+            MaterialID = matlRec.id
         else: recNum = 0
     elif gotoCommand=="Invalid":
         # this command occurs when a form (new or existing) is submitted, but it has errors
         # currRec is already set above
-        if currRec: recNum = currRec.id
+        if currRec: 
+            recNum = currRec.id
+            passedMatlNum = currRec.Material.Material
+            matlRec = currRec.Material
+            MaterialID = matlRec.id
         else: recNum = 0
     elif gotoCommand=="New":
-        currRec = ActualCounts.objects.filter(org=_userorg).none()
-        loadMatlInfo = None
+        currRec = allCtSchdRecs.none()
         recNum=0
+        passedMatlNum = None
+        matlRec = getattr(currRec, 'Material', '')
+        MaterialID = getattr(matlRec, 'pk', None)
+    else:
+        if currRec: 
+            recNum = currRec.id
+            passedMatlNum = currRec.Material.Material
+            matlRec = currRec.Material
+            MaterialID = matlRec.id
+        else: 
+            # recNum remains whatever was passed in (0 - else there would be a currRec)
+            # passedMatlNum remains whatever was passed in
+            # matlRec remains what was constructed above
+            MaterialID = getattr(matlRec, 'pk', None)
     #endif
 
-    # CLEAN ME UP CLEAN ME UP!!!!
-    matlinfo = schedinfo = []
-    # if there is a currRec by now, get matlInfo and schedinfo from it
-    if currRec:
-        matlinfo = currRec.Material
-        getDate = currRec.CountDate
-        if CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlinfo).exists():
-            schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlinfo)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
-        else:
-            schedinfo = []
-    # has the date or Material changed and we're looking for update Matl/Sched info?
-    elif (loadMatlInfo!=None) and (gotoCommand==None):
-        # review and clean up this block!
-        if loadMatlInfo != None:
-            # fill in MatlInfo and CountSchedInfo
-            matlinfo = MaterialList.objects.get(org=_userorg, Material=loadMatlInfo)   # this better exist, else something is seriously wrong
-            if recNum > 0: getDate = currRec.CountDate 
-            else: getDate = passedCountDate
-            if CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlinfo).exists():
-                schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlinfo)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
-            else:
-                schedinfo = []
-        elif recNum > 0:
-            # ??????????? shouldn't this already be handled?  Think about it...
-            # fill in MatlInfo and CountSchedInfo
-            matlinfo = MaterialList.objects.get(org=_userorg, Material=currRec.Material)   # this better exist, else something is seriously wrong
-            getDate = currRec.CountDate
-            if CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlinfo).exists():
-                schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlinfo)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
-            else:
-                schedinfo = []
-        #endif
-
-        # the rest of the processing is now a subcase of the gotoCommand logic
-    
     # prep the forms for the template
     if gotoCommand != "Invalid":
-        if currRec: mainFm = CountEntryForm(instance=currRec, prefix=prefixvals['main'])
-        else:       mainFm = CountEntryForm(initial=initialvals['main'],  prefix=prefixvals['main'])
-        mainFm.fields['Material'].choices = MaterialList.objects.filter(org=_userorg).values('Material') 
-
-    if not matlinfo: 
-        matlSubFm = RelatedMaterialInfo(initial=initialvals['matl'], prefix=prefixvals['matl']) 
-        todayscounts = ActualCounts.objects.none()
-    else: 
-        matlSubFm = RelatedMaterialInfo(instance=matlinfo, prefix=prefixvals['matl'])
-        todayscounts = ActualCounts.objects.filter(CountDate=passedCountDate,Material=matlinfo)
-    #matlSubFm.fields['Material'].queryset=MaterialList.objects.filter(org=_userorg).all()
-    matlSubFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
-
-    if not schedinfo: schedFm = RelatedScheduleInfo(initial=initialvals['schedule'], prefix=prefixvals['schedule'])
-    else: schedFm = RelatedScheduleInfo(instance=schedinfo, prefix=prefixvals['schedule'])
+        if currRec: 
+            mainFm = CountScheduleRecordForm(_userorg, instance=currRec, prefix=prefixvals['main'])
+        else:       
+            mainFm = CountScheduleRecordForm(_userorg, initial=initialvals['main'],  prefix=prefixvals['main'])
+        if matlRec:
+            matlSubFm = RelatedMaterialInfo(_userorg, MaterialID, instance=matlRec, prefix=prefixvals['matl'])
+        else:
+            matlSubFm = RelatedMaterialInfo(_userorg, MaterialID, initial=initialvals['matl'], prefix=prefixvals['matl'])
 
     # CountEntryForm MaterialList dropdown
     matlchoiceForm = {}
     if currRec:
         matlchoiceForm['gotoItem'] = currRec
     else:
-        if loadMatlInfo==None: loadMatlInfo = ''
-        matlchoiceForm['gotoItem'] = {'Material':loadMatlInfo}
+        if passedMatlNum==None: passedMatlNum = ''
+        matlchoiceForm['gotoItem'] = {'Material':passedMatlNum}
     matlchoiceForm['choicelist'] = MaterialList.objects.filter(org=_userorg).values('id','Material')
+
+    #finally, if this is a new rec, and a rec already exists for this CountDate and Material, the Material must be rejected
+    msgDupSched = ''
+    if (not currRec) and fnCountScheduleRecord(_userorg,passedCountDate,passedMatlNum):
+        msgDupSched = 'A count for ' + str(passedMatlNum) + ' is already scheduled for ' + str(passedCountDate)
+        passedMatlNum = None
 
     # display the form
     cntext = {'frmMain': mainFm,
-            'frmMatlInfo': matlSubFm,
-            'todayscounts': todayscounts,
+            'frmMatl': matlSubFm,
             'matlchoiceForm':matlchoiceForm,
-            'noSchedInfo':(schedinfo==[]),
-            'frmSchedInfo': schedFm,
+            "msgDupSched": msgDupSched,
             'changes_saved': changes_saved,
             'changed_data': chgd_dat,
             'recNum': recNum,
-            'matlnum_changed': loadMatlInfo,
-            'formID':formname, 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+            'matlnum_changed': passedMatlNum,
+            'MaterialID': MaterialID,
+            'allCountSchedRecs': allCtSchdRecs.order_by('-CountDate', 'Material'),
+            'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
             }
-    templt = 'frm_CountEntry.html'
+    templt = 'frm_CountScheduleRec.html'
     return render(req, templt, cntext)
+
+def fnCountScheduleRecord(org, CtDate, Matl):
+    """
+    used to check if a CountSchedule redcord exists for the given CtDate and Material
+    (only one such record is allowed).
+    If the record exists, it is the return value, else a None CountSchedule rec
+    """
+    if isinstance(Matl,MaterialList):
+        MatObj = Matl 
+    else:
+        try:
+            MatObj = MaterialList.objects.get(org=org,Material=Matl)
+        except:
+            MatObj = MaterialList.objects.none()
+
+    try:
+        rec = CountSchedule.objects.get(org=org, CountDate=CtDate, Material=MatObj)
+    except:
+        rec = CountSchedule.objects.none()
+
+    return rec
 
 #####################################################################
 #####################################################################

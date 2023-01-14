@@ -20,7 +20,13 @@
 
     <br>
     Fix this later ...<br>
-    {{ UplResults }}
+    <ul>
+    {% for res in UplResults %}
+        <li>
+            {{ res }}
+        </li>
+    {% endfor %}
+    </ul>
 
     <!-- form footer -->
     <div class="container">
