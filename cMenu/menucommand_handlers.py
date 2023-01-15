@@ -64,6 +64,9 @@ def FormBrowse(req, formname, recNum = -1):
     elif formname.lower() == 'frmCountScheduleEntry'.lower():
         theView = resolve(reverse('CountScheduleForm')).func
         theForm = theView(req)
+    elif formname.lower() == 'rptCountWorksheet'.lower():
+        theView = resolve(reverse('CountWorksheet')).func
+        theForm = theView(req).render()
     elif formname.lower() == 'zutilShowColor'.lower(): pass
     else: pass
 

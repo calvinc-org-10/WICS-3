@@ -1,22 +1,25 @@
 import datetime
+from dateutil import parser
+from dateutil.utils import today
 # TODO: skip Sat, Sun using dateutil, dateutil.rrule, dateutil.rruleset
 # implement skipping holidays
-from django.contrib.auth.decorators import login_required
-from django.utils import timezone
-from django.urls import reverse
 from django import forms
-from django.forms import inlineformset_factory
-from django.shortcuts import render
-from WICS.forms import CountScheduleForm
-from cMenu.models import getcParm
-from WICS.models import MaterialList, ActualCounts, CountSchedule, \
-                        WhsePartTypes, LastFoundAt
-from userprofiles.models import WICSuser
-from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
+from django.contrib.auth.decorators import login_required
+from django.db.models import Value
 from django.db.models.query import QuerySet
+from django.forms import inlineformset_factory
+from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
+from django.shortcuts import render
+from django.urls import reverse
+from django.utils import timezone
 from django.views.generic import ListView
 from typing import *
-
+from cMenu.models import getcParm
+from userprofiles.models import WICSuser
+from WICS.forms import CountScheduleForm
+from WICS.models import MaterialList, ActualCounts, CountSchedule, \
+                        WhsePartTypes, LastFoundAt
+from WICS.SAPLists import fnSAPList
 
 _userorg = None
 
@@ -125,7 +128,7 @@ def fnCountScheduleRecordForm(req, recNum = 0,
         currRec = allCtSchdRecs.none()
         # set Matl flds
         if passedMatlNum:
-            matlRec = MaterialList.objects.get(Material=passedMatlNum)
+            matlRec = MaterialList.objects.get(org=_userorg, Material=passedMatlNum)
         else:
             matlRec = MaterialList.objects.none()
     else:
@@ -264,6 +267,7 @@ def fnCountScheduleRecordForm(req, recNum = 0,
     if (not currRec) and fnCountScheduleRecord(_userorg,passedCountDate,passedMatlNum):
         msgDupSched = 'A count for ' + str(passedMatlNum) + ' is already scheduled for ' + str(passedCountDate)
         passedMatlNum = None
+        matlchoiceForm['gotoItem']['Material'] = ''
 
     # display the form
     cntext = {'frmMain': mainFm,
@@ -275,7 +279,6 @@ def fnCountScheduleRecordForm(req, recNum = 0,
             'recNum': recNum,
             'matlnum_changed': passedMatlNum,
             'MaterialID': MaterialID,
-            'allCountSchedRecs': allCtSchdRecs.order_by('-CountDate', 'Material'),
             'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
             }
     templt = 'frm_CountScheduleRec.html'
@@ -291,7 +294,7 @@ def fnCountScheduleRecord(org, CtDate, Matl):
         MatObj = Matl 
     else:
         try:
-            MatObj = MaterialList.objects.get(org=org,Material=Matl)
+            MatObj = MaterialList.objects.get(org=org, Material=Matl)
         except:
             MatObj = MaterialList.objects.none()
 
@@ -329,5 +332,48 @@ class CountScheduleListForm(ListView):
     def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
         # I want to break here to see what's going on
         context.update({'orgname': self._userorg.orgname,  'uname':self._user.get_full_name()})
+        return super().render_to_response(context, **response_kwargs)
+
+
+#####################################################################
+#####################################################################
+#####################################################################
+
+class CountWorksheetReport(ListView):
+    ordering = ['Counter', 'Material']
+    context_object_name = 'CtSchd'
+    template_name = 'rpt_CountWksht.html'
+    
+    def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
+        self._user = req.user
+        self._userorg = WICSuser.objects.get(user=req.user).org
+        if 'CountDate' in kwargs: self.CountDate = kwargs['CountDate']
+        else: self.CountDate = today()
+        if isinstance(self.CountDate,str): self.CountDate = parser.parse(self.CountDate)
+        return super().setup(req, *args, **kwargs)
+
+    def get_queryset(self) -> QuerySet[Any]:
+        SAP_SOH = fnSAPList(self._userorg,self.CountDate)
+        self.SAPDate = SAP_SOH['SAPDate']
+        qs =  CountSchedule.objects.filter(org=self._userorg, CountDate=self.CountDate).order_by('Counter', 'Material').select_related('Material','Material__PartType')   # figure out how to pass in self.ordering
+        qs = qs.annotate(LastFoundAt=Value(''), SAPQty=Value(0))
+        for rec in qs:
+            rec.LastFoundAt = LastFoundAt(rec.Material)
+            for SAProw in SAP_SOH['SAPTable'].filter(Material=rec.Material): 
+                rec.SAPQty += SAProw.Amount
+        return qs
+
+    # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+    #     return super().get(request, *args, **kwargs)
+
+    # there is no POST processing; it's a R/O report
+    # def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+    #     return HttpResponse('Stop rushing me!!')
+
+    def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
+        # I want to break here to see what's going on
+        context.update({'CountDate': self.CountDate,
+                'SAP_Updated_at': self.SAPDate,
+                'orgname': self._userorg.orgname, 'uname':self._user.get_full_name()})
         return super().render_to_response(context, **response_kwargs)
 

@@ -1,0 +1,83 @@
+{% extends "WICS_common.html" %}
+
+{% block tTitle %}Counting Agenda/Worksheet{% endblock %}
+{% block boddy %}
+<!-- menu head -->
+<div class="container text-center mx-auto">
+    <div class="row max-width=100%">
+        <div class="col-10 fs-2">
+            <u>{{ orgname }}</u>
+            <br>
+            Counting Agenda/Worksheet for 
+            <span class="container">
+                <input type="date" id="gotoID" onchange="loadDate();" value="{{ CountDate|date:'Y-m-d' }}">
+            </span>
+            SAP Date{{ SAP_Updated_at }} - clean this up
+        </div>
+        <div class="col-2 text-end"> {{ uname }} </div>
+    </div>
+    <div class="row"> <!-- status messages -->
+        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+    </div>
+</div>
+
+<hr>
+<!-- body -->
+{% comment %}
+Make page changes on itm.Counter
+Show Mat group hdr on Material 3-char change
+{% endcomment %}
+<div class="container">
+    {% for itm in CtSchd %}
+        <div class="row g-0">
+            {{ itm.Material.Material }} | BC-{{ itm.Material.Material }} | {{ itm.Material.PartType.WhsePartType }} | Priority: {{ itm.Priority }} |
+            Scheduled Counter: {{ itm.Counter }}
+        </div>
+        <div class="row g-0">
+            {{ itm.Material.Description }}
+        </div>
+        <div class="row g-0">
+            Last Found On {{ itm.LastFoundAt.lastCountDate }} At {{ itm.LastFoundAt.lastFoundAt }}
+        </div>
+        <div class="row g-0">
+            Typical Container Qty = {{ itm.Material.TypicalContainerQty }},
+            Typical Pallet Qty = {{ itm.Material.TypicalPalletQty }}
+        </div>
+        <div class="row g-0 calvin-smalltext">
+            Reason Scheduled: {{ itm.ReasonScheduled }} | Notes: {{ itm.Notes }} | SAP Qty: {{ itm.SAPQty }} 
+        </div>
+    <hr>
+    {% endfor %}
+</div>
+    
+    <!-- form footer -->
+    <hr>
+    <div class="container">
+        <div class="row mx-auto max-width=100%">
+            <div class="col-10">
+            </div>
+            <div class="col-2">
+                <button 
+                    id="close_btn" 
+                    type="button" 
+                    onclick="window.close();">Close Form</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadDate() {
+    // send #gotoID back into the url
+    dVal = $("#gotoID").val().replace(" ","%20")
+    
+    newRec = "{% url 'CountWorksheet' 'passedDate' %}"
+    newRec = newRec.replace("/passedDate","/"+dVal);
+    window.location = newRec;
+
+};
+
+</script>
+
+{% endblock %}
+

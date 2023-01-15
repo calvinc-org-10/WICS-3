@@ -45,7 +45,10 @@
             <input type="checkbox" value="{{ itm.CMPrintFlag }}" readonly>
         </div>
         <div class="col-4">{{ itm.Notes }}</div>
-        <div class="col-1"><button id="edit{{ itm.id }}" name="edit" value="{{ itm.id }} " type="button">Edit</button></div>
+        <div class="col-1">
+            <button id="edit{{ itm.id }}" class="edit" value="{{ itm.id }}" type="button">Edit</button>
+            <button id="remv{{ itm.id }}" class="remv" value="{{ itm.id }}" type="button">Remove</button>
+        </div>
     </div>
     <hr>
     {% endfor %}
@@ -68,5 +71,26 @@
         </div>
     </div>
 </div>
+
+<script>
+
+    $(".edit").on("click",loadCountEntryRec)
+
+    function loadCountEntryRec(event) {
+
+        dVal = (new Date()).toISOString().substring(0,10)   //bacause we need to pass in a valid date
+        goCmd = 'None'
+
+        R = parseInt(this.value)
+
+        newRec = "{% url 'CountScheduleForm' 0 'None' 'passedCountDate' 'gotoCommand' %}"
+        newRec = newRec.replace("/0","/"+R);
+        newRec = newRec.replace("/passedCountDate","/"+dVal);
+        newRec = newRec.replace("/gotoCommand","/"+goCmd);
+        window.open(newRec,'_blank');
+
+    };
+
+</script>
 
 {% endblock %}

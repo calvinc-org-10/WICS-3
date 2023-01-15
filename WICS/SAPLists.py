@@ -1,7 +1,8 @@
+import datetime
+from dateutil import parser
+from openpyxl import load_workbook
 from userprofiles.models import WICSuser
 from WICS.models import SAP_SOHRecs
-from openpyxl import load_workbook
-import datetime
 
 
 class SAProw:
@@ -25,7 +26,7 @@ def fnSAPList(org, for_date = datetime.datetime.today(), matl = None):
     _myDtFmt = '%Y-%m-%d %H:%M'
 
     if isinstance(for_date,str):
-        dateObj = datetime.datetime.strptime(for_date, _myDtFmt)
+        dateObj = parser.parse(for_date)
     elif isinstance(for_date,datetime.datetime):
         dateObj = for_date.date()
     else:

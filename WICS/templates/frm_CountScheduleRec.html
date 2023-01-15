@@ -31,7 +31,10 @@
             </div>
         {% endif %}
         {% if msgDupSched %}
-            <div class="alert alert-success p-0 alert-dismissible fade show">
+            <div class="alert alert-danger p-0 alert-dismissible fade show">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-octagon-fill" viewBox="0 0 16 16">
+                <path d="M11.46.146A.5.5 0 0 0 11.107 0H4.893a.5.5 0 0 0-.353.146L.146 4.54A.5.5 0 0 0 0 4.893v6.214a.5.5 0 0 0 .146.353l4.394 4.394a.5.5 0 0 0 .353.146h6.214a.5.5 0 0 0 .353-.146l4.394-4.394a.5.5 0 0 0 .146-.353V4.893a.5.5 0 0 0-.146-.353L11.46.146zM8 4c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995A.905.905 0 0 1 8 4zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                </svg>            
                 <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
                 {{ msgDupSched }}
             </div>
@@ -119,14 +122,6 @@
                 <button id="btn_nextrec"  type="button" onclick="processGoToReq('Next');" >Next</button>
                 <button id="btn_lastrec"  type="button" onclick="processGoToReq('Last');" >Last</button>
                 <button id="btn_newrec"   type="button" onclick="processGoToReq('New');"  >New</button>
-                <label for="sel_gotorec">GoTo Record:</label>
-                <select id="sel_gotorec" onchange="processGoToReq(0);" style="width:14em" >
-                    {% for CSchRec in allCountSchedRecs %}
-                        <option value="{{CSchRec.id}}"
-                        {% if recNum == CSchRec.id %} selected{% endif %}
-                        >{{CSchRec}}</option>
-                    {% endfor %}
-                </select>
             </div>
             <div class="col-2">
                 <button id="close_btn" type="button">Close Form</button>
