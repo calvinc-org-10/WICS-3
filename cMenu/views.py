@@ -209,16 +209,8 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
         retHTTP = LoadMenu(req,int(CommandArg))
     elif CommandNum == MENUCOMMAND.FormBrowse.value :
         retHTTP = menucommand_handlers.FormBrowse(req, CommandArg)
-    elif CommandNum == MENUCOMMAND.FormAdd.value :
-        pass
-    elif CommandNum == MENUCOMMAND.ReportView.value :
-        pass
-    elif CommandNum == MENUCOMMAND.ReportPrint.value :
-        pass
     elif CommandNum == MENUCOMMAND.OpenTable.value :
         retHTTP = menucommand_handlers.ShowTable(req, CommandArg)
-    elif CommandNum == MENUCOMMAND.OpenQuery.value :
-        pass
     elif CommandNum == MENUCOMMAND.RunCode.value :
         fn = getattr(menucommand_handlers, CommandArg)
         retHTTP = fn(req)
@@ -233,8 +225,6 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
     elif CommandNum == MENUCOMMAND.EditParameters.value :
         pass
     elif CommandNum == MENUCOMMAND.EditGreetings.value :
-        pass
-    elif CommandNum == MENUCOMMAND.EditPasswords.value :
         pass
     elif CommandNum == MENUCOMMAND.ExitApplication.value :
         return HttpResponseRedirect(reverse('WICSlogout'))

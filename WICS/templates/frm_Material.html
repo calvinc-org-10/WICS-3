@@ -44,8 +44,7 @@
     <hr>
 
     {{ frmMain.showPK.value }}
-    <input type="hidden" id="formID" value={{ formID }} >
-
+    
     <!-- GoTo -->
     <form id="gotoForm" method="GET" action="{% url 'ReloadMatlForm' frmMain.showPK.value %}">
     <div class="container text-center bg-secondary">
@@ -325,15 +324,9 @@
 
         // to become obsolete??
         function loadMaterialRec() {
-          fmID = document.getElementById("formID");
           goID = document.getElementById('gotoID');
           if (goID.value != null || goID.value == thisMtlGPN) {
-              // later, use reverse      path('FormBrowse/<slug:formname>/<int:recNum>',forms.FormBrowse,name='WICS_FormBrowse'),
               document.getElementById("gotoForm").submit()
-              // newRec_base = "{% url 'FormBrowse' formID 0 %}"
-              // newRec = newRec_base.replace("/0","/"+goID.value)
-              // newRec = "/WICS/FormBrowse/" + fmID.value + "/" + goID.value;
-              // window.location = newRec;
           } else {
               goID.value = thisMtlGPN;
           }

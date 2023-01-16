@@ -1,18 +1,19 @@
-import time, datetime
+import datetime
 import os, uuid
+from django import forms
+from django.db.models.query import QuerySet
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
 from django.utils import timezone
 from django.urls import reverse
-from django import forms
 from django.shortcuts import render
+from django.views.generic import ListView
+from typing import *
 from cMenu.models import getcParm
 from cMenu.utils import makebool
-from userprofiles.models import WICSuser
-#from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
 from openpyxl import load_workbook
 from userprofiles.models import WICSuser
 from WICS.models import ActualCounts, MaterialList, CountSchedule, WhsePartTypes
-import datetime
 
 
 # do not use - this pulls down too many records
@@ -146,7 +147,7 @@ class RelatedScheduleInfo(forms.ModelForm):
 
 
 @login_required
-def fnCountEntryForm(req, formname, recNum = 0, 
+def fnCountEntryForm(req, recNum = 0, 
     loadMatlInfo = None, 
     passedCountDate=str(datetime.date.today()), 
     gotoCommand=None
@@ -163,7 +164,7 @@ def fnCountEntryForm(req, formname, recNum = 0,
     if recNum <= 0:
         currRec = ActualCounts.objects.filter(org=_userorg).none()
         if loadMatlInfo:
-            matlRec = MaterialList.objects.get(Material=loadMatlInfo)
+            matlRec = MaterialList.objects.get(org=_userorg, Material=loadMatlInfo)
         else:
             matlRec = MaterialList.objects.none()
     else:
@@ -349,13 +350,13 @@ def fnCountEntryForm(req, formname, recNum = 0,
             'frmMatlInfo': matlSubFm,
             'todayscounts': todayscounts,
             'matlchoiceForm':matlchoiceForm,
-            'noSchedInfo':(schedinfo==[]),
+            'noSchedInfo':(not schedinfo),
             'frmSchedInfo': schedFm,
             'changes_saved': changes_saved,
             'changed_data': chgd_dat,
             'recNum': recNum,
             'matlnum_changed': loadMatlInfo,
-            'formID':formname, 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+            'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
             }
     templt = 'frm_CountEntry.html'
     return render(req, templt, cntext)
@@ -459,4 +460,32 @@ def fnUploadActCountSprsht(req):
     #endif
 
     return render(req, templt, cntext)
+
+#####################################################################
+#####################################################################
+#####################################################################
+
+class ActualCountListForm(ListView):
+    ordering = ['-CountDate', 'Material']
+    context_object_name = 'ActCtList'
+    template_name = 'frm_ActualCountList.html'
+    
+    def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
+        self._user = req.user
+        self._userorg = WICSuser.objects.get(user=req.user).org
+        self.queryset = ActualCounts.objects.filter(org=self._userorg).order_by('-CountDate', 'Material')   # figure out how to pass in self.ordering
+        return super().setup(req, *args, **kwargs)
+
+    def get_queryset(self) -> QuerySet[Any]:
+        return super().get_queryset()
+
+    # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+    #     return super().get(request, *args, **kwargs)
+
+    # def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+    #     return HttpResponse('Not needed!!')
+
+    def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
+        context.update({'orgname': self._userorg.orgname,  'uname':self._user.get_full_name()})
+        return super().render_to_response(context, **response_kwargs)
 

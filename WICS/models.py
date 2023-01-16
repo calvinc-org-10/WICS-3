@@ -19,8 +19,8 @@ class Organizations(models.Model):
 
 class orgObjects(models.Manager):
     def __init__(self, org_in) -> None:
-        self.org = org_in
         super().__init__()
+        self.org = org_in
     def get_queryset(self):
         return super().get_queryset().filter(org=self.org)
 

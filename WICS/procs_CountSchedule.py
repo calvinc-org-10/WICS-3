@@ -14,6 +14,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.generic import ListView
 from typing import *
+from barcode import Code128
 from cMenu.models import getcParm
 from userprofiles.models import WICSuser
 from WICS.forms import CountScheduleForm
@@ -330,7 +331,6 @@ class CountScheduleListForm(ListView):
         return HttpResponse('Stop rushing me!!')
 
     def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
-        # I want to break here to see what's going on
         context.update({'orgname': self._userorg.orgname,  'uname':self._user.get_full_name()})
         return super().render_to_response(context, **response_kwargs)
 
@@ -356,8 +356,18 @@ class CountWorksheetReport(ListView):
         SAP_SOH = fnSAPList(self._userorg,self.CountDate)
         self.SAPDate = SAP_SOH['SAPDate']
         qs =  CountSchedule.objects.filter(org=self._userorg, CountDate=self.CountDate).order_by('Counter', 'Material').select_related('Material','Material__PartType')   # figure out how to pass in self.ordering
-        qs = qs.annotate(LastFoundAt=Value(''), SAPQty=Value(0))
+        qs = qs.annotate(LastFoundAt=Value(''), SAPQty=Value(0), MaterialBarCode=Value(''))
+        Mat3char = None
         for rec in qs:
+            strMatlNum = rec.Material.Material
+            if strMatlNum[0:3] != Mat3char:
+                rec.NewMat3char = True
+                Mat3char = strMatlNum[0:3]
+            else:
+                rec.NewMat3char = False
+            bcstr = Code128(str(strMatlNum)).render(writer_options={'module_height':7.0,'quiet_zone':3.0,'write_text':False})
+            bcstr = str(bcstr).replace("b'","").replace('\\r','').replace('\\n','').replace("'","")
+            rec.MaterialBarCode = bcstr
             rec.LastFoundAt = LastFoundAt(rec.Material)
             for SAProw in SAP_SOH['SAPTable'].filter(Material=rec.Material): 
                 rec.SAPQty += SAProw.Amount

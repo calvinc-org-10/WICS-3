@@ -45,7 +45,7 @@ class MaterialCountSummary(forms.Form):
 
 
 @login_required
-def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
+def fnMaterialForm(req, recNum = -1, gotoRec=False):
     _userorg = WICSuser.objects.get(user=req.user).org
     if not _userorg: raise Exception('User is corrupted!!')
 
@@ -191,7 +191,7 @@ def fnMaterialForm(req, formname, recNum = -1, gotoRec=False):
             'changes_saved': changes_saved,
             'changed_data': chgd_dat,
             'recNum': recNum,
-            'formID':formname, 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+            'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
             }
     templt = 'frm_Material.html'
     return render(req, templt, cntext)
@@ -205,7 +205,7 @@ class UploadSAPForm(forms.Form):
     SAPFile = forms.FileField()
 
 @login_required
-def fnUploadSAP(req, formname):
+def fnUploadSAP(req):
     _userorg = WICSuser.objects.get(user=req.user).org
 
     if req.method == 'POST':
@@ -262,7 +262,7 @@ def fnUploadSAP(req, formname):
     else:
         form = UploadSAPForm()
         cntext = {'form': form, 
-                'formID':formname, 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+                'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
                 }
         templt = 'frm_upload_SAP.html'
     #endif
@@ -300,7 +300,6 @@ class CountScheduleForm(ListView):
         return HttpResponse('Stop rushing me!!')
 
     def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
-        # I want to break here to see what's going on
         context.update({'orgname': self._userorg.orgname,  'uname':self._user.get_full_name()})
         return super().render_to_response(context, **response_kwargs)
 
@@ -312,7 +311,8 @@ class MaterialByPartType(ListView):
     SAPSums = {}
     
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
-        self._userorg = WICSuser.objects.get(user=req.user).org
+        self._user = req.user
+        self._userorg = WICSuser.objects.get(user=self._user).org
         self.queryset = MaterialList.objects.filter(org=self._userorg).order_by('PartType__PartTypePriority', 'Material').annotate(LFADate=Value(0), LFALocation=Value(''), enumerate_in_group=Value(0), SAPQty=Value(0))   # figure out how to pass in self.ordering
         
         # it's more efficient to pull this all now and store it for the upcoming qs request
@@ -350,7 +350,7 @@ class MaterialByPartType(ListView):
     #     return super().get(request, *args, **kwargs)
 
     def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
-        # I want to break here to see what's going on
+        context.update({'orgname': self._userorg.orgname,  'uname':self._user.get_full_name()})
         return super().render_to_response(context, **response_kwargs)
 
 

@@ -7,16 +7,36 @@
 {% block tTitle %}Material By Part Type{% endblock %}
 
 {% block boddy %}
-
-Material By Part Type
-SAP Date = {{ SAPDate }}
+<div class="container text-center mx-auto">
+    <div class="row">
+        <div class="col-10">
+            <h2><u>{{ orgname }}</u></h2>
+            <h3>Material By Part Type</h3>
+            SAP Date = {{ SAPDate }}
+        </div>
+        <div class="col-2 text-end"> {{ uname }} </div>
+    </div>
+</div>
 <!-- header row -->
+<!--
 <div class="row">
     <div class="col-1"></div>
     <div class="col-3"></div> 
     <div class="col-3"></div>
     <div class="col-1"></div>
     <div class="col-3"></div>
+</div>
+-->
+<div class="row">
+    <div class="col-1"></div>
+    <div class="col-9">
+        ID |
+        Material Num | 
+        Last Count Date |
+        Last Found At |
+        SAP Qty |
+        Notes
+    </div>
 </div>
 <hr>
 <div id="mainReport" class="container" style="height:350px; overflow-y:auto; overflow-x:hidden;">
@@ -38,13 +58,7 @@ SAP Date = {{ SAPDate }}
             {% endif %}
             {{ itm.Notes }}
             </div>
-            <!-- 
-            <div class="col-3"></div> 
-            <div class="col-3"></div>
-            <div class="col-1"></div>
-            <div class="col-3"></div> 
-            -->
-            <div class="col-2"><button id="edit{{ itm.id }}" name="edit" value="{{ itm.id }} " type="button">Schedule Count</button></div>
+            <div class="col-2"><button id="SchedCt{{ itm.id }}" class="SchedCt" value="{{ itm.Material }}" type="button">Schedule Count</button></div>
         </div>
     <hr>
     {% endfor %}
@@ -70,7 +84,8 @@ SAP Date = {{ SAPDate }}
 
 <script>
     var mainscroll = "height:350px; overflow-y:auto; overflow-x:hidden;"
-        function swap_prt_disp() {
+
+    function swap_prt_disp() {
         // remove scroll from mainReport so it can be printed or put it back for a scrolling window
         let scrollval = $("#mainReport").attr("style");
         if (scrollval==undefined) {
@@ -81,6 +96,18 @@ SAP Date = {{ SAPDate }}
             $("#swap_prt_disp_btn").html("Display Version")
         }
     }
+
+    $(".SchedCt").on("click",
+        function() {
+            dVal = (new Date()).toISOString().substring(0,10)
+            R = 0   // not needed, since R=0 is hardcoded in the url below.  But this is good for documentation
+
+            newRec = "{% url 'CountScheduleForm' 0 'passedMatlNum' 'passedCountDate' 'None' %}"
+            newRec = newRec.replace("/passedMatlNum","/"+this.value);
+            newRec = newRec.replace("/passedCountDate","/"+dVal);
+            window.open(newRec,'_blank')
+        });
+
 
 </script>
 

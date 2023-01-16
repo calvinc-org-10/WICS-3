@@ -94,11 +94,9 @@
         </div>
         <div class=row g-0>
             {{ MaterialID }} <input type="hidden" name="MaterialID" value="{{MaterialID}}">
-            <div class="col-6">Description: {% render_field frmMatl.Description class="need-Matl-Dt" size="40" tabindex="-1" %}</div>
-            <div class="col-3">Part Type: {% render_field frmMatl.PartType class="need-Matl-Dt" style="width:7em" tabindex="-1" %}</div>
-        </div>
-        <div class=row g-0>
-            <div class="col">
+            <div class="col-5">Description: {% render_field frmMatl.Description class="need-Matl-Dt" size="50" tabindex="-1" %}</div>
+            <div class="col-2">Part Type: {% render_field frmMatl.PartType class="need-Matl-Dt" style="width:7em" tabindex="-1" %}</div>
+            <div class="col-4">
                 Typ Container Qty: {% render_field frmMatl.TypicalContainerQty class="need-Matl-Dt" style="width:7em" tabindex="-1" %}
                 Typ Plt Qty: {% render_field frmMatl.TypicalPalletQty class="need-Matl-Dt" style="width:7em" tabindex="-1" %}
             </div>

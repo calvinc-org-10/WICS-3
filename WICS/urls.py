@@ -15,31 +15,47 @@ Including another URLconf
 """
 from django.urls import path, reverse
 from django.shortcuts import redirect
-from WICS import forms, reports, userinit, procs_SAP, procs_CountSchedule, procs_ActualCounts, procs_Material
+from WICS import forms, reports, userinit, \
+        procs_SAP, procs_CountSchedule, procs_ActualCounts, procs_Material, \
+        SAPMatlUpdt
 from userprofiles import logout
 
 urlpatterns = [
     path('', lambda request: redirect(reverse('login'),permanent=False), name='WICSlogin'),       # this is actually the entry point to WICS
     path('inituser', userinit.inituser , name='initWICSuser'),
-    path('MaterialForm2/<int:recNum>',
-            forms.fnMaterialForm, {'formname': 'frmmaterialform','gotoRec':True}, name='ReloadMatlForm'),
+    path('logout',logout.WICSlogout, name='WICSlogout'),
+    path('ActualCountList',
+            procs_ActualCounts.ActualCountListForm.as_view(), name='ActualCountList'),
+    path('CountEntryForm',
+            procs_ActualCounts.fnCountEntryForm, name='CountEntryForm'),
+    path('CountEntryForm/<int:recNum>',
+            procs_ActualCounts.fnCountEntryForm, name='CountEntryForm'),
     path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>',
-            procs_ActualCounts.fnCountEntryForm, {'formname': 'frmcountentry'}, name='CountEntryForm'),
+            procs_ActualCounts.fnCountEntryForm, name='CountEntryForm'),
     path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>/<str:gotoCommand>',
-            procs_ActualCounts.fnCountEntryForm, {'formname': 'frmcountentry'}, name='CountEntryFormGoto'),
-    path('CountSummaryRpt/<str:passedCountDate>',
-            reports.fnCountSummaryRptPreview, name='CountSummaryReport'),
-    path('CountScheduleList/',
+            procs_ActualCounts.fnCountEntryForm, name='CountEntryFormGoto'),
+    path('CountScheduleList',
             procs_CountSchedule.CountScheduleListForm.as_view(),name='CountScheduleList'),
-    path('CountScheduleForm/',
+    path('CountScheduleForm',
             procs_CountSchedule.fnCountScheduleRecordForm,name='CountScheduleForm'),
     path('CountScheduleForm/<int:recNum>/<str:passedMatlNum>/<str:passedCountDate>/<str:gotoCommand>',
             procs_CountSchedule.fnCountScheduleRecordForm,name='CountScheduleForm'),
+    path('CountSummaryRpt',
+            reports.fnCountSummaryRptPreview, name='CountSummaryReport'),
+    path('CountSummaryRpt/<str:passedCountDate>',
+            reports.fnCountSummaryRptPreview, name='CountSummaryReport'),
     path('CountWorksheet',
             procs_CountSchedule.CountWorksheetReport.as_view(),name='CountWorksheet'),
     path('CountWorksheet/<CountDate>',
             procs_CountSchedule.CountWorksheetReport.as_view(),name='CountWorksheet'),
+    path('MaterialForm',
+            forms.fnMaterialForm, name='MatlForm'),
+    path('MaterialForm/<int:recNum>',
+            forms.fnMaterialForm, {'gotoRec':True}, name='ReloadMatlForm'),
     path('MatlByPartType',forms.MaterialByPartType.as_view(), name='MatlByPartType'),
+    path('SAP',procs_SAP.fnShowSAP,name='showtable-SAP'),
     path('SAP/<str:reqDate>',procs_SAP.fnShowSAP,name='showtable-SAP'),
-    path('logout',logout.WICSlogout, name='WICSlogout'),
+    path('UpldActCtSprsht', procs_ActualCounts.fnUploadActCountSprsht, name='UploadActualCountSprsht'),
+    path('UpdateMatlListfromSAP',SAPMatlUpdt.fnUpdateMatlListfromSAP, name='UpdateMatlListfromSAP'),
+    path('UpldSAPSprsht',forms.fnUploadSAP, name='UploadSAPSprSht'),
 ]

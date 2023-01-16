@@ -1,0 +1,87 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load evaluate_arithmetic %}
+
+{# I gotta clean this template up too... #}
+
+{% block tTitle %}Actual Counts{% endblock %}
+
+{% block boddy %}
+<div class="container text-center mx-auto">
+<div class="row">
+    <div class="col-10 fs-1">
+        <u>{{ orgname }}</u>
+        <br>
+        Actual Count Records
+    </div>
+    <div class="col-2 text-end"> {{ uname }} </div>
+</div>
+<!-- header row -->
+<div class="row g-0">
+    <div class="col-1"></div>
+    <div class="col-7 text-start">
+        Count Date | Counter | Material | BLDG_LOCATION | Counted Quantity
+    </div> 
+    <div class="col-4">Notes</div>
+</div>
+<hr>
+<div class="container" style="height:350px; overflow-y:auto; overflow-x:clip">
+    {% for itm in ActCtList %}
+    <div class="row g-0">
+        <div class="col-1">
+            {{ itm.id }}  
+        </div>
+        <div class="col-6 text-start">
+            {{ itm.CountDate }} | 
+            {{ itm.Counter }} |
+            {{ itm.Material }} |
+            {{ itm.BLDG }}_{{ itm.LOCATION }} |
+            {% if not itm.LocationOnly %}
+                {{ itm.CTD_QTY_Expr }} = {{ itm.CTD_QTY_Expr|eval_arith }}
+            {% else %}
+                <b>LOCATION ONLY</b>
+            {% endif %}
+        </div>
+        <div class="col-4 text-start">{{ itm.Notes }}</div>
+        <div class="col-1">
+            <button id="edit{{ itm.id }}" class="edit" value="{{ itm.id }}" type="button">Edit</button>
+            <button id="remv{{ itm.id }}" class="remv" value="{{ itm.id }}" type="button">Remove</button>
+        </div>
+    </div>
+    <hr>
+    {% endfor %}
+</div>
+
+<!-- form footer -->
+<hr>
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-2">
+        </div>
+        <div class="col-8">
+        </div>
+        <div class="col-2">
+            <button 
+                id="close_btn" 
+                type="button" 
+                onclick="window.close();">Close Form</button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    $(".edit").on("click",loadCountEntryRec)
+
+    function loadCountEntryRec(event) {
+        R = parseInt(this.value)
+
+        newRec = "{% url 'CountEntryForm' 0 %}"
+        newRec = newRec.replace("/0","/"+R);
+        window.open(newRec,'_blank');
+
+    };
+
+</script>
+
+{% endblock %}
