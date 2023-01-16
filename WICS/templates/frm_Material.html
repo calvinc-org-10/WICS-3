@@ -196,7 +196,10 @@
                             <div class="col-1">Priority</div>
                             <div class="col-3">Reason Scheduled</div>
                             <div class="col-1">CM Flag</div>
-                            <div class="col-4">Notes</div>
+                            <div class="col-2">Notes</div>
+                            <div class="col-2">
+                                <button id="SchedCount" type="button">Schedule Count</button>
+                            </div>
                         </div></div>
                     </div>
                     <div class="card-body no-padding" style="height:210px; overflow: auto;">
@@ -288,6 +291,17 @@
                     window.close()
                 }
             });
+
+        $("#SchedCount").on("click",
+        function() {
+            dVal = (new Date()).toISOString().substring(0,10)
+            R = 0   // not needed, since R=0 is hardcoded in the url below.  But this is good for documentation
+            
+            newRec = "{% url 'CountScheduleForm' 0 'passedMatlNum' 'passedCountDate' 'None' %}"
+            newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
+            newRec = newRec.replace("/passedCountDate","/"+dVal);
+            window.open(newRec,'_blank')
+        });
 
         function processGoToReq() {
             if (confirmLeave()) {

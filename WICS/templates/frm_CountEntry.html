@@ -61,7 +61,7 @@
         <!-- put initial focus on Material and/or init CountDate to today(local), skip CycCtID -->
         <div class="container-fluid m-1">
         <div class="row g-0">
-            <div class="col-2">Count Dt: {% render_field frmMain.CountDate class="bg-danger" tabindex="-1" size="8" onchange="loadExtraInfo();" %}</div>
+            <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" class="bg-danger" tabindex="-1" size="8" onchange="loadExtraInfo();" %}</div>
             <div class="col-2">CycCt ID: {% render_field frmMain.CycCtID tabindex="-1" size="8" %}</div>
             <div class="col-4">Material:
                 {# {% render_field frmMain.Material onchange="loadExtraInfo()" %}</div> #}
