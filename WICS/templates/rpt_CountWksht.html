@@ -43,6 +43,33 @@ Make page changes on itm.Counter - Bootstrap pagination??
             {{ itm.Material.PartType.WhsePartType }} | Prio: {{ itm.Priority }} |
             Sched Counter: {{ itm.Counter }}
             </div>
+            <div class="col-7">
+                <table class="table-bordered table-sm">
+                    <colgroup>
+                        {% for dummyval in zoneList %}
+                        <col {% cycle '' 'style="background-color:gainsboro"' %}>
+                        {% endfor %}
+                    </colgroup>
+                    <thead>
+                        <tr>
+                        {% for zName in zoneList %}
+                            <th class="calvin-smalltext">{{zName}}</th>
+                        {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                    {% for z in zoneList %}
+                        {% if forloop.counter in itm.Zones %}
+                            <td class="text-center"><b>O</b></td>
+                        {% else %}
+                            <td> </td>
+                        {% endif %}
+                    {% endfor %}
+                    </tr>
+                </tbody>
+                </table>
+            </div>
         </div>
         <div class="row g-0">
             <div class="col-5">{{ itm.Material.Description }}</div>

@@ -53,6 +53,8 @@ urlpatterns = [
     path('MaterialForm/<int:recNum>',
             forms.fnMaterialForm, {'gotoRec':True}, name='ReloadMatlForm'),
     path('MatlByPartType',forms.MaterialByPartType.as_view(), name='MatlByPartType'),
+    path('MaterialLocations',
+            procs_Material.MaterialLocationsList.as_view(),name='MaterialLocations'),
     path('SAP',procs_SAP.fnShowSAP,name='showtable-SAP'),
     path('SAP/<str:reqDate>',procs_SAP.fnShowSAP,name='showtable-SAP'),
     path('UpldActCtSprsht', procs_ActualCounts.fnUploadActCountSprsht, name='UploadActualCountSprsht'),

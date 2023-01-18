@@ -24,18 +24,10 @@
         <div class="row">
             <div class="col-2">{{ form.username.label_tag }}</div>
             <div class="col">{{ form.username }}</div>
-            <!--
-            <label for="id_username" class="required">Username:</label> 
-            <input type="text" name="username" autofocus="" autocapitalize="none" autocomplete="username" maxlength="150" required="" id="id_username">
-            -->
         </div>
         <div class="row">
             <div class="col-2">{{ form.password.label_tag }}</div>
             <div class="col">{{ form.password }}</div>
-            <!--
-            <label for="id_password" class="required">Password:</label> 
-            <input type="password" name="password" autocomplete="current-password" required="" id="id_password">
-            -->
         </div>
         <div class="submit-row">
             <input type="submit" value="login">
@@ -52,7 +44,6 @@
             <div class="col-4"></div>
             <div class="col-6"></div>
             <div class="col">
-                {# <button id="close_btn" type="button" onclick="window.close();">Close</button> #}
                 <button id="close_btn" type="button" onclick="open(location, '_self').close();">Close</button>
             </div>
         </div>

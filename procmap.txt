@@ -1,0 +1,17 @@
+urlpatterns = [
+    path('menu/', include("cMenu.urls")),
+    path('WICS/', include("WICS.urls")),
+    path('admin/',admin.site.urls),
+    path('akntt/',include("userprofiles.urls")),
+    path('akntt/',include("django.contrib.auth.urls")),
+]
+
+** -> path:/WICS -> url:login -> /userprofiles/templates/registration/login.html -> (internal django verification) -> url:initWICSuser
+
+url:initWICSuser -> path:/WICS/inituser -> WICS.userinit.inituser() -> url:LoadMenu 
+url:LoadMenu -> path:/menu/loadmenu -> cMenu.views.LoadMenu -> cMenu/templates/cMenu.html -> url:LoadMenu, url:HandleCommand
+url:EditMenu_init -> path:/menu/editmenu -> cMenu.views.EditMenu <-> cMenu/templates/cMenuEdit.html 
+url:EditMenu -> path:/menu/editmenu  -> cMenu.views.EditMenu <-> cMenu/templates/cMenuEdit.html
+url:HandleCommand -> path:/ProcessMenuCommand -> cMenu.views.HandleMenuCommand -> (multiple)
+url:FormBrowse -> path:/FormBrowse -> cMenu.menucommand_handlers.FormBrowse
+

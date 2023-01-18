@@ -1,0 +1,88 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+
+{# I gotta clean this template up too... #}
+
+
+{% block tTitle %}Material Locations{% endblock %}
+
+{% block boddy %}
+<div class="container text-center mx-auto">
+    <div class="row">
+        <div class="col-10">
+            <h2><u>{{ orgname }}</u></h2>
+            <h3>Material Locations</h3>
+        </div>
+        <div class="col-2 text-end"> {{ uname }} </div>
+    </div>
+</div>
+<!-- header row -->
+<!--
+<div class="row">
+    <div class="col-1"></div>
+    <div class="col-3"></div> 
+    <div class="col-3"></div>
+    <div class="col-1"></div>
+    <div class="col-3"></div>
+</div>
+-->
+<div class="row">
+    <div class="col-1 border-dark"></div>
+    <div class="col-9 border-dark">
+        ID |
+        Material Num | 
+        Last Count Date |
+        Last Found At |
+        SAP Qty |
+        Notes
+    </div>
+</div>
+<hr>
+<div id="mainReport" class="container">
+    <ul>
+    {% for itm in MatlList %}
+        <div class="row">
+            <div class="col-2 border border-bottom-0 border-dark">
+            {{ itm.Material }}
+            </div>
+            <div class="col-1 border border-bottom-0 border-dark">
+            {{ itm.PartType }}
+            </div>
+            <div class="col-5 border border-bottom-0 border-dark">
+            {{ itm.Description }}
+            </div>
+            <div class="col-3 border border-bottom-0 border-dark">
+            {{ itm.LFADate|date:'m-d-Y ' }} |
+            {{ itm.LFALocation }}
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-11 border border-top-0 border-dark">
+            {{ itm.Notes }}
+            </div>
+        </div>
+    {% endfor %}
+    </ul>
+</div>
+
+<!-- form footer -->
+<hr>
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-8"></div>
+        <div class="col-2">
+        </div>
+        <div class="col-2">
+            <button 
+                id="close_btn" 
+                type="button" 
+                onclick="window.close();">Close Form</button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+</script>
+
+{% endblock %}

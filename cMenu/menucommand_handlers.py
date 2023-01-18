@@ -79,6 +79,10 @@ def FormBrowse(req, formname, recNum = -1):
         url = 'CountWorksheet'
         theView = resolve(reverse(url)).func
         theForm = theView(req)
+    elif formname.lower() == 'rptMaterialLocations'.lower():
+        url = 'MaterialLocations'
+        theView = resolve(reverse(url)).func
+        theForm = theView(req)
     elif formname.lower() == 'zutilShowColor'.lower(): pass
     else: pass
 

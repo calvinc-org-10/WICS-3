@@ -5,7 +5,7 @@ from dateutil.utils import today
 # implement skipping holidays
 from django import forms
 from django.contrib.auth.decorators import login_required
-from django.db.models import Value
+from django.db.models import Value, Max
 from django.db.models.query import QuerySet
 from django.forms import inlineformset_factory
 from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
@@ -19,7 +19,7 @@ from cMenu.models import getcParm
 from userprofiles.models import WICSuser
 from WICS.forms import CountScheduleForm
 from WICS.models import MaterialList, ActualCounts, CountSchedule, \
-                        WhsePartTypes, LastFoundAt
+                        WhsePartTypes, LastFoundAt, WorksheetZones, Location_WorksheetZone
 from WICS.SAPLists import fnSAPList
 
 _userorg = None
@@ -358,6 +358,8 @@ class CountWorksheetReport(ListView):
         qs =  CountSchedule.objects.filter(org=self._userorg, CountDate=self.CountDate).order_by('Counter', 'Material').select_related('Material','Material__PartType')   # figure out how to pass in self.ordering
         qs = qs.annotate(LastFoundAt=Value(''), SAPQty=Value(0), MaterialBarCode=Value(''))
         Mat3char = None
+        if qs: lastCtr = qs[0].Counter
+        else: lastCtr = ''
         for rec in qs:
             strMatlNum = rec.Material.Material
             if strMatlNum[0:3] != Mat3char:
@@ -365,10 +367,19 @@ class CountWorksheetReport(ListView):
                 Mat3char = strMatlNum[0:3]
             else:
                 rec.NewMat3char = False
+            if lastCtr != rec.Counter:
+                rec.NewCounter = True
+                lastCtr = rec.Counter
+            else:
+                rec.NewCounter = False
             bcstr = Code128(str(strMatlNum)).render(writer_options={'module_height':7.0,'quiet_zone':3.0,'write_text':False})
             bcstr = str(bcstr).replace("b'","").replace('\\r','').replace('\\n','').replace("'","")
             rec.MaterialBarCode = bcstr
             rec.LastFoundAt = LastFoundAt(rec.Material)
+            zoneList = []
+            for lz in Location_WorksheetZone.objects.all().values('location','zone'):
+                if lz['location'] in rec.LastFoundAt['lastFoundAt']: zoneList.append(lz['zone'])
+            rec.Zones = zoneList
             for SAProw in SAP_SOH['SAPTable'].filter(Material=rec.Material): 
                 rec.SAPQty += SAProw.Amount
         return qs
@@ -381,9 +392,19 @@ class CountWorksheetReport(ListView):
     #     return HttpResponse('Stop rushing me!!')
 
     def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
-        # I want to break here to see what's going on
-        context.update({'CountDate': self.CountDate,
+        zoneListqs = WorksheetZones.objects.order_by('zone')
+        numZones = zoneListqs.last().zone
+        # oops -- I need zoneList to be an array with '' if there's no zone
+        zoneList = [''] * numZones
+        for Z in zoneListqs:
+            zoneList[Z.zone-1] = Z.zoneName
+
+        context.update({
+                'zoneList': zoneList,
+                'CountDate': self.CountDate,
                 'SAP_Updated_at': self.SAPDate,
-                'orgname': self._userorg.orgname, 'uname':self._user.get_full_name()})
+                'orgname': self._userorg.orgname, 'uname':self._user.get_full_name()
+                })
+
         return super().render_to_response(context, **response_kwargs)
 

@@ -202,7 +202,7 @@ def fnCountEntryForm(req, recNum = 0,
         # process main form
         if currRec: mainFm = CountEntryForm(_userorg, req.POST, instance=currRec,  prefix=prefixvals['main'])   # do I need to pass in intial?
         else: mainFm = CountEntryForm(_userorg, req.POST, initial=initialvals['main'],  prefix=prefixvals['main']) 
-        matlSubFm = RelatedMaterialInfo(_userorg, MaterialID, req.POST, instance=s.Material, prefix=prefixvals['matl'])
+        matlSubFm = RelatedMaterialInfo(_userorg, MaterialID, req.POST, instance=matlRec, prefix=prefixvals['matl'])
         #schedSet = RelatedScheduleInfo(_userorg, SchedID, req.POST, prefix=prefixvals['schedule'], initial=initialvals['schedule'])
 
         s = ActualCounts.objects.none()

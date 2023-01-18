@@ -208,7 +208,7 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
     if CommandNum == MENUCOMMAND.LoadMenu.value :
         retHTTP = LoadMenu(req,int(CommandArg))
     elif CommandNum == MENUCOMMAND.FormBrowse.value :
-        retHTTP = menucommand_handlers.FormBrowse(req, CommandArg)
+        retHTTP = menucommand_handlers.FormBrowse(req, CommandArg)  # replace this with the url reverse
     elif CommandNum == MENUCOMMAND.OpenTable.value :
         retHTTP = menucommand_handlers.ShowTable(req, CommandArg)
     elif CommandNum == MENUCOMMAND.RunCode.value :
@@ -232,3 +232,4 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
         pass
 
     return HttpResponse(retHTTP)
+    

@@ -18,7 +18,6 @@ from cMenu import views, menucommand_handlers
 # import userprofiles.globals
 
 urlpatterns = [
-    path('', views.LoadMenu,kwargs={'menuGroup':1, 'menuNum':0},name='initmenu'),
     path('loadmenu/<int:menuGroup>/<int:menuNum>/',views.LoadMenu,name='LoadMenu'),
     path('editmenu', views.EditMenu,kwargs={'menuGroup':1, 'menuNum':0},name='EditMenu_init'),
     path('editmenu/<menuGroup>/<menuNum>',views.EditMenu,name='EditMenu'),

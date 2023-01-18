@@ -241,13 +241,17 @@ def fnUploadSAP(req):
 
             nRows = 0
             for row in ws.iter_rows(min_row=2, values_only=True):
-                if len(row[SAPcolmnMap['Material']]):
+                if row[SAPcolmnMap['Material']]==None: MatNum = ''
+                else: MatNum = row[SAPcolmnMap['Material']]
+                if len(str(MatNum)):
                     SRec = SAP_SOHRecs(
                                 org = _userorg,
                                 uploaded_at = req.POST['uploaded_at']
                                 )
                     for fldName, colNum in SAPcolmnMap.items():
-                        setattr(SRec, fldName, row[colNum])
+                        if row[colNum]==None: setval = ''
+                        else: setval = row[colNum]
+                        setattr(SRec, fldName, setval)
                     SRec.save()
                     nRows += 1
 

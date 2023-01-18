@@ -157,4 +157,12 @@ class SAP_SOHRecs(models.Model):
         ordering = ['uploaded_at', 'org', 'Material']
 
 
+class WorksheetZones(models.Model):
+    zone = models.IntegerField(primary_key=True)
+    zoneName = models.CharField(max_length=10,blank=True)
+
+
+class Location_WorksheetZone(models.Model):
+    location = models.CharField(max_length=10,blank=False)
+    zone = models.ForeignKey('WorksheetZones', on_delete=models.RESTRICT)
 
