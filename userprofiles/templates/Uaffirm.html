@@ -7,38 +7,59 @@
     <meta name="robots" content="NONE,NOARCHIVE">
 {% endblock %}
 {% block boddy %}
-<!-- Container -->
-<div id="container" class="container m-2">
+
+<div class="container m-2">
+{% if form.errors %}
+    <h1>You are not an authorized user.</h1>
+    <br><br>
+{% else %}
     <!-- Header -->
     <div id="header">
-      <h1>WICS2 Login</h1>
+        <h1>WICS2 Login</h1>
     </div>
     <!-- END Header -->
-    <div class="main" id="main">
-      <div class="content">
-        <!-- Content -->
-        <div id="content" class="colM">
-            <div id="content-main">
-            <form action="{% url 'checkuser' %}" method="post" id="login-form">{% csrf_token %}
-              <div class="form-row">
-                <label for="id_username" class="required">Username:</label> <input type="text" name="username" autofocus="" autocapitalize="none" autocomplete="username" maxlength="150" required="" id="id_username">
-              </div>
-              <div class="form-row">
-                <label for="id_password" class="required">Password:</label> <input type="password" name="password" autocomplete="current-password" required="" id="id_password">
-              </div>
-              <div class="submit-row">
-                <input type="submit" value="Log in">
-              </div>
+    <div id="content-main" class="container">
+    <div class="row">
+        <div class="col-6 border-right border-dark">
+            <div class="container">
+            <form method="post" id="login-form"> 
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-2">{{ form.username.label_tag }}</div>
+                    <div class="col">{{ form.username }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-2">{{ form.password.label_tag }}</div>
+                    <div class="col">{{ form.password }}</div>
+                </div>
+                <div class="submit-row">
+                    <input type="submit" value="login">
+                    <input type="hidden" name="next" value="{% url 'initWICSuser' %}">
+                </div>
+                
+                <div class="row mt-5">
+                    <i>{{ Greeting }}</i>
+                </div>
             </form>
             </div>
-          <br class="clear">
         </div>
-        <!-- END Content -->
-        <div id="footer">
-          <b>WARNING!</b> This address will soon (sometime in January) change.  I'll Teams you the new link when I change it.
+        <div class="col-6">
+            {{ News }}
         </div>
-      </div>
+    </div>
+    </div>
+  <br class="clear">
+{% endif %}
+    <!-- footer -->
+    <br>
+    <div class="container">
+        <div class="row mx-auto max-width=100%">
+            <div class="col-4"></div>
+            <div class="col-6"></div>
+            <div class="col">
+                <button id="close_btn" type="button" onclick="open(location, '_self').close();">Close</button>
+            </div>
+        </div>
     </div>
 </div>
-<!-- END Container -->
 {% endblock %}

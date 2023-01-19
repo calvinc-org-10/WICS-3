@@ -36,6 +36,9 @@ class WhsePartTypes(models.Model):
     UniqueConstraint('org', 'WhsePartType')
     UniqueConstraint('org', 'PartTypePriority')
 
+    class Meta:
+        ordering = ['org','WhsePartType']
+
     def __str__(self) -> str:
         return self.WhsePartType
         # return super().__str__()

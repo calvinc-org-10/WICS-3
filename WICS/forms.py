@@ -88,7 +88,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False):
         # process main form
         #if currRec:
         mtlFm = MaterialForm(req.POST, instance=currRec,  initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg},  prefix='material')
-        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
+        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).order_by('WhsePartType').all()
 
         #else:
         #    mtlFm = MaterialForm(req.POST, initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg},  prefix='material')
@@ -134,7 +134,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False):
     else: # request.method == 'GET' or something else
         #if currRec:
         mtlFm = MaterialForm(instance=currRec, initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg}, prefix='material')
-        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).all()
+        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=_userorg).order_by('WhsePartType').all()
         #else:
         #    mtlFm = MaterialForm(initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg}, prefix='material')
 

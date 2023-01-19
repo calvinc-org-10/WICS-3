@@ -1,0 +1,44 @@
+{% extends "WICS_common.html" %}
+<!-- use more variables - system name, -->
+
+{% block tTitle %}WICS Log in{% endblock %}
+{% block tHeader %}
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="robots" content="NONE,NOARCHIVE">
+{% endblock %}
+{% block boddy %}
+<!-- Container -->
+<div id="container" class="container m-2">
+    <!-- Header -->
+    <div id="header">
+      <h1>WICS2 Login</h1>
+    </div>
+    <!-- END Header -->
+    <div class="main" id="main">
+      <div class="content">
+        <!-- Content -->
+        <div id="content" class="colM">
+            <div id="content-main">
+            <form action="{% url 'checkuser' %}" method="post" id="login-form">{% csrf_token %}
+              <div class="form-row">
+                <label for="id_username" class="required">Username:</label> <input type="text" name="username" autofocus="" autocapitalize="none" autocomplete="username" maxlength="150" required="" id="id_username">
+              </div>
+              <div class="form-row">
+                <label for="id_password" class="required">Password:</label> <input type="password" name="password" autocomplete="current-password" required="" id="id_password">
+              </div>
+              <div class="submit-row">
+                <input type="submit" value="Log in">
+              </div>
+            </form>
+            </div>
+          <br class="clear">
+        </div>
+        <!-- END Content -->
+        <div id="footer">
+          <b>WARNING!</b> This address will soon (sometime in January) change.  I'll Teams you the new link when I change it.
+        </div>
+      </div>
+    </div>
+</div>
+<!-- END Container -->
+{% endblock %}

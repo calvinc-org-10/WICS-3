@@ -84,7 +84,7 @@ class RelatedMaterialInfo(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.id = id
         self.org = org
-        self.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=org).all()
+        self.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=org).order_by('WhsePartType').all()
     def save(self):
         if not self.is_valid():
             return None

@@ -11,34 +11,28 @@
     <div class="row">
         <div class="col-10">
             <h2><u>{{ orgname }}</u></h2>
-            <h3>Material Locations</h3>
+            <h3>Material Locations as of {% now "DATE_FORMAT" %}</h3>
+            {% if showSAP %}SAP Date {{ SAPDate }}{% endif %}
         </div>
         <div class="col-2 text-end"> {{ uname }} </div>
     </div>
 </div>
 <!-- header row -->
-<!--
 <div class="row">
-    <div class="col-1"></div>
-    <div class="col-3"></div> 
-    <div class="col-3"></div>
-    <div class="col-1"></div>
-    <div class="col-3"></div>
-</div>
--->
-<div class="row">
-    <div class="col-1 border-dark"></div>
-    <div class="col-9 border-dark">
-        ID |
-        Material Num | 
+    <div class="col-1">
+    </div>
+    <div class="col-3">
+        Material Number 
+    </div>
+    <div class="col-3">
+    </div>
+    <div class="col">
         Last Count Date |
-        Last Found At |
-        SAP Qty |
-        Notes
+        Last Found At
     </div>
 </div>
 <hr>
-<div id="mainReport" class="container">
+<div id="mainReport" class="container calvin-smalltext">
     {% for itm in MatlList %}
     {% if not itm.DoNotShow %}
         <div class="row">
@@ -52,17 +46,17 @@
             {{ itm.Description }}
             </div>
             <div class="col-4 border border-bottom-0 border-dark">
-            {{ itm.LFADate|date:'m-d-Y ' }} | 
+            {{ itm.LFADate|date:'m-d-Y' }} | 
             {{ itm.LFALocation }}  
             </div>
         </div>
-        {% comment %}
+        {% if showSAP %}
         <div class="row">
             <div class="col-11 border border-top-0 border-dark">
             {{ itm.SAPList }}
             </div>
         </div>
-        {% endcomment %}
+        {% endif %}
         <div class="row">
             <div class="col-11 border border-top-0 border-dark">
             {{ itm.Notes }}

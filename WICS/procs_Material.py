@@ -37,8 +37,7 @@ class MaterialLocationsList(ListView):
         # it's more efficient to pull this all now and store it for the upcoming qs request
         SAP = fnSAPList(self._userorg)
         self.SAPDate = SAP['SAPDate']
-        self.SAPTable = SAP['SAPTable']
-        
+        self.SAPTable = SAP['SAPTable']        
 
         self.queryset = qs
         return super().setup(req, *args, **kwargs)
@@ -59,14 +58,17 @@ class MaterialLocationsList(ListView):
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         ctxt = super().get_context_data(**kwargs)
-        # ctxt['SAPDate'] = self.SAPDate
+        ctxt.update({
+            'SAPDate': self.SAPDate,
+            'showSAP': False,
+            'orgname': self._userorg.orgname,  'uname':self._user.get_full_name(),
+            })
         return ctxt
 
     # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
     #     return super().get(request, *args, **kwargs)
 
     def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
-        context.update({'orgname': self._userorg.orgname,  'uname':self._user.get_full_name()})
         return super().render_to_response(context, **response_kwargs)
 
 

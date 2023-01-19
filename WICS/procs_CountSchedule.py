@@ -72,7 +72,7 @@ class CountScheduleRecordForm(forms.ModelForm):
 
 class RelatedMaterialInfo(forms.ModelForm):
     Description = forms.CharField(max_length=250, required=False)
-    PartType = forms.ModelChoiceField(queryset=WhsePartTypes.objects.filter(org=_userorg))
+    PartType = forms.ModelChoiceField(queryset=WhsePartTypes.objects.filter(org=_userorg).order_by('WhsePartType'))
     TypicalContainerQty = forms.IntegerField(required=False)
     TypicalPalletQty = forms.IntegerField(required=False)
     Notes = forms.CharField(max_length=250, required=False)
@@ -84,7 +84,7 @@ class RelatedMaterialInfo(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.id = id
         self.org = org
-        self.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=org).all()
+        self.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=org).order_by('WhsePartType').all()
     def save(self):
         if not self.is_valid():
             return None
