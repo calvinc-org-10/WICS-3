@@ -425,7 +425,7 @@ def fnUploadActCountSprsht(req):
                     elif fldName == 'TypicalContainerQty' \
                       or fldName == 'TypicalPalletQty':
                         if V == '' or V == None: V = 0
-                        if V != getattr(MatObj,fldName,0): 
+                        if V != 0 and V != getattr(MatObj,fldName,0): 
                             setattr(MatObj, fldName, V)
                             MatChanged = True
                     
