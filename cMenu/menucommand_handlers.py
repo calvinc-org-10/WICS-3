@@ -27,7 +27,7 @@ class MENUCOMMAND(Enum):
     ExitApplication = 200
 
 
-# should this be handled via urls?
+# should the url be the Argument rather than the formname?
 def FormBrowse(req, formname, recNum = -1):
     theForm = 'Form ' + formname + ' is not built yet.  Calvin needs more coffee.'
     if formname.lower() == 'l10-wics-uadmin'.lower():

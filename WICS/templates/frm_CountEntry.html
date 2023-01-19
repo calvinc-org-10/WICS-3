@@ -119,10 +119,10 @@
         <div class="row g-0">
             {{ frmMatlInfo.id }} 
             <div class="col-4">Desc: {% render_field frmMatlInfo.Description size="40" %}</div>
-            <div class="col-2">Pt Type: {% render_field frmMatlInfo.PartType class="need-Matl-Dt" style="width:7em" tabindex="-1" %}</div>
+            <div class="col-2">Pt Type: {% render_field frmMatlInfo.PartType class="need-Matl-Dt" style="width:7em" %}</div>
             <div class="col-5">
-                Typical Container Qty: {% render_field frmMatlInfo.TypicalContainerQty class="need-Matl-Dt" style="width:7em" tabindex="-1" %}
-                Typical Plt Qty: {% render_field frmMatlInfo.TypicalPalletQty class="need-Matl-Dt" style="width:7em" tabindex="-1" %}
+                Typical Container Qty: {% render_field frmMatlInfo.TypicalContainerQty class="need-Matl-Dt" style="width:7em" %}
+                Typical Plt Qty: {% render_field frmMatlInfo.TypicalPalletQty class="need-Matl-Dt" style="width:7em" %}
             </div>
         </div>
         <div class=row g-0>
@@ -165,11 +165,11 @@
                     <div class="row g-0">
                         {{ frmSchedInfo.id }} {# render_field frmSchedInfo.id hidden="true" #}
                         <div class="col-1">{% render_field frmSchedInfo.CountDate size="10" disabled=true %}</div>
-                        <div class="col-2">{% render_field frmSchedInfo.Counter class="need-Matl-Dt" size="10" %}</div>
-                        <div class="col-1">{% render_field frmSchedInfo.Priority class="need-Matl-Dt" size="10" %}</div>
-                        <div class="col-3">{% render_field frmSchedInfo.ReasonScheduled class="need-Matl-Dt" size="40" %}</div>
-                        <div class="col-1">{% render_field frmSchedInfo.CMPrintFlag class="need-Matl-Dt" %}</div>
-                        <div class="col-3">{% render_field frmSchedInfo.Notes class="need-Matl-Dt" size="30" %}</div>
+                        <div class="col-2">{% render_field frmSchedInfo.Counter class="need-Matl-Dt" size="10" tabindex="-1" %}</div>
+                        <div class="col-1">{% render_field frmSchedInfo.Priority class="need-Matl-Dt" size="10" tabindex="-1" %}</div>
+                        <div class="col-3">{% render_field frmSchedInfo.ReasonScheduled class="need-Matl-Dt" size="30" tabindex="-1" %}</div>
+                        <div class="col-1">{% render_field frmSchedInfo.CMPrintFlag class="need-Matl-Dt" tabindex="-1" %}</div>
+                        <div class="col-3">{% render_field frmSchedInfo.Notes class="need-Matl-Dt" size="30" tabindex="-1" %}</div>
                     </div>
                 </div>
             </div>

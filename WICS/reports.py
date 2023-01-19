@@ -34,7 +34,7 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
         ", ac.LOCATION as ac_LOCATION, ac.PKGID_Desc as ac_PKGID_Desc, ac.TAGQTY as ac_TAGQTY" \
         ", ac.FLAG_PossiblyNotRecieved, ac.FLAG_MovementDuringCount, ac.Notes as ac_Notes" \
         ", mtl.Material as Matl_PartNum, (SELECT WhsePartType FROM WICS_whseparttypes WHERE id=mtl.PartType_id) as PartType" \
-        ", mtl.Description, mtl.Notes as mtl_Notes"
+        ", mtl.Description, mtl.TypicalContainerQty, mtl.TypicalPalletQty, mtl.Notes as mtl_Notes"
     org_condition = '(ac.org_id = ' + str(_userorg.pk) + ' OR cs.org_id = ' + str(_userorg.pk) + ') '
     if isDate(passedCountDate): datestr = WrapInQuotes(passedCountDate,"'","'")
     else: datestr = passedCountDate
@@ -73,7 +73,8 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
                 for SAProw in SAP_SOH['SAPTable'].filter(Material=lastrow['Material']): 
                     outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
                     SAPTot += SAProw.Amount
-                
+                outputline['TypicalContainerQty'] = lastrow['TypicalContainerQty']
+                outputline['TypicalPalletQty'] = lastrow['TypicalPalletQty']
                 outputline['Material'] = lastrow['Material']
                 outputline['PartType'] = lastrow['PartType']
                 outputline['CountTotal'] = lastrow['TotalCounted']
@@ -95,6 +96,8 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
             lastrow['TotalCounted'] = 0
             lastrow['CMFlag'] = rawrow.cs_CMPrintFlag
             lastrow['SchedNotes'] = rawrow.cs_Notes
+            lastrow['TypicalContainerQty'] = rawrow.TypicalContainerQty
+            lastrow['TypicalPalletQty'] = rawrow.TypicalPalletQty
             lastrow['MatlNotes'] = rawrow.mtl_Notes
             lastrow['ReasonScheduled'] = rawrow.cs_ReasonScheduled
         #endif
@@ -133,7 +136,8 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
         for SAProw in SAP_SOH['SAPTable'].filter(Material=lastrow['Material']):
             outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
             SAPTot += SAProw.Amount
-        
+        outputline['TypicalContainerQty'] = lastrow['TypicalContainerQty']
+        outputline['TypicalPalletQty'] = lastrow['TypicalPalletQty']
         outputline['Material'] = lastrow['Material']
         outputline['PartType'] = lastrow['PartType']
         outputline['CountTotal'] = lastrow['TotalCounted']
@@ -176,7 +180,8 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
                 for SAProw in SAP_SOH['SAPTable'].filter(Material=lastrow['Material']):
                     outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
                     SAPTot += SAProw.Amount
-                
+                outputline['TypicalContainerQty'] = lastrow['TypicalContainerQty']
+                outputline['TypicalPalletQty'] = lastrow['TypicalPalletQty']
                 outputline['Material'] = lastrow['Material']
                 outputline['PartType'] = lastrow['PartType']
                 outputline['CountTotal'] = lastrow['TotalCounted']
@@ -199,6 +204,8 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
             lastrow['CMFlag'] = rawrow.cs_CMPrintFlag
             lastrow['SchedNotes'] = rawrow.cs_Notes
             lastrow['MatlNotes'] = rawrow.mtl_Notes
+            lastrow['TypicalContainerQty'] = rawrow.TypicalContainerQty
+            lastrow['TypicalPalletQty'] = rawrow.TypicalPalletQty
             lastrow['ReasonScheduled'] = rawrow.cs_ReasonScheduled
         #endif
 
@@ -236,7 +243,8 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
         for SAProw in SAP_SOH['SAPTable'].filter(Material=lastrow['Material']):
             outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
             SAPTot += SAProw.Amount
-        
+        outputline['TypicalContainerQty'] = lastrow['TypicalContainerQty']
+        outputline['TypicalPalletQty'] = lastrow['TypicalPalletQty']
         outputline['Material'] = lastrow['Material']
         outputline['PartType'] = lastrow['PartType']
         outputline['CountTotal'] = lastrow['TotalCounted']
@@ -279,7 +287,8 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
                 for SAProw in SAP_SOH['SAPTable'].filter(Material=lastrow['Material']):
                     outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
                     SAPTot += SAProw.Amount
-                
+                outputline['TypicalContainerQty'] = lastrow['TypicalContainerQty']
+                outputline['TypicalPalletQty'] = lastrow['TypicalPalletQty']
                 outputline['Material'] = lastrow['Material']
                 outputline['PartType'] = lastrow['PartType']
                 outputline['CountTotal'] = lastrow['TotalCounted']
@@ -302,6 +311,8 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
             lastrow['CMFlag'] = rawrow.cs_CMPrintFlag
             lastrow['SchedNotes'] = rawrow.cs_Notes
             lastrow['MatlNotes'] = rawrow.mtl_Notes
+            lastrow['TypicalContainerQty'] = rawrow.TypicalContainerQty
+            lastrow['TypicalPalletQty'] = rawrow.TypicalPalletQty
             lastrow['ReasonScheduled'] = rawrow.cs_ReasonScheduled
         #endif
 
@@ -335,7 +346,8 @@ def fnCountSummaryRptPreview (req, passedCountDate='CURRENT_DATE'):
         for SAProw in SAP_SOH['SAPTable'].filter(Material=lastrow['Material']):
             outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
             SAPTot += SAProw.Amount
-        
+        outputline['TypicalContainerQty'] = lastrow['TypicalContainerQty']
+        outputline['TypicalPalletQty'] = lastrow['TypicalPalletQty']
         outputline['Material'] = lastrow['Material']
         outputline['PartType'] = lastrow['PartType']
         outputline['CountTotal'] = lastrow['TotalCounted']

@@ -73,7 +73,9 @@
         {% elif ent.type == 'Summary' %}
         <div>
             <b>SAP:</b>
-            {% for s in ent.SAPNum %}{{ s }}{% endfor %}
+            {% for s in ent.SAPNum %}{{ s }}{% endfor %}, 
+            Typical Container Qty = {{ ent.TypicalContainerQty }}, 
+            Typical Pallet Qty = {{ ent.TypicalPalletQty }}
         </div>
         <div class="row g-0">
             <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
@@ -173,7 +175,9 @@
         {% elif ent.type == 'Summary' %}
         <div>
             <b>SAP:</b>
-            {% for s in ent.SAPNum %}{{ s }}{% endfor %}
+            {% for s in ent.SAPNum %}{{ s }}{% endfor %}, 
+            Typical Container Qty = {{ ent.TypicalContainerQty }}, 
+            Typical Pallet Qty = {{ ent.TypicalPalletQty }}
         </div>
         <div class="row g-0">
             <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
@@ -269,7 +273,9 @@
         {% elif ent.type == 'Summary' %}
         <div>
             <b>SAP:</b>
-            {% for s in ent.SAPNum %}{{ s }}{% endfor %}
+            {% for s in ent.SAPNum %}{{ s }}{% endfor %}, 
+            Typical Container Qty = {{ ent.TypicalContainerQty }}, 
+            Typical Pallet Qty = {{ ent.TypicalPalletQty }}
         </div>
         <div class="row g-0">
             <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
