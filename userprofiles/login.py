@@ -4,7 +4,7 @@ from django.contrib.auth import views as auth_views
 from userprofiles.models import WICSuser
 from django.shortcuts import HttpResponse, render, redirect
 from django.urls import reverse
-from cMenu.models import cGreetings
+from cMenu.models import cGreetings, getcParm
 from typing import *
 
 
@@ -18,7 +18,14 @@ class WICSLoginView(auth_views.LoginView):
         grts = cGreetings.objects.all().values('Greeting')
         # Greeting = 'Greeting will go here'        # this line needed, comment next line until cGreetings exists and is filled
         Greeting = random.choice(grts)['Greeting']
-        News = 'News worth being news will go here'
+
+        # Get News for WICS users
+        fildir = getcParm('MISC-FILELOC')
+        fName = fildir+"WICSNews.html"
+        News = ''
+        with open(fName,"r") as infile: 
+            News = infile.read()
+
         cntext.update({'Greeting':Greeting,'News':News})
 
         return cntext
