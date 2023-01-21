@@ -1,13 +1,10 @@
-
-
-# move this to (or find it in) a utility package
-from types import NoneType
+from dateutil.parser import parse
 
 
 def WrapInQuotes(str, openquotechar = chr(34), closequotechar = chr(34)):
     return openquotechar + str + closequotechar
 
-# this could be generally useful...
+
 def makebool(strngN, numtype = bool):
     res = bool(strngN)
     # the built-in bool function is good with one set of exceptions
@@ -23,4 +20,13 @@ def iif(cond, ifTrue, ifFalse=None):
         return ifTrue
     else:
         return ifFalse
+
+
+def isDate(testdate):
+    try:
+        td = parse(testdate)
+    except:
+        td = False
+    return td
+
 

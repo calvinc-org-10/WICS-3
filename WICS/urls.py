@@ -15,7 +15,7 @@ Including another URLconf
 """
 from django.urls import path, reverse
 from django.shortcuts import redirect
-from WICS import forms, reports, userinit, \
+from WICS import forms, userinit, \
         procs_SAP, procs_CountSchedule, procs_ActualCounts, procs_Material, \
         SAPMatlUpdt
 from userprofiles import logout
@@ -41,9 +41,9 @@ urlpatterns = [
     path('CountScheduleForm/<int:recNum>/<str:passedMatlNum>/<str:passedCountDate>/<str:gotoCommand>',
             procs_CountSchedule.fnCountScheduleRecordForm,name='CountScheduleForm'),
     path('CountSummaryRpt',
-            reports.fnCountSummaryRptPreview, name='CountSummaryReport'),
+            procs_ActualCounts.fnCountSummaryRpt, name='CountSummaryReport'),
     path('CountSummaryRpt/<str:passedCountDate>',
-            reports.fnCountSummaryRptPreview, name='CountSummaryReport'),
+            procs_ActualCounts.fnCountSummaryRpt, name='CountSummaryReport'),
     path('CountWorksheet',
             procs_CountSchedule.CountWorksheetReport.as_view(),name='CountWorksheet'),
     path('CountWorksheet/<CountDate>',

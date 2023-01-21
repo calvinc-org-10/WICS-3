@@ -39,8 +39,8 @@ Make page changes on itm.Counter - Bootstrap pagination??
                 <br class="bg-white">
             {% endif %}
             {{ itm.MaterialBarCode|safe }}
-            {{ itm.Material.Material }} |
-            {{ itm.Material.PartType.WhsePartType }} | Prio: {{ itm.Priority }} |
+            {# {{ itm.Material.Material }} | $#}
+            {{ itm.Material.PartType.WhsePartType }} | Prio: <b>{{ itm.Priority }}</b> |
             Sched Counter: {{ itm.Counter }}
             </div>
             <div class="col-7">

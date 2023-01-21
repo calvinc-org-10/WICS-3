@@ -372,7 +372,7 @@ class CountWorksheetReport(ListView):
                 lastCtr = rec.Counter
             else:
                 rec.NewCounter = False
-            bcstr = Code128(str(strMatlNum)).render(writer_options={'module_height':7.0,'quiet_zone':3.0,'write_text':False})
+            bcstr = Code128(str(strMatlNum)).render(writer_options={'module_height':7.0,'module_width':0.25,'quiet_zone':0.1,'write_text':True,'text_distance':3.5})
             bcstr = str(bcstr).replace("b'","").replace('\\r','').replace('\\n','').replace("'","")
             rec.MaterialBarCode = bcstr
             rec.LastFoundAt = LastFoundAt(rec.Material)

@@ -1,14 +1,13 @@
-from django.shortcuts import render, HttpResponse, redirect
+from django.shortcuts import render, HttpResponse #, redirect
 from django.urls import reverse, resolve
 from userprofiles.views import fnWICSuserForm
-from userprofiles.models import WICSuser
-from WICS.forms import fnUploadSAP, fnMaterialForm
-from WICS.reports import fnCountSummaryRptPreview
-from WICS.SAPLists import fnSAPList
-from WICS.SAPMatlUpdt import fnUpdateMatlListfromSAP
-from WICS.procs_ActualCounts import fnUploadActCountSprsht, fnCountEntryForm
-from WICS.procs_SAP import fnShowSAP
-from cMenu.utils import makebool, iif
+# from userprofiles.models import WICSuser
+# from WICS.forms import fnUploadSAP, fnMaterialForm
+# from WICS.SAPLists import fnSAPList
+# from WICS.SAPMatlUpdt import fnUpdateMatlListfromSAP
+# from WICS.procs_ActualCounts import fnUploadActCountSprsht, fnCountEntryForm
+# from WICS.procs_SAP import fnShowSAP
+# from cMenu.utils import makebool, iif
 
 
 # Menu Command Constants
@@ -92,7 +91,7 @@ def FormBrowse(req, formname, recNum = -1):
 
 
 def ShowTable(req, tblname):
-    _userorg = WICSuser.objects.get(user=req.user).org
+    # _userorg = WICSuser.objects.get(user=req.user).org
 
     # hopefully, this will be straightforward, except for SAP, which is a pseudotable - it's actually an excel file
     # guess what - SAP is the first one I'm implementing!

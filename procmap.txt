@@ -1,22 +1,70 @@
-urlpatterns = [
-    path('menu/', include("cMenu.urls")),
-    path('WICS/', include("WICS.urls")),
-    path('admin/',admin.site.urls),
-    path('akntt/',include("userprofiles.urls")),
-    path('akntt/',include("django.contrib.auth.urls")),
-]
 
-** -> path:/WICS -> url:login -> /userprofiles/templates/registration/login.html -> (internal django verification) -> url:initWICSuser
 
-url:initWICSuser -> path:/WICS/inituser -> WICS.userinit.inituser() -> url:LoadMenu 
-url:LoadMenu -> path:/menu/loadmenu -> cMenu.views.LoadMenu -> cMenu/templates/cMenu.html -> url:LoadMenu, url:HandleCommand
-url:EditMenu_init -> path:/menu/editmenu -> cMenu.views.EditMenu <-> cMenu/templates/cMenuEdit.html 
-url:EditMenu -> path:/menu/editmenu  -> cMenu.views.EditMenu <-> cMenu/templates/cMenuEdit.html
-url:HandleCommand -> path:/ProcessMenuCommand -> cMenu.views.HandleMenuCommand -> (multiple)
-url:FormBrowse -> path:/FormBrowse -> cMenu.menucommand_handlers.FormBrowse
+**BEGIN -> path:/WICS = url:WICSlogin 
 
-menu:11/l10-wics-uadmin -> userprofiles.views.fnWICSuserForm()
-menu:11/l6-wics-uadmin -> userprofiles,views.fnWICSuserForm()
+url:WICSlogin = path:/WICS -> url:login {you might want to see the urls entry}
+# this is actually the entry point to WICS
+
+url:initWICSuser = path:/WICS/inituser -> WICS.userinit.inituser() -> url:LoadMenu 
+url:LoadMenu = path:/menu/loadmenu -> cMenu.views.LoadMenu -> cMenu/templates/cMenu.html -> url:LoadMenu, url:HandleCommand
+url:EditMenu_init = path:/menu/editmenu -> cMenu.views.EditMenu <-> cMenu/templates/cMenuEdit.html 
+url:EditMenu = path:/menu/editmenu  -> cMenu.views.EditMenu <-> cMenu/templates/cMenuEdit.html
+url:HandleCommand = path:/ProcessMenuCommand -> cMenu.views.HandleMenuCommand -> (multiple menu:Command)
+url:FormBrowse = path:/FormBrowse -> cMenu.menucommand_handlers.FormBrowse (=== menu:11)
+
+url:WICSlogout = path:/WICS/logout -> userprofiles.logout.WICSlogout -> auth_views.logout_then_login(req,login_url=reverse('login'))
+url:ActualCountList = path:/WICS/ActualCountList -> WICS.procs_ActualCounts.ActualCountListForm.as_view()
+    -> WICS/templates/frm_ActualCountList.html
+url:CountEntryForm = path:/WICS/CountEntryForm -> WICS.procs_ActualCounts.fnCountEntryForm
+    -> WICS/templates/frm_CountEntry.html
+url:CountScheduleList = path:/WICS/CountScheduleList -> WICS.procs_CountSchedule.CountScheduleListForm.as_view()
+    -> WICS/templates/frm_CountScheduleList.html
+url:CountScheduleForm = path:/WICS/CountScheduleForm -> WICS.procs_CountSchedule.fnCountScheduleRecordForm
+    -> WICS/templates/frm_CountScheduleRec.html
+url:CountSummaryReport = path:/WICS/CountSummaryRpt -> WICS.procs_ActualCounts.fnCountSummaryRpt
+    -> WICS/templates/rpt_CountSummary.html
+url:CountWorksheet = path:/WICS/CountWorksheet -> WICS.procs_CountSchedule.CountWorksheetReport.as_view()
+    -> WICS/templates/rpt_CountWksht.html
+url:MatlForm = path:/WICS/MaterialForm -> WICS.forms.fnMaterialForm -> WICS/templates/frm_Material.html
+url:MatlByPartType = path:/WICS/MatlByPartType -> WICS.forms.MaterialByPartType.as_view()
+    -> /WICS/templates/frm_MatlByPartTypeList.html
+url:MaterialLocations = path:/WICS/MaterialLocations -> WICS.procs_Material.MaterialLocationsList.as_view()
+    -> /WICS/templates/rpt_PartLocations.html
+url:showtable-SAP = path:/WICS/SAP -> WICS.procs_SAP.fnShowSAP -> /WICS/templates/show_SAP_table.html
+url:UploadActualCountSprsht = path:/WICS/UpldActCtSprsht -> WICS.procs_ActualCounts.fnUploadActCountSprsht
+    -> /WICS/templates/frm_UploadCountEntrySprdsht.html
+    -> /WICS/templates/frm_uploadCountEntry_Success.html
+url:UpdateMatlListfromSAP = path:/WICS/UpdateMatlListfromSAP -> WICS.SAPMatlUpdt.fnUpdateMatlListfromSAP
+    -> /WICS/templates/frmUpdateMatlListfromSAP_phase0.html
+    -> /WICS/templates/frmUpdateMatlListfromSAP_done.html
+url:UploadSAPSprSht = path:/WICS/UpldSAPSprsht -> WICS.forms.fnUploadSAP
+    -> /WICS/templates/frm_upload_SAP.html
+    -> /WICS/templates/frm_upload_SAP_Success.html
+
+url:login = path:/akntt/login/ -> userprofiles.login.WICSLoginView.as_view() -> /userprofiles/templates/Uaffirm.html
+url:change_password = path:/akntt/paswordd -> userprofiles.pwd.change_password -> /userprofiles/templates/Uchgpw.html
+url:change_password_done = path:/akntt/paswordd-done -> userprofiles.pwd.change_password_done -> /userprofiles/templates/UchgpwX.html
+
+class MENUCOMMAND(Enum):
+    LoadMenu = 1
+    FormBrowse = 11
+    OpenTable = 15
+    RunCode = 21
+    RunSQLStatement = 31
+    ConstructSQLStatement = 32
+    ChangePW = 51
+    EditMenu = 91
+    EditParameters = 92
+    EditGreetings = 93
+    ExitApplication = 200
+
+
+menu:11 calls FormBrowse explicitly.  Change this to call url:FormBrowse
+menu:15 calls ShowTable explicitly.  Create url and call it
+menu:1 calls LoadMednu explicitly.  Change it to call url:LoadMenu
+
+menu:11/l10-wics-uadmin -> userprofiles.views.fnWICSuserForm()  {keep as is?  create url?  think on it}
+menu:11/l6-wics-uadmin -> userprofiles,views.fnWICSuserForm()  {keep as is?  create url?  think on it}
 menu:11/frmcount-schedulehistory-by-counterdate -> url:CountScheduleList
 menu:11/frmcountentry -> url:CountEntryForm
 menu:11/frmUploadCountEntry -> url:UploadActualCountSprsht
@@ -28,8 +76,6 @@ menu:11/matllistupdt -> url:UpdateMatlListfromSAP
 menu:11/frmCountScheduleEntry -> url:CountScheduleForm
 menu:11/rptCountWorksheet -> url:CountWorksheet
 menu:11/rptMaterialLocations -> url:MaterialLocations
-menu:15/sap -> url:showtable-SAP
-menu:15/tblActualCounts -> url:ActualCountList
 
 menu:11/frmExportCMCounts  NOT YET IMPLEMENTED
 menu:11/zutilShowColor  NOT YET IMPLEMENTED
@@ -37,4 +83,14 @@ menu:11/frmPrintAgendas  NOT YET IMPLEMENTED
 menu:11/frmRandCountScheduler  NOT YET IMPLEMENTED
 menu:11/frmSchedule AddPicks  NOT YET IMPLEMENTED
 menu:11/frmPartTypes with CountInfo  NOT YET IMPLEMENTED
+
+menu:15/sap -> url:showtable-SAP
+menu:15/tblActualCounts -> url:ActualCountList
+
+menu:51 -> url:change_password
+
+menu:91 -> url:EditMenu_init
+
+menu:200 -> url:WICSlogout
+
 

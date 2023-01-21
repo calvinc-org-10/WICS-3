@@ -13,14 +13,12 @@ from django.http import HttpResponse, HttpRequest
 #from django.utils import timezone
 from django.views.generic import ListView
 #from openpyxl import load_workbook
-#from cMenu.models import getcParm
+from cMenu.models import getcParm
 from userprofiles.models import WICSuser
 from WICS.models import MaterialList, LastFoundAt
 from WICS.SAPLists import fnSAPList
 from typing import Any, Dict
 
-# used in MaterialLocationsList.get_queryset.  Replace with a cParameter later
-p_countwindow = 120
 
 class MaterialLocationsList(ListView):
     ordering = ['Material']
@@ -52,7 +50,7 @@ class MaterialLocationsList(ListView):
             # filter Material in SAP_SOH for date OR last count date within 30d
             testdate = rec.LFADate
             if testdate == None: testdate = date(MINYEAR, 1, 1)
-            rec.DoNotShow = (not rec.SAPList.exists()) and (testdate < (dateutil.utils.today()-timedelta(days=p_countwindow)).date())
+            rec.DoNotShow = (not rec.SAPList.exists()) and (testdate < (dateutil.utils.today()-timedelta(days=getcParm('LOCRPT-COUNTDAYS-IFNOSAP'))).date())
 
         return qs
 
