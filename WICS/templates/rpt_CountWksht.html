@@ -25,14 +25,28 @@
 
 <hr>
 <!-- body -->
-{% comment %}
-Make page changes on itm.Counter - Bootstrap pagination??
-{% endcomment %}
+    
 <div class="container">
+    <ul class="nav nav-pills">
+        {% for Cntr in CounterList %}
+        <li class="nav-item">
+            <a class="nav-link{% if forloop.first %} active{% endif %}" 
+                    data-bs-toggle="pill"
+                    href="#_{{ Cntr.Counter|default:'--UNASSIGNED--'|slugify }}">{{ Cntr.Counter|default:"--UNASSIGNED--" }}</a>            
+        </li>
+        {% endfor %}
+    </ul>
+        
+    <div class="tab-content">
     {% for itm in CtSchd %}
+        {% if itm.NewCounter %}
+            {% if not forloop.first %}</div>{% endif %}
+            <div class="tab-pane container{% if forloop.first %} active{% endif %}" id="_{{ itm.Counter|default:'--UNASSIGNED--'|slugify }}">
+        {% endif %}
+
         <div class="row g-0">
             <div class="col-5">
-            {% if itm.NewMat3char %}
+            {% if itm.NewMat3char or itm.NewCounter %}
                 <span class="bg-secondary fw-bold fs-5 text-white" style="width:10">
                     __ {{ itm.Material.Material|slice:"0:3" }} __
                 </span>
@@ -72,15 +86,15 @@ Make page changes on itm.Counter - Bootstrap pagination??
             </div>
         </div>
         <div class="row g-0">
-            <div class="col-5">{{ itm.Material.Description }}</div>
+            <div class="col-10">{{ itm.Material.Description }}</div>
         </div>
         <div class="row g-0">
-            <div class="col-5">
+            <div class="col-10">
             Last Found On {{ itm.LastFoundAt.lastCountDate }} At {{ itm.LastFoundAt.lastFoundAt }}
             </div>
         </div>
         <div class="row g-0">
-            <div class="col-5">
+            <div class="col-10">
             Typical Container Qty = {{ itm.Material.TypicalContainerQty }},
             Typical Pallet Qty = {{ itm.Material.TypicalPalletQty }}
             </div>
@@ -91,9 +105,11 @@ Make page changes on itm.Counter - Bootstrap pagination??
             </div>
         </div>
     <hr>
+    {% if forloop.last %}</div>{% endif %}
     {% endfor %}
+    </div>
 </div>
-    
+
     <!-- form footer -->
     <hr>
     <div class="container">
@@ -108,7 +124,7 @@ Make page changes on itm.Counter - Bootstrap pagination??
             </div>
         </div>
     </div>
-</div>
+<!-- </div> -->
 
 <script>
 function loadDate() {

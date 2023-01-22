@@ -354,11 +354,10 @@ class CountWorksheetReport(ListView):
     def get_queryset(self) -> QuerySet[Any]:
         SAP_SOH = fnSAPList(self._userorg,self.CountDate)
         self.SAPDate = SAP_SOH['SAPDate']
-        qs =  CountSchedule.objects.filter(org=self._userorg, CountDate=self.CountDate).order_by('Counter', 'Material').select_related('Material','Material__PartType')   # figure out how to pass in self.ordering
+        qs = CountSchedule.objects.filter(org=self._userorg, CountDate=self.CountDate).order_by('Counter', 'Material').select_related('Material','Material__PartType')   # figure out how to pass in self.ordering
         qs = qs.annotate(LastFoundAt=Value(''), SAPQty=Value(0), MaterialBarCode=Value(''))
         Mat3char = None
-        if qs: lastCtr = qs[0].Counter
-        else: lastCtr = ''
+        lastCtr = None
         for rec in qs:
             strMatlNum = rec.Material.Material
             if strMatlNum[0:3] != Mat3char:
@@ -381,12 +380,13 @@ class CountWorksheetReport(ListView):
             rec.Zones = zoneList
             for SAProw in SAP_SOH['SAPTable'].filter(Material=rec.Material): 
                 rec.SAPQty += SAProw.Amount
+
         return qs
 
     # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
     #     return super().get(request, *args, **kwargs)
 
-    # there is no POST processing; it's a R/O report
+    # there is no POST processing; it's a r/o report
     # def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
     #     return HttpResponse('Stop rushing me!!')
 
@@ -398,12 +398,19 @@ class CountWorksheetReport(ListView):
         for Z in zoneListqs:
             zoneList[Z.zone-1] = Z.zoneName
 
+        # collect the list of Counters to that tabs can be built in the html
+        CounterList = CountSchedule.objects.filter(org=self._userorg, CountDate=self.CountDate).order_by('Counter').values('Counter').distinct()
+
         context.update({
                 'zoneList': zoneList,
+                'CounterList': CounterList,
                 'CountDate': self.CountDate,
                 'SAP_Updated_at': self.SAPDate,
                 'orgname': self._userorg.orgname, 'uname':self._user.get_full_name()
                 })
+
+        # collect the list of Counters to that tabs can be built in the html
+        self.CounterList = self.get_queryset().values('Counter').distinct()
 
         return super().render_to_response(context, **response_kwargs)
 
