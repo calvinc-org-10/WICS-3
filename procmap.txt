@@ -1,5 +1,4 @@
 
-
 **BEGIN -> path:/WICS = url:WICSlogin 
 
 url:WICSlogin = path:/WICS -> url:login {you might want to see the urls entry}
@@ -10,7 +9,7 @@ url:LoadMenu = path:/menu/loadmenu -> cMenu.views.LoadMenu -> cMenu/templates/cM
 url:EditMenu_init = path:/menu/editmenu -> cMenu.views.EditMenu <-> cMenu/templates/cMenuEdit.html 
 url:EditMenu = path:/menu/editmenu  -> cMenu.views.EditMenu <-> cMenu/templates/cMenuEdit.html
 url:HandleCommand = path:/ProcessMenuCommand -> cMenu.views.HandleMenuCommand -> (multiple menu:Command)
-url:FormBrowse = path:/FormBrowse -> cMenu.menucommand_handlers.FormBrowse (=== menu:11)
+url:FormBrowse = path:/FormBrowse -> cMenu.menucommand_handlers.FormBrowse (=== menu:11(FormBrowse))
 
 url:WICSlogout = path:/WICS/logout -> userprofiles.logout.WICSlogout -> auth_views.logout_then_login(req,login_url=reverse('login'))
 url:ActualCountList = path:/WICS/ActualCountList -> WICS.procs_ActualCounts.ActualCountListForm.as_view()
@@ -25,8 +24,8 @@ url:CountSummaryReport = path:/WICS/CountSummaryRpt -> WICS.procs_ActualCounts.f
     -> WICS/templates/rpt_CountSummary.html
 url:CountWorksheet = path:/WICS/CountWorksheet -> WICS.procs_CountSchedule.CountWorksheetReport.as_view()
     -> WICS/templates/rpt_CountWksht.html
-url:MatlForm = path:/WICS/MaterialForm -> WICS.forms.fnMaterialForm -> WICS/templates/frm_Material.html
-url:MatlByPartType = path:/WICS/MatlByPartType -> WICS.forms.MaterialByPartType.as_view()
+url:MatlForm = path:/WICS/MaterialForm -> WICS.procs_Material.fnMaterialForm -> WICS/templates/frm_Material.html
+url:MatlByPartType = path:/WICS/MatlByPartType -> WICS.procs_Material.MaterialByPartType.as_view()
     -> /WICS/templates/frm_MatlByPartTypeList.html
 url:MaterialLocations = path:/WICS/MaterialLocations -> WICS.procs_Material.MaterialLocationsList.as_view()
     -> /WICS/templates/rpt_PartLocations.html
@@ -37,7 +36,7 @@ url:UploadActualCountSprsht = path:/WICS/UpldActCtSprsht -> WICS.procs_ActualCou
 url:UpdateMatlListfromSAP = path:/WICS/UpdateMatlListfromSAP -> WICS.SAPMatlUpdt.fnUpdateMatlListfromSAP
     -> /WICS/templates/frmUpdateMatlListfromSAP_phase0.html
     -> /WICS/templates/frmUpdateMatlListfromSAP_done.html
-url:UploadSAPSprSht = path:/WICS/UpldSAPSprsht -> WICS.forms.fnUploadSAP
+url:UploadSAPSprSht = path:/WICS/UpldSAPSprsht -> WICS.procs_SAP.fnUploadSAP
     -> /WICS/templates/frm_upload_SAP.html
     -> /WICS/templates/frm_upload_SAP_Success.html
 
@@ -59,38 +58,38 @@ class MENUCOMMAND(Enum):
     ExitApplication = 200
 
 
-menu:11 calls FormBrowse explicitly.  Change this to call url:FormBrowse
-menu:15 calls ShowTable explicitly.  Create url and call it
-menu:1 calls LoadMednu explicitly.  Change it to call url:LoadMenu
+menu:1(LoadMenu) calls LoadMednu explicitly.  Change it to call url:LoadMenu
+menu:11(FormBrowse) calls FormBrowse explicitly.  Change this to call url:FormBrowse
+menu:15(OpenTable) calls ShowTable explicitly.  Create url and call it
 
-menu:11/l10-wics-uadmin -> userprofiles.views.fnWICSuserForm()  {keep as is?  create url?  think on it}
-menu:11/l6-wics-uadmin -> userprofiles,views.fnWICSuserForm()  {keep as is?  create url?  think on it}
-menu:11/frmcount-schedulehistory-by-counterdate -> url:CountScheduleList
-menu:11/frmcountentry -> url:CountEntryForm
-menu:11/frmUploadCountEntry -> url:UploadActualCountSprsht
-menu:11/frmcountsummarypreview -> url:CountSummaryReport
-menu:11/frmimportsap -> url:UploadSAPSprSht
-menu:11/frmmaterial -> url:MatlForm
-menu:11/frmParts-By-Type-with-LastCounts -> url:MatlByPartType
-menu:11/matllistupdt -> url:UpdateMatlListfromSAP
-menu:11/frmCountScheduleEntry -> url:CountScheduleForm
-menu:11/rptCountWorksheet -> url:CountWorksheet
-menu:11/rptMaterialLocations -> url:MaterialLocations
+menu:11(FormBrowse)/l10-wics-uadmin -> userprofiles.views.fnWICSuserForm()  {keep as is?  create url?  think on it}
+menu:11(FormBrowse)/l6-wics-uadmin -> userprofiles,views.fnWICSuserForm()  {keep as is?  create url?  think on it}
+menu:11(FormBrowse)/frmcount-schedulehistory-by-counterdate -> url:CountScheduleList
+menu:11(FormBrowse)/frmcountentry -> url:CountEntryForm
+menu:11(FormBrowse)/frmUploadCountEntry -> url:UploadActualCountSprsht
+menu:11(FormBrowse)/frmcountsummarypreview -> url:CountSummaryReport
+menu:11(FormBrowse)/frmimportsap -> url:UploadSAPSprSht
+menu:11(FormBrowse)/frmmaterial -> url:MatlForm
+menu:11(FormBrowse)/frmParts-By-Type-with-LastCounts -> url:MatlByPartType
+menu:11(FormBrowse)/matllistupdt -> url:UpdateMatlListfromSAP
+menu:11(FormBrowse)/frmCountScheduleEntry -> url:CountScheduleForm
+menu:11(FormBrowse)/rptCountWorksheet -> url:CountWorksheet
+menu:11(FormBrowse)/rptMaterialLocations -> url:MaterialLocations
 
-menu:11/frmExportCMCounts  NOT YET IMPLEMENTED
-menu:11/zutilShowColor  NOT YET IMPLEMENTED
-menu:11/frmPrintAgendas  NOT YET IMPLEMENTED
-menu:11/frmRandCountScheduler  NOT YET IMPLEMENTED
-menu:11/frmSchedule AddPicks  NOT YET IMPLEMENTED
-menu:11/frmPartTypes with CountInfo  NOT YET IMPLEMENTED
+menu:11(FormBrowse)/frmExportCMCounts  NOT YET IMPLEMENTED
+menu:11(FormBrowse)/zutilShowColor  NOT YET IMPLEMENTED
+menu:11(FormBrowse)/frmPrintAgendas  NOT YET IMPLEMENTED
+menu:11(FormBrowse)/frmRandCountScheduler  NOT YET IMPLEMENTED
+menu:11(FormBrowse)/frmSchedule AddPicks  NOT YET IMPLEMENTED
+menu:11(FormBrowse)/frmPartTypes with CountInfo  NOT YET IMPLEMENTED
 
-menu:15/sap -> url:showtable-SAP
-menu:15/tblActualCounts -> url:ActualCountList
+menu:15(OpenTable)/sap -> url:showtable-SAP
+menu:15(OpenTable)/tblActualCounts -> url:ActualCountList
 
-menu:51 -> url:change_password
+menu:51(ChangePW) -> url:change_password
 
-menu:91 -> url:EditMenu_init
+menu:91(EditMenu) -> url:EditMenu_init
 
-menu:200 -> url:WICSlogout
+menu:200(ExitApplication) -> url:WICSlogout
 
 

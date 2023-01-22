@@ -17,10 +17,9 @@ from typing import *
 from barcode import Code128
 from cMenu.models import getcParm
 from userprofiles.models import WICSuser
-from WICS.forms import CountScheduleForm
 from WICS.models import MaterialList, ActualCounts, CountSchedule, \
                         WhsePartTypes, LastFoundAt, WorksheetZones, Location_WorksheetZone
-from WICS.SAPLists import fnSAPList
+from WICS.procs_SAP import fnSAPList
 
 _userorg = None
 

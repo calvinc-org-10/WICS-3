@@ -14,7 +14,7 @@ from cMenu.utils import makebool, isDate, WrapInQuotes
 from openpyxl import load_workbook
 from userprofiles.models import WICSuser
 from WICS.models import ActualCounts, MaterialList, CountSchedule, WhsePartTypes
-from WICS.SAPLists import fnSAPList
+from WICS.procs_SAP import fnSAPList
 
 
 class CountEntryForm(forms.ModelForm):
@@ -426,11 +426,8 @@ def fnUploadActCountSprsht(req):
                 SRec.save()
                 if MatChanged: MatObj.save()
                 qs = type(SRec).objects.filter(pk=SRec.pk).values().first()
-                res = {'error': False, 'TypicalQty':MatChanged}
+                res = {'error': False, 'TypicalQty':MatChanged, 'MaterialNum': row[SAPcolmnMap['Material']] }
                 res.update(qs)
-                ## why am I doing this this way????
-                #for V in type(SRec).objects.filter(pk=SRec.pk).values().first():
-                #    res = res.append(V)
                 UplResults.append(res)
                 nRows += 1
             else:
@@ -593,7 +590,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
         
         return outputrows
         
-
+    ### main body of fnCountSummaryRpt
 
     fldlist = "0 as id, cs.id as cs_id, cs.CountDate as cs_CountDate , cs.Counter as cs_Counter" \
         ", cs.Priority as cs_Priority, cs.ReasonScheduled as cs_ReasonScheduled, cs.CMPrintFlag as cs_CMPrintFlag" \
@@ -610,6 +607,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
     date_condition = '(ac.CountDate = ' + datestr + ' OR cs.CountDate = ' + datestr + ') '
     order_by = 'Matl_PartNum'
 
+    SummaryReport = []
 
     A_Sched_Ctd_from = 'WICS_countschedule cs INNER JOIN WICS_materiallist mtl INNER JOIN WICS_actualcounts ac'    
     A_Sched_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id AND ac.Material_id=mtl.id'    
@@ -622,7 +620,10 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
         # + ' AND ' + A_Sched_Ctd_where
     A_Sched_Ctd_qs = CountSchedule.objects.raw(A_Sched_Ctd_sql)
     # build display lines
-    A_Sched_Ctd_outputrows = CreateOutputRows(A_Sched_Ctd_qs)
+    SummaryReport.append({
+                'Title':'Scheduled and Counted',
+                'outputrows': CreateOutputRows(A_Sched_Ctd_qs)
+                })
 
     B_UnSched_Ctd_from = 'WICS_countschedule cs RIGHT JOIN' \
         ' (WICS_actualcounts ac INNER JOIN WICS_materiallist mtl ON ac.Material_id=mtl.id)'
@@ -635,7 +636,10 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
         ' AND ' + B_UnSched_Ctd_where + \
         ' ORDER BY ' + order_by
     B_UnSched_Ctd_qs = CountSchedule.objects.raw(B_UnSched_Ctd_sql)
-    B_UnSched_Ctd_outputrows = CreateOutputRows(B_UnSched_Ctd_qs)
+    SummaryReport.append({
+                'Title':'UnScheduled',
+                'outputrows': CreateOutputRows(B_UnSched_Ctd_qs)
+                })
     
     C_Sched_NotCtd_Ctd_from = '(WICS_countschedule cs INNER JOIN WICS_materiallist mtl ON cs.Material_id=mtl.id)' \
         ' LEFT JOIN WICS_actualcounts ac'
@@ -648,17 +652,21 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
         ' AND ' + C_Sched_NotCtd_Ctd_where + \
         ' ORDER BY ' + order_by
     C_Sched_NotCtd_Ctd_qs = CountSchedule.objects.raw(C_Sched_NotCtd_Ctd_sql)
-    C_Sched_NotCtd_Ctd_outputrows = CreateOutputRows(C_Sched_NotCtd_Ctd_qs, Eval_CTDQTY=False)
+    SummaryReport.append({
+                'Title':'Scheduled but Not Counted',
+                'outputrows': CreateOutputRows(C_Sched_NotCtd_Ctd_qs, Eval_CTDQTY=False)
+                })
 
     # display the form
     cntext = {
             'CountDate': dtobj_pDate,
             'SAPDate': SAP_SOH['SAPDate'],
-            'Sched_Ctd': A_Sched_Ctd_outputrows,
-            'UnSched_Ctd': B_UnSched_Ctd_outputrows,
-            'Sched_NotCtd':C_Sched_NotCtd_Ctd_outputrows,
+            'SummaryReport': SummaryReport,
             'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
             }
+            #'Sched_Ctd': A_Sched_Ctd_outputrows,
+            #'UnSched_Ctd': B_UnSched_Ctd_outputrows,
+            #'Sched_NotCtd':C_Sched_NotCtd_Ctd_outputrows,
     templt = 'rpt_CountSummary.html'
     return render(req, templt, cntext)
 

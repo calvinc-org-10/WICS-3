@@ -1,13 +1,6 @@
 from django.shortcuts import render, HttpResponse #, redirect
 from django.urls import reverse, resolve
 from userprofiles.views import fnWICSuserForm
-# from userprofiles.models import WICSuser
-# from WICS.forms import fnUploadSAP, fnMaterialForm
-# from WICS.SAPLists import fnSAPList
-# from WICS.SAPMatlUpdt import fnUpdateMatlListfromSAP
-# from WICS.procs_ActualCounts import fnUploadActCountSprsht, fnCountEntryForm
-# from WICS.procs_SAP import fnShowSAP
-# from cMenu.utils import makebool, iif
 
 
 # Menu Command Constants

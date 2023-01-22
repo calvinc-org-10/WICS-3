@@ -15,9 +15,8 @@ Including another URLconf
 """
 from django.urls import path, reverse
 from django.shortcuts import redirect
-from WICS import forms, userinit, \
-        procs_SAP, procs_CountSchedule, procs_ActualCounts, procs_Material, \
-        SAPMatlUpdt
+from WICS import userinit, \
+        procs_SAP, procs_CountSchedule, procs_ActualCounts, procs_Material
 from userprofiles import logout
 
 urlpatterns = [
@@ -49,15 +48,15 @@ urlpatterns = [
     path('CountWorksheet/<CountDate>',
             procs_CountSchedule.CountWorksheetReport.as_view(),name='CountWorksheet'),
     path('MaterialForm',
-            forms.fnMaterialForm, name='MatlForm'),
+            procs_Material.fnMaterialForm, name='MatlForm'),
     path('MaterialForm/<int:recNum>',
-            forms.fnMaterialForm, {'gotoRec':True}, name='ReloadMatlForm'),
-    path('MatlByPartType',forms.MaterialByPartType.as_view(), name='MatlByPartType'),
+            procs_Material.fnMaterialForm, {'gotoRec':True}, name='ReloadMatlForm'),
+    path('MatlByPartType',procs_Material.MaterialByPartType.as_view(), name='MatlByPartType'),
     path('MaterialLocations',
             procs_Material.MaterialLocationsList.as_view(),name='MaterialLocations'),
     path('SAP',procs_SAP.fnShowSAP,name='showtable-SAP'),
     path('SAP/<str:reqDate>',procs_SAP.fnShowSAP,name='showtable-SAP'),
     path('UpldActCtSprsht', procs_ActualCounts.fnUploadActCountSprsht, name='UploadActualCountSprsht'),
-    path('UpdateMatlListfromSAP',SAPMatlUpdt.fnUpdateMatlListfromSAP, name='UpdateMatlListfromSAP'),
-    path('UpldSAPSprsht',forms.fnUploadSAP, name='UploadSAPSprSht'),
+    path('UpdateMatlListfromSAP',procs_SAP.fnUpdateMatlListfromSAP, name='UpdateMatlListfromSAP'),
+    path('UpldSAPSprsht',procs_SAP.fnUploadSAP, name='UploadSAPSprSht'),
 ]

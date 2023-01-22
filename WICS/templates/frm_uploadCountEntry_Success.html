@@ -19,11 +19,17 @@
     <h4>{{ nRowsAdded }} Count Entry records successfully uploaded</h4>
 
     <br>
-    Fix this later ...<br>
     <ul>
     {% for res in UplResults %}
         <li>
-            {{ res }}
+            {% if not res.error %}
+                Count Record {{ res.id }}: {{ res.CountDate|date:'Y-m-d '}} | {{ res.MaterialNum }} |
+                    {{ res.Counter }} | {{ res.BLDG }} | {{ res.LOCATION }} |
+                    {% if res.LocationOnly %}LOCATION ONLY{% else %}{{res.CTD_QTY_Expr }}{% endif %} 
+                    added
+            {% else %}
+                <b>{{ res }}</b>
+            {% endif %}
         </li>
     {% endfor %}
     </ul>
