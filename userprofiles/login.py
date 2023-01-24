@@ -31,20 +31,3 @@ class WICSLoginView(auth_views.LoginView):
         return cntext
 
 
-#def checkuser(req):
-#    username = req.POST['username']
-#    password = req.POST['password']
-#    _djangouser = authenticate(req, username=username, password=password)
-#    if _djangouser is None:
-#        return HttpResponse('<h1>You are not an authorized user.</h1>')
-#    else:
-#        _authuser = WICSuser.objects.get(user=_djangouser)
-#        # _userOrgKey = _authuser.org
-#        _userMenuGroup = _authuser.menuGroup
-#        _intMenuGroup = _userMenuGroup.pk
-#        # req.POST['WICSuser'] = _authuser
-#        login(req,_djangouser)
-#        return redirect(reverse('LoadMenu',kwargs={'menuGroup':_intMenuGroup, 'menuNum':0}))
-#        # return HttpResponseRedirect(reverse('LoadMenu',kwargs={'menuGroup':_intMenuGroup, 'menuNum':0}))
-#    #endif
-

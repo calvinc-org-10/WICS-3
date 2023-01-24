@@ -5,28 +5,18 @@ from dateutil.utils import today
 # implement skipping holidays
 from django import forms
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Value, Max
 from django.db.models.query import QuerySet
-from django.forms import inlineformset_factory
-from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
+from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render
-from django.urls import reverse
-from django.utils import timezone
 from django.views.generic import ListView
-from typing import *
 from barcode import Code128
-from cMenu.models import getcParm
 from userprofiles.models import WICSuser
-from WICS.models import MaterialList, ActualCounts, CountSchedule, \
+from WICS.models import MaterialList, CountSchedule, \
                         WhsePartTypes, LastFoundAt, WorksheetZones, Location_WorksheetZone
 from WICS.procs_SAP import fnSAPList
-
-_userorg = None
-
-from django.core.files.base import File
-from django.db.models.base import Model
-#from django.db.models.query import QuerySet, _BaseQuerySet
-from django.forms.utils import ErrorList
+from typing import *
 
 
 class CountScheduleRecordForm(forms.ModelForm):
@@ -71,7 +61,7 @@ class CountScheduleRecordForm(forms.ModelForm):
 
 class RelatedMaterialInfo(forms.ModelForm):
     Description = forms.CharField(max_length=250, required=False)
-    PartType = forms.ModelChoiceField(queryset=WhsePartTypes.objects.filter(org=_userorg).order_by('WhsePartType'))
+    PartType = forms.ModelChoiceField(queryset=WhsePartTypes.objects.filter(org=None).order_by('WhsePartType'))
     TypicalContainerQty = forms.IntegerField(required=False)
     TypicalPalletQty = forms.IntegerField(required=False)
     Notes = forms.CharField(max_length=250, required=False)
@@ -309,7 +299,7 @@ def fnCountScheduleRecord(org, CtDate, Matl):
 #####################################################################
 #####################################################################
 
-class CountScheduleListForm(ListView):
+class CountScheduleListForm(LoginRequiredMixin, ListView):
     ordering = ['-CountDate', 'Material']
     context_object_name = 'CtSchdList'
     template_name = 'frm_CountScheduleList.html'
@@ -338,7 +328,7 @@ class CountScheduleListForm(ListView):
 #####################################################################
 #####################################################################
 
-class CountWorksheetReport(ListView):
+class CountWorksheetReport(LoginRequiredMixin, ListView):
     ordering = ['Counter', 'Material']
     context_object_name = 'CtSchd'
     template_name = 'rpt_CountWksht.html'

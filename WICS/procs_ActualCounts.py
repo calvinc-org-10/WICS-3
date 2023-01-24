@@ -1,8 +1,9 @@
 import datetime
 import os, uuid
 from django import forms
-from django.db.models.query import QuerySet
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models.query import QuerySet
 from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
 from django.utils import timezone
 from django.urls import reverse
@@ -456,7 +457,7 @@ def fnUploadActCountSprsht(req):
 #####################################################################
 #####################################################################
 
-class ActualCountListForm(ListView):
+class ActualCountListForm(LoginRequiredMixin, ListView):
     ordering = ['-CountDate', 'Material']
     context_object_name = 'ActCtList'
     template_name = 'frm_ActualCountList.html'

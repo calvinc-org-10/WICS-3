@@ -29,12 +29,17 @@
         </div>
         <div class="row max-width=100%">
             <div class="col-3 text-start"></div>
-            <div class="col-6 text-center">{{ menuName }}</div>
+            <div class="col-6 text-center">
+                <input type="text" name="menuName" form="menueditForm" value="{{ menuName }}" size="15">
+            </div>
+            <div class="col-2">
+                <button type="button">New Menu
+                <button type="button">Remv Menu
+            </div>
         </div>
         <div class="row"> <!-- status messages -->
 
         <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
-
         {% if changed_data %}
             <div class="alert alert-success p-0 alert-dismissible fade show">
                 <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
@@ -42,27 +47,14 @@
                 ChDat: {{ changed_data }}
             </div>
         {% endif %}
-
-    </div>
+        </div>
     
     </div>
     <!-- menu body -->
-    {% comment %}
-         ctxt = {'menuName':mnuName , 
-                'menuGoto':mnuGoto,
-         mnuGoto = {'menuGroup':menuGroup,
-                    'menuGroup_choices': None,
-                    'menuID':menuNum,
-                    'menuID_choices':menuItems.objects.filter(menuGroup=menuGroup,OptionNumber=0)
-                    }
-               'menuContents':fullMenuHTML, 
-                'orgname':_userorg.orgname, 
-                'uname':req.user.get_full_name()}
-   {% endcomment %}
-    <form method="post">
+    <form method="post" id="menueditForm">
     {% csrf_token %}
     <div class="container" style="height:350px;overflow:auto">
-        {% autoescape off %} {{ menuContents }} {% endautoescape %}
+        {{ menuContents|safe }}
     </div>
     <br>
     <!-- form footer -->

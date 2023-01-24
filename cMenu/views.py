@@ -76,19 +76,29 @@ def EditMenu(req, menuGroup, menuNum):
     changed_data = ''
 
     if req.method == 'POST':
-        # construict mnItem_list from POST data
+        # construct mnItem_list from POST data
         for pdat in req.POST.items():
-            if "csrf" in pdat[0]: continue
+            if "csrf" in pdat[0]: 
+                continue
+            if "menuName" in pdat[0]:
+                mnTitle = mnItem_qset.get(OptionNumber=0)
+                if mnTitle.OptionText != pdat[1]:
+                    mnTitle.OptionText = pdat[1]
+                    mnTitle.save()
+                    if changed_data: changed_data += ", "
+                    changed_data += "Menu Name changed"
+                continue
             pdat_line = pdat[0].split('-')
             idx = int(pdat_line[1])-1
             mnItem_list[idx][pdat_line[0]] = pdat[1]
+
         # compare to mnItem_qset
         # where different, update or add
         # set signal to pass back to form
         for i_0based in range(20):
             i = i_0based + 1
             thisItem = mnItem_list[i_0based]
-            thisItem['Command'] = int(thisItem['Command'])
+            thisItem['Command'] = int(thisItem['Command'])      # make the Command a number, not a string
             try:
                 mnRec = mnItem_qset.get(OptionNumber=i)
             except:
@@ -102,36 +112,93 @@ def EditMenu(req, menuGroup, menuNum):
                                 'Argument':''}
                 if changed_data: changed_data += ", "
                 changed_data += " Option " + str(i) + " removed"
+            if mnRec:
+                if mnRec.OptionText != thisItem['OptionText'] \
+                or mnRec.Command_id != thisItem['Command'] \
+                or mnRec.Argument != thisItem['Argument']:
+                    # mnRec exists, and mnItem_list is changed
+                    mnRec.OptionText = thisItem['OptionText']
+                    mnRec.Command_id = thisItem['Command'] 
+                    mnRec.Argument = thisItem['Argument']
+                    mnRec.save()
+                    if changed_data: changed_data += ", "
+                    changed_data += " Option " + str(i) + " changed"
             else:
-                if mnRec:
-                    if mnRec.OptionText != thisItem['OptionText'] \
-                    or mnRec.Command_id != thisItem['Command'] \
-                    or mnRec.Argument != thisItem['Argument']:
-                        # mnRec exists, and mnItem_list is changed
-                        mnRec.OptionText = thisItem['OptionText']
-                        mnRec.Command_id = thisItem['Command'] 
-                        mnRec.Argument = thisItem['Argument']
-                        mnRec.save()
-                        if changed_data: changed_data += ", "
-                        changed_data += " Option " + str(i) + " changed"
+                if thisItem['OptionText'] \
+                or thisItem['Command'] \
+                or thisItem['Argument']:
+                    # mnRec does not exist, but mnItem_list is new (has values)
+                    mnRec = menuItems(MenuGroup_id = menuGroup,
+                        MenuID = menuNum,
+                        OptionNumber = i,
+                        OptionText = thisItem['OptionText'],
+                        Command_id = thisItem['Command'],
+                        Argument = thisItem['Argument']
+                        )
+                    mnRec.save()
+                    if changed_data: changed_data += ", "
+                    changed_data += " Option " + str(i) + " added"
+            #endif mnRec 
+            if mnRec and thisItem.get('CopyTo',''):
+                MoveORCopy = thisItem.get('CopyTo')
+                CopyTarget = thisItem.get('CopyTarget').split(',')
+                targetGroup = None
+                if len(CopyTarget)==2:
+                    targetGroup = menuGroup
+                    try:
+                        targetMenu = int(CopyTarget[0])
+                    except:
+                        targetMenu = None
+                    try:   
+                        targetOption = int(CopyTarget[1])
+                    except:
+                        targetOption = None
+                elif len(CopyTarget)==3:
+                    try:
+                        targetGroup = int(CopyTarget[0])
+                    except:
+                        targetGroup = None
+                    try:
+                        targetMenu = int(CopyTarget[1])
+                    except:
+                        targetMenu = None
+                    try:   
+                        targetOption = int(CopyTarget[2])
+                    except:
+                        targetOption = None
                 else:
-                    if thisItem['OptionText'] \
-                    or thisItem['Command'] \
-                    or thisItem['Argument']:
-                        # mnRec does not exist, but mnItem_list is new (has values)
-                        mnRec = menuItems(MenuGroup_id = menuGroup,
-                            MenuID = menuNum,
-                            OptionNumber = i,
-                            OptionText = thisItem['OptionText'],
-                            Command_id = thisItem['Command'],
-                            Argument = thisItem['Argument']
-                            )
-                        mnRec.save()
+                    pass    # targetGroup is already None
+                
+                if targetGroup==None or targetMenu==None or targetOption==None:
+                    if changed_data: changed_data += ", "
+                    changed_data += "Could not interpret option " + str(i) + " " + MoveORCopy + " target " + thisItem.get('CopyTarget')
+                else:
+                    if menuItems.objects.filter(MenuGroup=targetGroup, MenuID=targetMenu, OptionNumber=targetOption).exists():
                         if changed_data: changed_data += ", "
-                        changed_data += " Option " + str(i) + " added"
-                #endif mnRec 
-        #raise Exception('look at POST data')
+                        changed_data += "Could not " + MoveORCopy + " option " + str(i)
+                        changed_data +=  " - target " + thisItem.get('CopyTarget') + " already exists."
+                    else:
+                        menuItems(
+                                MenuGroup_id = targetGroup,
+                                MenuID = targetMenu,
+                                OptionNumber = targetOption,
+                                OptionText = mnRec.OptionText,
+                                Command = mnRec.Command,
+                                Argument = mnRec.Argument
+                            ).save()
+                        if MoveORCopy == 'move': mnRec.delete()
 
+                        if changed_data: changed_data += ", "
+                        changed_data += "Option " + str(i)
+                        if MoveORCopy == 'move': changed_data += " moved"
+                        else: changed_data += " copied"
+                        changed_data +=  " to " + thisItem.get('CopyTarget') + "."
+
+                        # if an item in THIS menu has changed, make mnItem_list reflect it
+                        if targetGroup==menuGroup and targetMenu==menuNum:
+                            mnItem_list[targetOption-1]['OptionText'] = mnRec.OptionText
+                            mnItem_list[targetOption-1]['Command'] = mnRec.Command_id
+                            mnItem_list[targetOption-1]['Argument'] = mnRec.Argument
     else:
         for m in mnItem_qset:
             mnItem_list[m.OptionNumber-1]['OptionText'] = m.OptionText
@@ -161,13 +228,11 @@ def EditMenu(req, menuGroup, menuNum):
         fullMenuHTML += "<select style='width:15em' name='Command-" + istr + "'>"
         fullMenuHTML += commandchoiceHTML(mnItem_list[i_0based]['Command'])
         fullMenuHTML += "</select>"
-        fullMenuHTML += " Remove:<input type='checkbox' name='Remove-" + istr + "'></input>"
         fullMenuHTML += "</div>"
         fullMenuHTML += "<div class='col m-1'> Command: "
         fullMenuHTML += "<select style='width:15em' name='Command-" + i2str + "'>"
         fullMenuHTML += commandchoiceHTML(mnItem_list[i_0based+10]['Command'])
         fullMenuHTML += "</select>"
-        fullMenuHTML += " Remove:<input type='checkbox' name='Remove-" + i2str + "'></input>"
         fullMenuHTML += "</div>"
         fullMenuHTML += "</div>"
 
@@ -182,9 +247,24 @@ def EditMenu(req, menuGroup, menuNum):
         fullMenuHTML += "></input></div>"
         fullMenuHTML += "</div>"
 
+        fullMenuHTML += "<div class='row'>"
+        fullMenuHTML += "<div class='col m-1'>"
+        #fullMenuHTML += "----<input type='radio' name='CopyTo-" + istr + "' value=''>"
+        fullMenuHTML += " Copy<input type='radio' name='CopyTo-" + istr + "' value='copy'>"
+        fullMenuHTML += " Move<input type='radio' name='CopyTo-" + istr + "' value='move'>"
+        fullMenuHTML += " to <input type='text' name='CopyTarget-" + istr + "' size='5'>"
+        fullMenuHTML += " Remove:<input type='checkbox' name='Remove-" + istr + "'>"
+        fullMenuHTML += "</div>"
+        fullMenuHTML += "<div class='col m-1'>"
+        #fullMenuHTML += "----<input type='radio' name='CopyTo-" + i2str + "' value=''>"
+        fullMenuHTML += " Copy<input type='radio' name='CopyTo-" + i2str + "' value='copy'>"
+        fullMenuHTML += " Move<input type='radio' name='CopyTo-" + i2str + "' value='move'>"
+        fullMenuHTML += " to <input type='text' name='CopyTarget-" + i2str + "' size='5'>"
+        fullMenuHTML += " Remove: <input type='checkbox' name='Remove-" + i2str + "'>"
+        fullMenuHTML += "</div>"
+        fullMenuHTML += "</div>"
         if i<10:
             fullMenuHTML += "<hr>"
-            pass
         
     mnuGoto = {'menuGroup':menuGroup,
                 'menuGroup_choices': menuGroups.objects.all(),      # later, when menuGroup<->org built, restrict this
@@ -192,7 +272,7 @@ def EditMenu(req, menuGroup, menuNum):
                 'menuID_choices':menuItems.objects.filter(MenuGroup=menuGroup,OptionNumber=0)
                 }
 
-    ctxt = {'menuName':mnuName , 
+    ctxt = {'menuName':mnuName, 
             'menuGoto':mnuGoto,
             'menuContents':fullMenuHTML, 
             'changed_data': changed_data,
