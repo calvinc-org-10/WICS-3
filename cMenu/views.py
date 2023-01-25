@@ -186,7 +186,12 @@ def EditMenu(req, menuGroup, menuNum):
                                 Command = mnRec.Command,
                                 Argument = mnRec.Argument
                             ).save()
-                        if MoveORCopy == 'move': mnRec.delete()
+                        if MoveORCopy == 'move': 
+                            mnRec.delete()
+                            mnItem_list[i_0based] = {'OptionText':'',
+                                'Command':'',
+                                'Argument':''}
+
 
                         if changed_data: changed_data += ", "
                         changed_data += "Option " + str(i)

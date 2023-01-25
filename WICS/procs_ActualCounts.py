@@ -48,9 +48,10 @@ class CountEntryForm(forms.ModelForm):
             return None
         dbmodel = self.Meta.model
         required_fields = ['CountDate', 'Material', 'Counter'] #id, org handled separately
-        PriK = self['id'].value()
+        PriK = self.data['RecPK']
         M = MaterialList.objects.get(org=self.org, Material=self.cleaned_data['Material']) 
         if not str(PriK).isnumeric(): PriK = -1
+        else: PriK = int(PriK)
         existingrec = dbmodel.objects.filter(pk=PriK).exists()
         if existingrec: rec = dbmodel.objects.get(pk=PriK)
         else:   rec = dbmodel()
@@ -147,12 +148,21 @@ def fnCountEntryForm(req, recNum = 0,
     passedCountDate=str(datetime.date.today()), 
     gotoCommand=None
     ):
+# one day I will clean this up ...
 
     _userorg = WICSuser.objects.get(user=req.user).org
 
     # the string 'None' is not the same as the value None
     if loadMatlInfo=='None': loadMatlInfo=None
     if gotoCommand=='None': gotoCommand=None
+
+    # recover currRec and matlSubFm from POST data
+    if req.method == 'POST':
+        try:
+            recNum = int(req.POST['RecPK'])
+        except:
+            recNum = 0
+        loadMatlInfo = MaterialList.objects.get(org=_userorg, pk=req.POST['MatlPK']).Material
 
     # if a record number was passed in, retrieve it
     # # later, handle record not found (i.e. - invalid recNum passed in)

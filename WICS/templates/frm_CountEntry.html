@@ -44,13 +44,12 @@
     <hr>
 
    {{ recNum }}
-    <input type="hidden" id="RecPK" value={{ recNum }} disabled>
-    <input type="hidden" id="formID" value={{ formID }} >
 
     <form id="CEForm" class="trackformchanges" method="post">
         {% csrf_token %}
         <!-- form header -->
         {{ frmMain.errors }}
+        <input type="hidden" id="RecPK" name="RecPK" value={{ recNum }} required></input>
         <div class="container">
             <div class="row">
                 <div class="col-1">{{ frmMain.id }}</div>
@@ -61,7 +60,7 @@
         <!-- put initial focus on Material and/or init CountDate to today(local), skip CycCtID -->
         <div class="container-fluid m-1">
         <div class="row g-0">
-            <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" class="bg-danger" tabindex="-1" size="8" onchange="loadExtraInfo();" %}</div>
+            <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" class="bg-danger" tabindex="-1" size="8" onchange="loadExtraInfo();" required=True %}</div>
             <div class="col-2">CycCt ID: {% render_field frmMain.CycCtID tabindex="-1" size="8" %}</div>
             <div class="col-4">Material:
                 {# {% render_field frmMain.Material onchange="loadExtraInfo()" %}</div> #}
@@ -74,6 +73,7 @@
                     value="{{matlchoiceForm.gotoItem.Material}}"
                     required
                     style="width:18em;">
+                </input>
                 <span class="bi-caret-down-square"
                     style="position:relative;top:+0px;font-size:20px;left:-30px;"
                     tabindex = "-1"
@@ -118,6 +118,7 @@
         <hr>
         <div class="row g-0">
             {{ frmMatlInfo.id }} 
+            <input type="hidden" id="MatlPK" name="MatlPK" value={{ frmMatlInfo.id }} required></input>
             <div class="col-4">Desc: {% render_field frmMatlInfo.Description size="40" %}</div>
             <div class="col-2">Pt Type: {% render_field frmMatlInfo.PartType class="need-Matl-Dt" style="width:7em" %}</div>
             <div class="col-5">
@@ -235,8 +236,8 @@
 
             // if this is an existing record, disable CountDate and Material; allowing those to change is just too much work
             if (thisRecNum > 0) {
-                ctdtID.prop("disabled", true);
-                mtlnmID.prop("disabled", true);
+                ctdtID.prop("readonly", true);
+                mtlnmID.prop("readonly", true);
             }
 
             // turn off controls that need the Date and Material first
