@@ -20,11 +20,12 @@ class WICSLoginView(auth_views.LoginView):
         Greeting = random.choice(grts)['Greeting']
 
         # Get News for WICS users
-        fildir = getcParm('MISC-FILELOC')
-        fName = fildir+"WICSNews.html"
+        #fildir = getcParm('MISC-FILELOC')
+        #fName = fildir+"WICSNews.html"
+        #News = ''
+        #with open(fName,"r") as infile: 
+        #    News = infile.read()
         News = ''
-        with open(fName,"r") as infile: 
-            News = infile.read()
 
         cntext.update({'Greeting':Greeting,'News':News})
 

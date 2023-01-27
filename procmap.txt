@@ -8,8 +8,11 @@ url:initWICSuser = path:/WICS/inituser -> WICS.userinit.inituser() -> url:LoadMe
 url:LoadMenu = path:/menu/loadmenu -> cMenu.views.LoadMenu -> cMenu/templates/cMenu.html -> url:LoadMenu, url:HandleCommand
 url:EditMenu_init = path:/menu/editmenu -> cMenu.views.EditMenu <-> cMenu/templates/cMenuEdit.html 
 url:EditMenu = path:/menu/editmenu  -> cMenu.views.EditMenu <-> cMenu/templates/cMenuEdit.html
-url:HandleCommand = path:/ProcessMenuCommand -> cMenu.views.HandleMenuCommand -> (multiple menu:Command)
-url:FormBrowse = path:/FormBrowse -> cMenu.menucommand_handlers.FormBrowse (=== menu:11(FormBrowse))
+url:HandleCommand = path:/menu/ProcessMenuCommand -> cMenu.views.HandleMenuCommand -> (multiple menu:Command)
+url:FormBrowse = path:/menu/FormBrowse -> cMenu.menucommand_handlers.FormBrowse (=== menu:11(FormBrowse))
+url:MenuCreate = path:/menu/MenuCreate -> cMenu.views.MenuCreate -> url:EditMenu
+url:MenuRemove = path:/menu/MenuRemove -> cMenu.views.MenuRemove -> url:EditMenu
+
 
 url:WICSlogout = path:/WICS/logout -> userprofiles.logout.WICSlogout -> auth_views.logout_then_login(req,login_url=reverse('login'))
 url:ActualCountList = path:/WICS/ActualCountList -> WICS.procs_ActualCounts.ActualCountListForm.as_view()

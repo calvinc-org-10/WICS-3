@@ -52,7 +52,7 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
             # filter Material in SAP_SOH for date OR last count date within 30d
             testdate = rec.LFADate
             if testdate == None: testdate = date(MINYEAR, 1, 1)
-            rec.DoNotShow = (not rec.SAPList.exists()) and (testdate < (dateutil.utils.today()-timedelta(days=getcParm('LOCRPT-COUNTDAYS-IFNOSAP'))).date())
+            rec.DoNotShow = (not rec.SAPList.exists()) and (testdate < (dateutil.utils.today()-timedelta(days=int(getcParm('LOCRPT-COUNTDAYS-IFNOSAP')))).date())
 
         return qs
 

@@ -3,3 +3,8 @@
     font-size: small;
     font-family: "Arial", system-ui;
 }
+
+.calvin-microtext {
+    line-height: 1;
+    font-size: 0.75rem;
+}

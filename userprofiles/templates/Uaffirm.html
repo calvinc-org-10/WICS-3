@@ -1,5 +1,5 @@
 {% extends "WICS_common.html" %}
-<!-- use more variables - system name, -->
+{% load static %}
 
 {% block tTitle %}WICS Log in{% endblock %}
 {% block tHeader %}
@@ -44,7 +44,7 @@
             </div>
         </div>
         <div class="col-6">
-            {% autoescape off %}{{ News }}{% endautoescape %}
+            {% include "WICSNews.html" %}
         </div>
     </div>
     </div>

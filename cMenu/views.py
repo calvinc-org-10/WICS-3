@@ -1,3 +1,4 @@
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.http import HttpResponse, HttpResponseRedirect
@@ -43,8 +44,14 @@ def LoadMenu(req, menuGroup, menuNum):
     for i in range(10):
         fullMenuHTML += ("<div class=" + WrapInQuotes("row") + "><div class=" + WrapInQuotes("col m-1") + ">" + mnItem_list[i] + "</div>")
         fullMenuHTML += ("<div class=" + WrapInQuotes("col m-1") + ">" + mnItem_list[i+10] + "</div></div>")
-    ctxt = {'menuName':mnuName , 'menuContents':fullMenuHTML, 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()}
-    return render(req, "cMenu.html", context=ctxt)
+    ctxt = {
+        'grpNum': menuGroup,
+        'menuNum': menuNum,
+        'menuName':mnuName , 'menuContents':fullMenuHTML,
+        'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+        }
+    tmplt = "cMenu.html"
+    return render(req, tmplt, context=ctxt)
 
 
 @login_required
@@ -71,14 +78,14 @@ def EditMenu(req, menuGroup, menuNum):
 
     mnItem_list = [{'OptionText':'',
                     'Command':'',
-                    'Argument':''}  
+                    'Argument':''}
             for i in range(20)]
     changed_data = ''
 
     if req.method == 'POST':
         # construct mnItem_list from POST data
         for pdat in req.POST.items():
-            if "csrf" in pdat[0]: 
+            if "csrf" in pdat[0]:
                 continue
             if "menuName" in pdat[0]:
                 mnTitle = mnItem_qset.get(OptionNumber=0)
@@ -118,7 +125,7 @@ def EditMenu(req, menuGroup, menuNum):
                 or mnRec.Argument != thisItem['Argument']:
                     # mnRec exists, and mnItem_list is changed
                     mnRec.OptionText = thisItem['OptionText']
-                    mnRec.Command_id = thisItem['Command'] 
+                    mnRec.Command_id = thisItem['Command']
                     mnRec.Argument = thisItem['Argument']
                     mnRec.save()
                     if changed_data: changed_data += ", "
@@ -138,7 +145,7 @@ def EditMenu(req, menuGroup, menuNum):
                     mnRec.save()
                     if changed_data: changed_data += ", "
                     changed_data += " Option " + str(i) + " added"
-            #endif mnRec 
+            #endif mnRec
             if mnRec and thisItem.get('CopyTo',''):
                 MoveORCopy = thisItem.get('CopyTo')
                 CopyTarget = thisItem.get('CopyTarget').split(',')
@@ -149,7 +156,7 @@ def EditMenu(req, menuGroup, menuNum):
                         targetMenu = int(CopyTarget[0])
                     except:
                         targetMenu = None
-                    try:   
+                    try:
                         targetOption = int(CopyTarget[1])
                     except:
                         targetOption = None
@@ -162,13 +169,13 @@ def EditMenu(req, menuGroup, menuNum):
                         targetMenu = int(CopyTarget[1])
                     except:
                         targetMenu = None
-                    try:   
+                    try:
                         targetOption = int(CopyTarget[2])
                     except:
                         targetOption = None
                 else:
                     pass    # targetGroup is already None
-                
+
                 if targetGroup==None or targetMenu==None or targetOption==None:
                     if changed_data: changed_data += ", "
                     changed_data += "Could not interpret option " + str(i) + " " + MoveORCopy + " target " + thisItem.get('CopyTarget')
@@ -186,7 +193,7 @@ def EditMenu(req, menuGroup, menuNum):
                                 Command = mnRec.Command,
                                 Argument = mnRec.Argument
                             ).save()
-                        if MoveORCopy == 'move': 
+                        if MoveORCopy == 'move':
                             mnRec.delete()
                             mnItem_list[i_0based] = {'OptionText':'',
                                 'Command':'',
@@ -227,7 +234,7 @@ def EditMenu(req, menuGroup, menuNum):
         if mnItem_list[i_0based+10]['OptionText']: fullMenuHTML += " value = '" + mnItem_list[i_0based+10]['OptionText'] + "'"
         fullMenuHTML += "></input></div>"
         fullMenuHTML += "</div>"
-        
+
         fullMenuHTML += "<div class='row'>"
         fullMenuHTML += "<div class='col m-1'> Command: "
         fullMenuHTML += "<select style='width:15em' name='Command-" + istr + "'>"
@@ -270,21 +277,87 @@ def EditMenu(req, menuGroup, menuNum):
         fullMenuHTML += "</div>"
         if i<10:
             fullMenuHTML += "<hr>"
-        
+
     mnuGoto = {'menuGroup':menuGroup,
                 'menuGroup_choices': menuGroups.objects.all(),      # later, when menuGroup<->org built, restrict this
                 'menuID':menuNum,
                 'menuID_choices':menuItems.objects.filter(MenuGroup=menuGroup,OptionNumber=0)
                 }
 
-    ctxt = {'menuName':mnuName, 
+    ctxt = {'menuName':mnuName,
             'menuGoto':mnuGoto,
-            'menuContents':fullMenuHTML, 
+            'menuContents':fullMenuHTML,
             'changed_data': changed_data,
-            'orgname':_userorg.orgname, 
+            'orgname':_userorg.orgname,
             'uname':req.user.get_full_name()}
     tmplt = "cMenuEdit.html"
     return render(req, tmplt, context=ctxt)
+
+
+@login_required
+def MenuCreate(req, menuGroup, menuNum, fromGroup=None, fromMenu=None):
+    _userorg = WICSuser.objects.get(user=req.user).org
+
+    # things go bonkers if these are strings
+    menuGroup = int(menuGroup)
+    menuNum = int(menuNum)
+    if fromGroup: fromGroup = int(fromGroup)
+    if fromMenu: fromMenu = int(fromMenu)
+
+    # the new menu must not currently exist
+    if menuItems.objects.filter(MenuGroup_id=menuGroup, MenuID=menuNum).exists():
+        # nope, cannot create an already existing menu
+        messages.add_message(req,
+                    messages.ERROR,
+                    'menu {},{} exists - it cannot be created'.format(menuGroup,menuNum))
+        return HttpResponseRedirect(reverse('EditMenu_init'))
+    else:
+        # create the new MenuGroup, if need be
+        menuGroupObj, isnew = menuGroups.objects.get_or_create(id=menuGroup, defaults={'GroupName':'New Menu Group'})
+        if fromMenu:
+            if not fromGroup: fromGroup = menuGroup
+            for mItm in menuItems.objects.filter(MenuGroup_id=fromGroup, MenuID=fromMenu):
+                menuItems(
+                    MenuGroup = menuGroupObj,
+                    MenuID = menuNum,
+                    OptionNumber = mItm.OptionNumber,
+                    OptionText = mItm.OptionText,
+                    Command = mItm.Command,
+                    Argument = mItm.Argument
+                ).save()
+        else:
+            menuItems(
+                MenuGroup = menuGroupObj,
+                MenuID = menuNum,
+                OptionNumber = 0,
+                OptionText = 'New Menu'
+            ).save()
+            menuItems(
+                MenuGroup = menuGroupObj,
+                MenuID = menuNum,
+                OptionNumber = 20,
+                OptionText = 'Return to Main Menu',
+                Command_id = MENUCOMMAND.LoadMenu.value,
+                Argument = 0
+            ).save()
+            
+        return HttpResponseRedirect(reverse('EditMenu', kwargs={'menuGroup':menuGroup, 'menuNum':menuNum}))
+
+
+@login_required
+def MenuRemove(req, menuGroup, menuNum):
+    _userorg = WICSuser.objects.get(user=req.user).org
+
+    # things go bonkers if these are strings
+    menuGroup = int(menuGroup)
+    menuNum = int(menuNum)
+
+    # permission was granted to do the delete in the HTML, so just do it
+    menuItems.objects.filter(MenuGroup_id=menuGroup, MenuID=menuNum).delete()
+
+    # redirect to url:EditMenu at end
+    #return HttpResponseRedirect(reverse('EditMenu', kwargs={'menuGroup':menuGroup, 'menuNum':menuNum}))
+    return HttpResponseRedirect(reverse('EditMenu_init'))
 
 
 def HandleMenuCommand(req,CommandNum,CommandArg):
@@ -317,4 +390,4 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
         pass
 
     return HttpResponse(retHTTP)
-    
+

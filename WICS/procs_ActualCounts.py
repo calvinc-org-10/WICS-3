@@ -384,27 +384,33 @@ def fnUploadActCountSprsht(req):
                 destination.write(chunk)
 
         wb = load_workbook(filename=fName, read_only=True)
-        ws = wb.active
+        ws = wb['Counts']
 
-        # I map Table Fields directly to spreadsheet columns because it's MY spreadsxheet and 
-        # I have defin ed the format.  If that changes, see fnUpdateMatlListfromSAP in SAPMatlUpdt.py
-        # for an alternative way of handling this mapping
-        SAPcolmnMap = {
-                    'CountDate': 0,
-                    'Counter': 1,
-                    'BLDG': 2,
-                    'LOCATION': 3,
-                    'Material': 4,
-                    'LocationOnly': 5,
-                    'CTD_QTY_Expr': 6,
-                    'TypicalContainerQty': 7,
-                    'TypicalPalletQty': 8,
-                    'Notes':9,
-                    }
-        
+        SAPcolmnNames = ws[1]
+        SAPcolmnMap = {'Material': None,'CountDate':None, 'Counter':None, 'BLDG':None}
+        SAP_SSName_TableName_map = {
+                'CountDate': 'CountDate',
+                'Counter': 'Counter',
+                'BLDG': 'BLDG',
+                'LOCATION': 'LOCATION',
+                'Material': 'Material',
+                'LocationOnly': 'LocationOnly',
+                'CTD_QTY_Expr': 'CTD_QTY_Expr',
+                'TypicalContainerQty': 'TypicalContainerQty',
+                'TypicalPalletQty': 'TypicalPalletQty',
+                'Notes': 'Notes',
+                }
+        for col in SAPcolmnNames:
+            if col.value in SAP_SSName_TableName_map:
+                SAPcolmnMap[SAP_SSName_TableName_map[col.value]] = col.column - 1
+        if (SAPcolmnMap['Material'] == None) or (SAPcolmnMap['CountDate'] == None) or (SAPcolmnMap['Counter'] == None) or (SAPcolmnMap['BLDG'] == None):
+            raise Exception('SAP Spreadsheet has bad header row.  See Calvin to fix this.')
+
         UplResults = []
         nRows = 0
-        for row in ws.iter_rows(min_row=2, values_only=True):
+        rowNum=1
+        for row in ws.iter_rows(min_row=rowNum+1, values_only=True):
+            rowNum += 1
             try:
                 MatObj = MaterialList.objects.get(org=_userorg, Material=row[SAPcolmnMap['Material']])
             except:
@@ -417,8 +423,12 @@ def fnUploadActCountSprsht(req):
                     V = row[colNum]
                     if V==None: V = ''
 
-                    if   fldName == 'CountDate': setattr(SRec, fldName, V)
-                    elif fldName == 'Counter': setattr(SRec, fldName, V)
+                    if   fldName == 'CountDate': 
+                        # later, make sure BLDG not blank
+                        setattr(SRec, fldName, V)
+                    elif fldName == 'Counter': 
+                        # later, make sure BLDG not blank
+                        setattr(SRec, fldName, V)
                     elif fldName == 'BLDG': 
                         # later, make sure BLDG not blank
                         setattr(SRec, fldName, V)
@@ -437,15 +447,15 @@ def fnUploadActCountSprsht(req):
                 SRec.save()
                 if MatChanged: MatObj.save()
                 qs = type(SRec).objects.filter(pk=SRec.pk).values().first()
-                res = {'error': False, 'TypicalQty':MatChanged, 'MaterialNum': row[SAPcolmnMap['Material']] }
+                res = {'error': False, 'rowNum':rowNum, 'TypicalQty':MatChanged, 'MaterialNum': row[SAPcolmnMap['Material']] }
                 res.update(qs)
                 UplResults.append(res)
                 nRows += 1
             else:
                 if row[SAPcolmnMap['Material']]:
-                    UplResults.append({'error':row[SAPcolmnMap['Material']]+' does not exist in MaterialList'})
-                else:
-                    UplResults.append({'error':'invalid row with no Material given'})
+                    UplResults.append({'error':row[SAPcolmnMap['Material']]+' does not exist in MaterialList', 'rowNum':rowNum})
+                # else:
+                #     UplResults.append({'error':'invalid row with no Material given'})
 
         # close and kill temp files
         wb.close()

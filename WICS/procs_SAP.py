@@ -64,7 +64,7 @@ def fnUploadSAP(req):
             ws = wb.active
 
             # I map Table Fields directly to spreadsheet columns because the SOH spreadsheets
-            # are fairly stable.  If that changes, see fnUpdateMatlListfromSAP in SAPMatlUpdt.py
+            # are fairly stable.  If that changes, see fnUpdateMatlListfromSAP
             # for an alternative way of handling this mapping
             SAPcolmnMap = {
                         'Material': 0,
