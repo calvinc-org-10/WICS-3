@@ -1,5 +1,6 @@
 {% extends "WICS_common.html" %}
 {% load widget_tweaks %}
+{% load static %}
 
 {% block tTitle %}Update Material List from SAP Spreadsheet{% endblock %}
 
@@ -35,12 +36,18 @@
     <div class="container">
         <div class="row mx-auto max-width=100%">
             <div class="col-4">
-                <button id="save_btn" type="submit">Continue</button>
+                <button id="save_btn" type="submit">
+                    <img src="{% static 'upload-outbox-line-icon.svg' %}" width="20" height="20"></img>
+                    Continue
+                </button>
                 <input type="hidden" name="NextPhase" value="02-Upl-Sprsht"></input>
             </div>
             <div class="col-6"></div>
             <div class="col">
-                <button id="close_btn" type="button">Close Form</button>
+                <button id="close_btn" type="button">
+                    <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                    Close Form
+                </button>
             </div>
         </div>
     </div>

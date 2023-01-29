@@ -22,6 +22,7 @@ class MENUCOMMAND(Enum):
 # should the url be the Argument rather than the formname?
 def FormBrowse(req, formname, recNum = -1):
     theForm = 'Form ' + formname + ' is not built yet.  Calvin needs more coffee.'
+    theForm = None
     if formname.lower() == 'l10-wics-uadmin'.lower():
         theForm = fnWICSuserForm(req)
     elif formname.lower() == 'l6-wics-uadmin'.lower():
@@ -76,7 +77,25 @@ def FormBrowse(req, formname, recNum = -1):
         theView = resolve(reverse(url)).func
         theForm = theView(req)
     elif formname.lower() == 'zutilShowColor'.lower(): pass
+    elif formname.lower() == 'sap'.lower():
+        url = 'showtable-SAP'
+        theView = resolve(reverse(url)).func
+        theForm = theView(req)
+    elif formname.lower() == 'tblActualCounts'.lower():
+        url = 'ActualCountList'
+        theView = resolve(reverse(url)).func
+        theForm = theView(req)
     else: pass
+
+    if not theForm:
+        templt = "UnderConstruction.html"
+        cntext = {
+            'formname': formname, 
+            #'orgname':_userorg.orgname, 
+            'uname':req.user.get_full_name(), 
+            }
+        theForm = render(req, templt, cntext)
+
 
     # must be rendered if theForm came from a class-based-view
     if hasattr(theForm,'render'): theForm = theForm.render()
@@ -84,26 +103,9 @@ def FormBrowse(req, formname, recNum = -1):
 
 
 def ShowTable(req, tblname):
-    # _userorg = WICSuser.objects.get(user=req.user).org
+    # showing a table is nothing more than another form
+    return FormBrowse(req,tblname)
 
-    # hopefully, this will be straightforward, except for SAP, which is a pseudotable - it's actually an excel file
-    # guess what - SAP is the first one I'm implementing!
-    theTable = 'working on presenting table ' + tblname + '. Calvin still needs more coffee, and maybe for material to stay put sometimes!'
-    if tblname.lower() == 'sap'.lower():
-        url = 'showtable-SAP'
-        theView = resolve(reverse(url)).func
-        theTable = theView(req)
-    elif tblname.lower() == 'tblActualCounts'.lower():
-        url = 'ActualCountList'
-        theView = resolve(reverse(url)).func
-        theTable = theView(req)
-    else:
-        pass
-    #endif
-
-    # must be rendered if theTable came from a class-based-view
-    if hasattr(theTable,'render'): theTable = theTable.render()
-    return theTable
 
 # functions called directly by the menu by RunCode
 # Calvin is lazy - these should take no arguments except req - the HttpRequest, but should return a redirect (to preserve HttpRequest)

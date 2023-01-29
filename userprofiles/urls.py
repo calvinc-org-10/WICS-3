@@ -1,4 +1,3 @@
-from django import views
 from django.urls import path, include
 from userprofiles.login import WICSLoginView
 from userprofiles import pwd

@@ -1,4 +1,5 @@
 {% extends "WICS_common.html" %}
+{% load static %}
 
 {% block tTitle %}SAP Table{% endblock %}
 {% block boddy %}
@@ -56,7 +57,10 @@
         <div class="col-2">
             <button 
                 id="close_btn" 
-                type="button">Close Form</button>
+                type="button">
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                Close Form
+            </button>
         </div>
     </div>
 </div>

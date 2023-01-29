@@ -1,5 +1,6 @@
 {% extends "WICS_common.html" %}
 {% load widget_tweaks %}
+{% load static %}
 
 {% block tTitle %}Upload SAP File Successful{% endblock %}
 
@@ -14,7 +15,7 @@
     </div>
     <hr>
 
-    <h4>{{ nRows }} SAP SOH spreadsheet records successfully uploaded  with date {{ uploaded_at }}!</h4>
+    <h4>{{ nRows }} SAP SOH spreadsheet records successfully uploaded with date {{ uploaded_at }}!</h4>
 
     <!-- form footer -->
     <div class="container">
@@ -22,7 +23,10 @@
             <div class="col-4"></div>
             <div class="col-6"></div>
             <div class="col">
-                <button id="close_btn" type="button" onclick="window.close();" >Close Form</button>
+                <button id="close_btn" type="button" onclick="window.close();" >
+                    <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                    Close Form
+                </button>
             </div>
         </div>
     </div>

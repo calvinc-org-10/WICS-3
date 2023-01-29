@@ -3,8 +3,7 @@
 {% load evaluate_arithmetic %}
 {% load static %}
 
-
-{% block tTitle %}Materials{% endblock %}
+{% block tTitle %}Part Types{% endblock %}
 
 {% block boddy %}
     <div class="container text-center mx-auto">
@@ -98,21 +97,12 @@
             </div>
             </div>
             <hr>
+            SAP Date: {{ SAPSet.SAPDate }}
             <div class="container">
-                <div class="row">
-                    <div class="col-10 text-start">
-                        SAP Date: {{ SAPSet.SAPDate }}
-                        {% for s in SAPSet.SAPTable %}({{ s.Material }}, {{ s.StorageLocation }}, {{ s.Amount }}){% endfor %}
-                        <br>
-                        Last Found At {{ lastFoundAt.lastFoundAt }} on {{ lastFoundAt.lastCountDate }}
-                    </div>
-                    <div class="col-2 text-end">
-                        <button id="SchedCount" type="button">Schedule Count</button>
-                    </div>
-                </div>
+                {% for s in SAPSet.SAPTable %}({{ s.Material }}, {{ s.StorageLocation }}, {{ s.Amount }}){% endfor %}
             </div>
+            Last Found At {{ lastFoundAt.lastFoundAt }} on {{ lastFoundAt.lastCountDate }}
         </div>
-
         <hr>
 
         <!-- subforms, implemented by Bootstrap Nav pills -->
@@ -207,7 +197,9 @@
                             <div class="col-3">Reason Scheduled</div>
                             <div class="col-1">CM Flag</div>
                             <div class="col-2">Notes</div>
-                            <div class="col-2"></div>
+                            <div class="col-2">
+                                <button id="SchedCount" type="button">Schedule Count</button>
+                            </div>
                         </div></div>
                     </div>
                     <div class="card-body no-padding" style="height:210px; overflow: auto;">

@@ -10,7 +10,7 @@
         <div class="col-10 fs-1">
             <u>{{ orgname }}</u>
             <br>
-            Change Password
+            Change Password for {{ user }}
         </div>
         <div class="col-2 text-end"> {{ uname }} </div>
     </div>
@@ -37,7 +37,10 @@
             <button 
                 id="close_btn" 
                 type="button" 
-                onclick="window.close();">Cancel</button>
+                onclick="window.close();">
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                Cancel
+            </button>
         </div>
     </div>
 </div>

@@ -1,5 +1,6 @@
 {% extends "WICS_common.html" %}
 {% load widget_tweaks %}
+{% load static %}
 
 {# I gotta clean this template up too... #}
 
@@ -67,7 +68,10 @@
             <button 
                 id="close_btn" 
                 type="button" 
-                onclick="window.close();">Close Form</button>
+                onclick="window.close();">
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                Close Form
+            </button>
         </div>
     </div>
 </div>

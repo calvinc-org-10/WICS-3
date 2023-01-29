@@ -14,13 +14,13 @@
     <br><br>
 {% else %}
     <!-- Header -->
-    <div id="header">
-        <h1>WICS2 Login</h1>
-    </div>
     <!-- END Header -->
     <div id="content-main" class="container">
     <div class="row">
         <div class="col-6 border-right border-dark">
+            <div id="header">
+                <h1>WICS2 Login</h1>
+            </div>
             <div class="container">
             <form method="post" id="login-form"> 
                 {% csrf_token %}
@@ -57,7 +57,10 @@
             <div class="col-4"></div>
             <div class="col-6"></div>
             <div class="col">
-                <button id="close_btn" type="button" onclick="open(location, '_self').close();">Close</button>
+                <button id="close_btn" type="button" onclick="open(location, '_self').close();">
+                    <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                    Close
+                </button>
             </div>
         </div>
     </div>

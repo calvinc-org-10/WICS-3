@@ -1,6 +1,7 @@
 {% extends "WICS_common.html" %}
 {% load widget_tweaks %}
 {% load evaluate_arithmetic %}
+{% load static %}
 
 {# I gotta clean this template up too... #}
 
@@ -60,13 +61,13 @@
         <!-- put initial focus on Material and/or init CountDate to today(local), skip CycCtID -->
         <div class="container-fluid m-1">
         <div class="row g-0">
-            <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" class="bg-danger" tabindex="-1" size="8" onchange="loadExtraInfo();" required=True %}</div>
+            <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" class="bg-danger fw-bold" tabindex="-1" size="8" onchange="loadExtraInfo();" required=True %}</div>
             <div class="col-2">CycCt ID: {% render_field frmMain.CycCtID tabindex="-1" size="8" %}</div>
             <div class="col-4">Material:
                 {# {% render_field frmMain.Material onchange="loadExtraInfo()" %}</div> #}
                 <input list="Material-list"
                     id="{{frmMain.Material.id_for_label}}" name="{{frmMain.Material.html_name}}"
-                    class="bg-danger"
+                    class="bg-danger fw-bold"
                     tabindex="1" autofocus
                     onfocus="$(this).select();"
                     onchange="loadExtraInfo();"
@@ -85,7 +86,7 @@
                     {% endfor %}
                 </datalist>
             </div>
-            <div class="col-3">Actual Ctr: {% render_field frmMain.Counter class="need-Matl-Dt bg-danger" size="12" %}</div>
+            <div class="col-3">Actual Ctr: {% render_field frmMain.Counter class="need-Matl-Dt bg-danger fw-bold" size="12" %}</div>
             <div class="col-1">LocOnly:{% render_field frmMain.LocationOnly class="need-Matl-Dt" onchange="SkipCountIfLocationOnly();" %}
                 {# onchange="" #}  <!-- skip CTD_QTY if clicked -->
             </div>
@@ -96,7 +97,7 @@
                 <span class="container-md" id="EvalExpr">????</span>
             </div>
             <div class="col-2">Building: 
-                {% render_field frmMain.BLDG class="need-Matl-Dt bg-danger" size="8" %}
+                {% render_field frmMain.BLDG class="need-Matl-Dt bg-danger fw-bold" size="8" %}
             </div>
             <div class="col-2">Location: {% render_field frmMain.LOCATION class="need-Matl-Dt" size="8" %}</div>
         </div>
@@ -182,7 +183,10 @@
     <div class="container">
         <div class="row mx-auto max-width=100%">
             <div class="col-2">
-                <button id="save_btn" type="button" form="CEForm" class="need-Matl-Dt" onclick="SubmMainFm();" >Save changes</button>
+                <button id="save_btn" type="button" form="CEForm" class="need-Matl-Dt" onclick="SubmMainFm();" >
+                    <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                    Save changes
+                </button>
             </div>
             <div class="col-8">
                 <button id="btn_firstrec" type="button" onclick="processGoToReq('First');">First</button>
@@ -196,7 +200,10 @@
                 {% endcomment %}
             </div>
             <div class="col-2">
-                <button id="close_btn" type="button">Close Form</button>
+                <button id="close_btn" type="button">
+                    <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                    Close Form
+                </button>
             </div>
         </div>
     </div>

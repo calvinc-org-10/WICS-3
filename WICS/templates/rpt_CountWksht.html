@@ -1,4 +1,6 @@
 {% extends "WICS_common.html" %}
+{% load static %}
+
 
 {% block tTitle %}Counting Agenda/Worksheet{% endblock %}
 {% block boddy %}
@@ -53,7 +55,7 @@
                 <br class="bg-white">
             {% endif %}
             {{ itm.MaterialBarCode|safe }}
-            {# {{ itm.Material.Material }} | $#}
+            {# {{ itm.Material.Material }} | #}
             {{ itm.Material.PartType.WhsePartType }} | Prio: <b>{{ itm.Priority }}</b> |
             Sched Counter: {{ itm.Counter }}
             </div>
@@ -86,7 +88,10 @@
             </div>
         </div>
         <div class="row g-0">
-            <div class="col-10">{{ itm.Material.Description }}</div>
+            <div class="col-11">
+            {{ CountDate|date:'Y-m-d' }} | 
+            {{ itm.Material.Description }}
+            </div>
         </div>
         <div class="row g-0">
             <div class="col-10">
@@ -120,7 +125,10 @@
                 <button 
                     id="close_btn" 
                     type="button" 
-                    onclick="window.close();">Close Form</button>
+                    onclick="window.close();">
+                    <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                    Close Form
+                </button>
             </div>
         </div>
     </div>

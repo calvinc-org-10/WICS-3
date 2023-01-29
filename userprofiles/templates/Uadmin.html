@@ -1,8 +1,7 @@
 {% extends "WICS_common.html" %}
 {% load widget_tweaks %}
+{% load static %}
 
-{% comment %}
-{% endcomment %}
 {% block tTitle %}WICS User Admin{% endblock %}
 {% block tHeader %}
     <script>
@@ -63,12 +62,20 @@
         <div class="container">
             <div class="row mx-auto max-width=100%">
                 <div class="col-5">
-                    <button type="submit">Save changes</button>
-                    <button id="add-user" type="button" onclick="create_empty_user()">Add user</button>
+                    <button type="submit">
+                        <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                        Save changes
+                    </button>
+                    <button id="add-user" type="button" onclick="create_empty_user()">
+                        Add user
+                    </button>
                 </div>
                 <div class="col-5"></div>
                 <div class="col">
-                    <button type="button" onclick="window.close();">Close Form</button>
+                    <button type="button" onclick="window.close();">
+                        <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                        Close Form
+                    </button>
                 </div>
             </div>
         </div>
