@@ -1,12 +1,10 @@
 import datetime
 from dateutil import parser
 from dateutil.utils import today
-# TODO: skip Sat, Sun using dateutil, dateutil.rrule, dateutil.rruleset
-# implement skipping holidays
 from django import forms
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Value, Max
+from django.db.models import Value
 from django.db.models.query import QuerySet
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render
@@ -17,11 +15,17 @@ from WICS.models import MaterialList, CountSchedule, \
                         WhsePartTypes, LastFoundAt, WorksheetZones, Location_WorksheetZone
 from WICS.procs_SAP import fnSAPList
 from typing import *
+# below: skip Sat, Sun using dateutil, dateutil.rrule, dateutil.rruleset
+# implement skipping holidays
+from cMenu.utils import nextWorkdayAfter
+from WICS.procs_misc import HolidayList
 
 
 class CountScheduleRecordForm(forms.ModelForm):
     id = forms.IntegerField(required=False, widget=forms.HiddenInput)
-    CountDate = forms.DateField(required=True, initial=datetime.date.today())
+    CountDate = forms.DateField(required=True, 
+        initial=nextWorkdayAfter(extraNonWorkdayList=HolidayList())
+        )
     Material = forms.CharField(required=True)
         # Material is handled this way because of the way it's done in the html.
         # later, create a DropdownText widget??
@@ -99,7 +103,7 @@ class RelatedMaterialInfo(forms.ModelForm):
 @login_required
 def fnCountScheduleRecordForm(req, recNum = 0, 
     passedMatlNum = None, 
-    passedCountDate=str(datetime.date.today()), 
+    passedCountDate=str(nextWorkdayAfter(extraNonWorkdayList=HolidayList())), 
     gotoCommand=None
     ):
 
@@ -131,7 +135,7 @@ def fnCountScheduleRecordForm(req, recNum = 0,
     prefixvals['main'] = 'sched'
     prefixvals['matl'] = 'matl'
     initialvals = {}
-    initialvals['main'] = {'CountDate':datetime.date.fromisoformat(passedCountDate)}
+    initialvals['main'] = {'CountDate':parser.parse(passedCountDate)}
     initialvals['matl'] = {}
 
     changes_saved = {
