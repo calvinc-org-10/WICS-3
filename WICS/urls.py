@@ -17,6 +17,7 @@ from django.urls import path, reverse
 from django.shortcuts import redirect
 from WICS import userinit, \
         procs_SAP, procs_CountSchedule, procs_ActualCounts, procs_Material
+from WICS import adhoc_2023_02_01_001
 from userprofiles import logout
 
 urlpatterns = [
@@ -59,4 +60,7 @@ urlpatterns = [
     path('UpldActCtSprsht', procs_ActualCounts.fnUploadActCountSprsht, name='UploadActualCountSprsht'),
     path('UpdateMatlListfromSAP',procs_SAP.fnUpdateMatlListfromSAP, name='UpdateMatlListfromSAP'),
     path('UpldSAPSprsht',procs_SAP.fnUploadSAP, name='UploadSAPSprSht'),
+
+    path('adhoc-2023-02-01-001',adhoc_2023_02_01_001.adhoc001,name='adhoc-2023-02-01-001'),
+
 ]

@@ -45,7 +45,9 @@ url:UploadSAPSprSht = path:/WICS/UpldSAPSprsht -> WICS.procs_SAP.fnUploadSAP
 
 url:login = path:/akntt/login/ -> userprofiles.login.WICSLoginView.as_view() -> /userprofiles/templates/Uaffirm.html
 url:change_password = path:/akntt/paswordd -> userprofiles.pwd.change_password -> /userprofiles/templates/Uchgpw.html
+url:change_password_u = path:/akntt/paswordd/u -> userprofiles.pwd.change_password(req,user) -> /userprofiles/templates/Uchgpw.html
 url:change_password_done = path:/akntt/paswordd-done -> userprofiles.pwd.change_password_done -> /userprofiles/templates/UchgpwX.html
+url:change_password_deny = path:/akntt/paswordd-done/00 -> uswerprofiles.pwd.change_password_deny -> /userprofiles/templates/UchgpwDN.html
 
 class MENUCOMMAND(Enum):
     LoadMenu = 1

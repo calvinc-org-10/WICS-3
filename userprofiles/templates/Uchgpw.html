@@ -1,5 +1,6 @@
 {% extends "WICS_common.html" %}
 {% load widget_tweaks %}
+{% load static %}
 
 
 {% block tTitle %}Change Password{% endblock %}
@@ -10,7 +11,7 @@
         <div class="col-10 fs-1">
             <u>{{ orgname }}</u>
             <br>
-            Change Password for {{ user }}
+            Change Password for {{ form.user }}
         </div>
         <div class="col-2 text-end"> {{ uname }} </div>
     </div>

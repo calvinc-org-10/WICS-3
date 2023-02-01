@@ -85,6 +85,10 @@ def FormBrowse(req, formname, recNum = -1):
         url = 'ActualCountList'
         theView = resolve(reverse(url)).func
         theForm = theView(req)
+    elif formname.lower() == 'adhoc2023-02-01-001'.lower():
+        url = 'adhoc-2023-02-01-001'
+        theView = resolve(reverse(url)).func
+        theForm = theView(req)
     else: pass
 
     if not theForm:

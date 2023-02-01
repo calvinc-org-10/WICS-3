@@ -3,7 +3,7 @@
 {% load static %}
 
 
-{% block tTitle %}Changed Password{% endblock %}
+{% block tTitle %}Invalid{% endblock %}
 
 {% block boddy %}
 <div class="container text-center mx-auto">
@@ -11,7 +11,7 @@
       <div class="col-10 fs-1">
           <u>{{ orgname }}</u>
           <br>
-          Password Change Successful!
+          Password Change DENIED!
       </div>
       <div class="col-2 text-end"> {{ uname }} </div>
   </div>
@@ -21,7 +21,7 @@
 </div>
 <hr>
 
-{{ usr }} password has been changed!
+You may only change your own password!
 
 <!-- form footer -->
 <hr>

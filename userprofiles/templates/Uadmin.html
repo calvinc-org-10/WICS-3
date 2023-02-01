@@ -4,14 +4,6 @@
 
 {% block tTitle %}WICS User Admin{% endblock %}
 {% block tHeader %}
-    <script>
-        function create_empty_user() {
-            var form_idx = $('#id_form-TOTAL_FORMS').val()
-            // check against max-forms before allowing add
-            $('#form_set').append($('#empty_form').html().replace(/__prefix__/g, form_idx).replace("hidden",""))
-            $('#id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1)
-        }
-    </script>
 {% endblock %}
 {% block boddy %}
     <!-- form head -->
@@ -49,7 +41,7 @@
                     {% render_field u.admin %}
                     {% render_field u.active %}
                     {% render_field u.last_login size="20" %}
-                    <button type="button">Change Password (will work later...)</button>
+                    <button type="button" onclick="chpw('{{ u.uname.value }}')">Change Password</button>
                     <button style="visibility:hidden">Remove (keep??)</button>
                 </li>
                 <hr>
@@ -98,4 +90,22 @@
 
     </form>
     </div>
+
+    <script>
+        function create_empty_user() {
+            var form_idx = $('#id_form-TOTAL_FORMS').val()
+            // check against max-forms before allowing add
+            $('#form_set').append($('#empty_form').html().replace(/__prefix__/g, form_idx).replace("hidden",""))
+            $('#id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1)
+        }
+        function chpw(usNm) {
+
+            pwForm = "{% url 'change_password_u' 'nname' %}"
+            pwForm = pwForm.replace("/nname","/"+usNm);
+            window.open(pwForm,'_blank');
+    
+        }
+    </script>
+
+
 {% endblock %}
