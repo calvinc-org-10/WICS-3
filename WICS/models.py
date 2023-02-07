@@ -26,8 +26,7 @@ class orgObjects(models.Manager):
 
 
 class WhsePartTypes(models.Model):
-    # oldWICSID = models.IntegerField(null=True, blank=True)      # kill this field once data is tied to new ID in WICS2
-    org = models.ForeignKey(Organizations, on_delete=models.CASCADE, blank=True)
+    org = models.ForeignKey(Organizations, on_delete=models.CASCADE, blank=True, editable=False)
     WhsePartType = models.CharField(max_length=50)
     PartTypePriority = models.SmallIntegerField()
     InactivePartType = models.BooleanField(blank=True, default=False)
@@ -128,6 +127,7 @@ def LastFoundAt(matl):
     except:
         lastCountDate = None
     LFAString = ''
+    LFAList = []
     if lastCountDate:
         countrecs = ActualCounts.objects.filter(Material=matl,CountDate=lastCountDate)\
                     .order_by('BLDG','LOCATION')\
@@ -136,8 +136,9 @@ def LastFoundAt(matl):
         for rec in countrecs:
             if LFAString: LFAString += ', '
             LFAString += rec['BLDG'] + '_' + rec['LOCATION']
+            LFAList.append({'BLDG':rec['BLDG'],'LOCATION':rec['LOCATION']})
     
-    return {'lastCountDate': lastCountDate, 'lastFoundAt': LFAString}
+    return {'lastCountDate': lastCountDate, 'lastFoundAt': LFAString, 'lastFoundAt_list': LFAList}
 
 
 class SAP_SOHRecs(models.Model):

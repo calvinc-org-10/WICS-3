@@ -52,7 +52,6 @@ def FormBrowse(req, formname, recNum = -1):
         url = 'MatlForm'
         theView = resolve(reverse(url)).func
         theForm = theView(req)
-    elif formname.lower() == 'frmPartTypes with CountInfo'.lower(): pass
     elif formname.lower() == 'frmParts-By-Type-with-LastCounts'.lower():
         url = 'MatlByPartType'
         theView = resolve(reverse(url)).func
@@ -76,6 +75,10 @@ def FormBrowse(req, formname, recNum = -1):
         url = 'MaterialLocations'
         theView = resolve(reverse(url)).func
         theForm = theView(req)
+    elif formname.lower() == 'LocationList'.lower():
+        url = 'LocationList'
+        theView = resolve(reverse(url)).func
+        theForm = theView(req)
     elif formname.lower() == 'zutilShowColor'.lower(): pass
     elif formname.lower() == 'sap'.lower():
         url = 'showtable-SAP'
@@ -87,6 +90,10 @@ def FormBrowse(req, formname, recNum = -1):
         theForm = theView(req)
     elif formname.lower() == 'adhoc2023-02-01-001'.lower():
         url = 'adhoc-2023-02-01-001'
+        theView = resolve(reverse(url)).func
+        theForm = theView(req)
+    elif formname.lower() == 'PartTypeFm'.lower():
+        url = 'PartTypeForm'
         theView = resolve(reverse(url)).func
         theForm = theView(req)
     else: pass

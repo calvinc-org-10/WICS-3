@@ -32,6 +32,12 @@ url:MatlByPartType = path:/WICS/MatlByPartType -> WICS.procs_Material.MaterialBy
     -> /WICS/templates/frm_MatlByPartTypeList.html
 url:MaterialLocations = path:/WICS/MaterialLocations -> WICS.procs_Material.MaterialLocationsList.as_view()
     -> /WICS/templates/rpt_PartLocations.html
+    path('PartTypeForm',
+            procs_Material.fnPartTypesForm, 
+            name='PartTypeForm'),
+    path('PartTypeForm/<int:recNum>',
+            procs_Material.fnPartTypesForm, {'gotoRec':True}, 
+            name='ReloadPTypForm'),
 url:showtable-SAP = path:/WICS/SAP -> WICS.procs_SAP.fnShowSAP -> /WICS/templates/show_SAP_table.html
 url:UploadActualCountSprsht = path:/WICS/UpldActCtSprsht -> WICS.procs_ActualCounts.fnUploadActCountSprsht
     -> /WICS/templates/frm_UploadCountEntrySprdsht.html
@@ -80,13 +86,15 @@ menu:11(FormBrowse)/matllistupdt -> url:UpdateMatlListfromSAP
 menu:11(FormBrowse)/frmCountScheduleEntry -> url:CountScheduleForm
 menu:11(FormBrowse)/rptCountWorksheet -> url:CountWorksheet
 menu:11(FormBrowse)/rptMaterialLocations -> url:MaterialLocations
+    elif formname.lower() == 'PartTypeFm'.lower():
+        url = 'PartTypeForm'
+
 
 menu:11(FormBrowse)/frmExportCMCounts  NOT YET IMPLEMENTED
 menu:11(FormBrowse)/zutilShowColor  NOT YET IMPLEMENTED
 menu:11(FormBrowse)/frmPrintAgendas  NOT YET IMPLEMENTED
 menu:11(FormBrowse)/frmRandCountScheduler  NOT YET IMPLEMENTED
 menu:11(FormBrowse)/frmSchedule AddPicks  NOT YET IMPLEMENTED
-menu:11(FormBrowse)/frmPartTypes with CountInfo  NOT YET IMPLEMENTED
 
 menu:15(OpenTable)/sap -> url:showtable-SAP
 menu:15(OpenTable)/tblActualCounts -> url:ActualCountList

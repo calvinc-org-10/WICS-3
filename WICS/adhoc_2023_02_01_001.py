@@ -1,22 +1,19 @@
-import datetime
-import os, uuid
-from django import forms
+#import datetime
+#import os, uuid
+#from django import forms
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models.query import QuerySet
-from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
-from django.utils import timezone
-from django.urls import reverse
+#from django.contrib.auth.mixins import LoginRequiredMixin
+#from django.db.models.query import QuerySet
+#from django.http import HttpResponseRedirect, HttpResponse, HttpRequest
+#from django.utils import timezone
+#from django.urls import reverse
 from django.shortcuts import render
-from django.views.generic import ListView
-from typing import *
-from cMenu.models import getcParm
-from cMenu.utils import makebool, isDate, WrapInQuotes
-from openpyxl import load_workbook
+#from django.views.generic import ListView
+#from typing import *
+#from cMenu.models import getcParm
+from cMenu.utils import isDate, WrapInQuotes
 from userprofiles.models import WICSuser
-from WICS.models import ActualCounts, MaterialList, CountSchedule, WhsePartTypes, SAP_SOHRecs
-from WICS.procs_SAP import fnSAPList
-
+from WICS.models import ActualCounts, SAP_SOHRecs
 
 
 

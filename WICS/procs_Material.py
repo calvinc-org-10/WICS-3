@@ -9,7 +9,7 @@ from django.db.models.query import QuerySet
 from django.forms import inlineformset_factory, formset_factory
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render
-from django.urls import reverse
+#from django.urls import reverse
 from django.views.generic import ListView
 from cMenu.models import getcParm
 from userprofiles.models import WICSuser
@@ -17,6 +17,8 @@ from WICS.models import MaterialList, ActualCounts, CountSchedule, \
                         WhsePartTypes, LastFoundAt
 from WICS.procs_SAP import fnSAPList
 from typing import Any, Dict
+
+
 
 ExcelWorkbook_fileext = ".XLSX"
 
@@ -295,4 +297,133 @@ class MaterialByPartType(LoginRequiredMixin, ListView):
         return super().render_to_response(context, **response_kwargs)
 
 
+def fnLocationList(req):
+    _userorg = WICSuser.objects.get(user=req.user).org
+
+    DoABuildSQLFunction = "SELECT DISTINCT 0 as id, Material_id, Material as strMaterial, CountDate, Description, BLDG, LOCATION"
+    DoABuildSQLFunction += " FROM WICS_actualcounts act JOIN WICS_materiallist matl ON act.Material_id=matl.id"
+    DoABuildSQLFunction += " WHERE ROW(Material_id, CountDate) IN ("
+    DoABuildSQLFunction +=   " SELECT Material_id, Max(CountDate) as LastCountDate"
+    DoABuildSQLFunction +=   " FROM WICS_actualcounts maxdate GROUP BY Material_id"
+    DoABuildSQLFunction +=   ")"
+    DoABuildSQLFunction += "ORDER BY BLDG, LOCATION"
+    DoABuildSQLFunction +=";"
+
+    locations_qs = ActualCounts.objects.raw(DoABuildSQLFunction)
+
+    cntext = {
+            'locations': locations_qs,
+            'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+            }
+    templt = 'frm_LocationList.html'
+    return render(req, templt, cntext)
+
+
+class PartTypesForm(forms.ModelForm):
+    class Meta:
+        model = WhsePartTypes
+        fields = ['WhsePartType', 'PartTypePriority', 'InactivePartType']
+
+MatlSubFm_fldlist = ['id','org','Material', 'Description', 'PartType', 'Price', 'PriceUnit', 'TypicalContainerQty', 'TypicalPalletQty', 'Notes']
+
+@login_required
+def fnPartTypesForm(req, recNum = -1, gotoRec=False):
+    _userorg = WICSuser.objects.get(user=req.user).org
+    if not _userorg: raise Exception('User is corrupted!!')
+
+    # get current record
+    currRec = None
+    if gotoRec:
+        currRec = WhsePartTypes.objects.get(org=_userorg, pk=req.GET['realGotoID'])
+    if not currRec:
+        if recNum <= 0:
+            currRec = WhsePartTypes.objects.filter(org=_userorg).first()
+        else:
+            currRec = WhsePartTypes.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
+        # endif
+    #endif
+
+    initvals = {
+        'main': {'org':_userorg},
+        'matl': {'org':_userorg},
+    }
+    #{'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg}
+    prefixes = {
+        'main': 'parttype',
+        'matl': 'matl'
+    }
+    changes_saved = {
+        'main': False,
+        'matl': False,
+    }
+    chgd_dat = {'main':None, 'matl': None, }
+
+    if req.method == 'POST':
+        # changed data is being submitted.  process and save it
+        # process PTypFm AND subforms.
+
+        # process main form
+        #if currRec:
+        PtTypFm = PartTypesForm(req.POST, instance=currRec,  initial=initvals['main'],  prefix=prefixes['main'])
+        #else:
+        #    PtTypFm = MaterialForm(req.POST, initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg},  prefix='material')
+        #endif
+
+        # Material subform
+        MaterialSubFm_class = forms.inlineformset_factory(WhsePartTypes,MaterialList,
+                    fields=MatlSubFm_fldlist,
+                    extra=0,can_delete=False)
+        # MaterialSubFm_class.PartType.queryset=WhsePartTypes.objects.filter(org=_userorg).order_by('WhsePartType').all() - rendered manually
+        #if currRec:
+        MaterialSubFm = MaterialSubFm_class(req.POST, instance=currRec, prefix=prefixes['matl'], initial=initvals['matl'], queryset=MaterialList.objects.filter(org=_userorg).order_by('Material'))
+        #else:
+        #    countSet = countSubFm_class(req.POST, prefix='countset', initial={'org': _userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
+
+        if PtTypFm.is_valid() and MaterialSubFm.is_valid():
+            if PtTypFm.has_changed():
+                PtTypFm.save()
+                chgd_dat['main'] = PtTypFm.changed_data
+                changes_saved['main'] = True
+                #raise Exception('main saved')
+
+            if MaterialSubFm.has_changed():
+                MaterialSubFm.save()
+                chgd_dat['matl'] = MaterialSubFm.changed_objects
+                changes_saved['matl'] = True
+                #raise Exception('counts saved')
+
+    else: # request.method == 'GET' or something else
+        #if currRec:
+        PtTypFm = PartTypesForm(instance=currRec, initial=initvals['main'], prefix=prefixes['main'])
+        #else:
+        #    PtTypFm = MaterialForm(initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg}, prefix='material')
+
+        # Material subform
+        MaterialSubFm_class = forms.inlineformset_factory(WhsePartTypes,MaterialList, 
+                    fields=MatlSubFm_fldlist,
+                    extra=0,can_delete=False)
+        # MaterialSubFm_class.PartType.queryset=WhsePartTypes.objects.filter(org=_userorg).order_by('WhsePartType').all() - rendered manually
+        #if currRec:
+        MaterialSubFm = MaterialSubFm_class(instance=currRec, prefix=prefixes['matl'], initial=initvals['matl'], queryset=MaterialList.objects.filter(org=_userorg).order_by('Material'))
+        #else:
+        #    countSet = countSubFm_class(req.POST, prefix='countset', initial={'org': _userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
+
+    # endif
+
+    gotoForm = {}
+    gotoForm['gotoItem'] = currRec
+    gotoForm['choicelist'] = WhsePartTypes.objects.filter(org=_userorg).values('id','WhsePartType')
+
+    # display the form
+    cntext = {'frmMain': PtTypFm,
+            'showID': currRec.pk,
+            'gotoForm': gotoForm,
+            'materials': MaterialSubFm,
+            'changes_saved': changes_saved,
+            'changed_data': chgd_dat,
+            'recNum': recNum,
+            'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+            }
+    templt = 'frm_PartTypes.html'
+    return render(req, templt, cntext)
 

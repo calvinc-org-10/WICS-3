@@ -7,6 +7,8 @@ cMenu/__pycache__/
 userprofiles/__pycache__/
 
 .vscode/
+.pylintrc
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

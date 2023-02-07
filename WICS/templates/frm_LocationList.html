@@ -1,0 +1,58 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{# I gotta clean this template up too... #}
+
+
+{% block tTitle %}Material Locations{% endblock %}
+
+{% block boddy %}
+<div class="container text-center mx-auto">
+    <div class="row">
+        <div class="col-10">
+            <h2><u>{{ orgname }}</u></h2>
+            <h3>Material Locations as of {% now "DATE_FORMAT" %}</h3>
+            By Location
+        </div>
+        <div class="col-2 text-end"> {{ uname }} </div>
+    </div>
+</div>
+<!-- header row -->
+<hr>
+<div id="mainReport" class="container ">
+    <ul>
+    {% for itm in locations %}
+        {% ifchanged itm.BLDG itm.LOCATION %}
+            {% if not forloop.first %}</small></li>{% endif %}
+            <li><b>{{ itm.BLDG }}_{{ itm.LOCATION }}: </b><small>
+        {% endifchanged %}
+        {{ itm.strMaterial }} ({{ itm.CountDate|date:'m/d' }}), 
+    {% endfor %}
+    </ul>
+</div>
+
+<!-- form footer -->
+<hr>
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-8"></div>
+        <div class="col-2">
+        </div>
+        <div class="col-2">
+            <button 
+                id="close_btn" 
+                type="button" 
+                onclick="window.close();">
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                Close Form
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+</script>
+
+{% endblock %}

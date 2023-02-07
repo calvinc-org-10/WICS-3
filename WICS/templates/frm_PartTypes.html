@@ -6,370 +6,283 @@
 {% block tTitle %}Part Types{% endblock %}
 
 {% block boddy %}
-    <div class="container text-center mx-auto">
-    <div class="row">
-        <div class="col-10 fs-1">
-            <u>{{ orgname }}</u>
+<div class="container text-center mx-auto">
+<div class="row">
+    <div class="col-10 fs-1">
+        <u>{{ orgname }}</u>
+    </div>
+    <div class="col-2 text-end"> {{ uname }} </div>
+</div>
+<div class="row"> <!-- status messages -->
+
+    <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+
+    {% if changes_saved.main %}
+        <div class="alert alert-success p-0 alert-dismissible fade show">
+            <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+            This Material record successfully saved.
+            ChDat: {{ changed_data.main }}
         </div>
-        <div class="col-2 text-end"> {{ uname }} </div>
+    {% endif %}
+    {% if changes_saved.matl %}
+        <div class="alert alert-success p-0 alert-dismissible fade show">
+            <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+            Count changes for this Material record successfully saved.
+            ChDat: {{ changed_data.matl }}
+        </div>
+    {% endif %}
+</div>
+</div>
+<hr>
+
+. {{ showID }}
+
+<!-- GoTo -->
+<form id="gotoForm" method="get" action="{% url 'ReloadPTypForm' showID %}">
+<div class="container text-center bg-secondary">
+    <div class="row mx-auto max-width=95%">
+        <div class="col mx-auto">
+            <h1><label for="gotoID">GoTo Part Type</label>
+            <input list="PTyp-list" id="gotoID" name="gotoID" onfocus="$(this).select();" onchange="processGoToRec();" value="{{gotoForm.gotoItem.WhsePartType}}">
+            <span class="bi-caret-down-square" style="position:relative;top:+0px;font-size:45px;left:-59px;" onclick="$gotoTextBox.focus();"></span>
+            </h1>
+            <datalist id="PTyp-list">
+                {% for itm in gotoForm.choicelist %}
+                    <option value="{{itm.WhsePartType}}">
+                {% endfor %}
+            </datalist>
+            <input type="hidden" id="realGotoID" name="realGotoID"></input>
+        </div>
     </div>
-    <div class="row"> <!-- status messages -->
+</div>
+</form>
 
-        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+<form id="FmMain" class="trackformchanges" method="post">
+    {% csrf_token %}
+    <!-- form header -->
+    {{ frmMain.errors }}
+    {#     {% render_field frmMain.org hidden="true" %} #}
+    <hr>
 
-        {% if changes_saved.main %}
-            <div class="alert alert-success p-0 alert-dismissible fade show">
-                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
-                This Material record successfully saved.
-                ChDat: {{ changed_data.main }}
+    <!-- main part of form -->
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-7">
+                Part Type:  {% render_field frmMain.WhsePartType %}
+                PartTypePriority: {% render_field frmMain.PartTypePriority %}
+                InactivePartType? {% render_field frmMain.InactivePartType %}
             </div>
-        {% endif %}
-        {% if changes_saved.counts %}
-            <div class="alert alert-success p-0 alert-dismissible fade show">
-                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
-                Count changes for this Material record successfully saved.
-                ChDat: {{ changed_data.counts }}
-            </div>
-        {% endif %}
-        {% if changes_saved.schedule %}
-            <div class="alert alert-success p-0 alert-dismissible fade show">
-                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
-                Count Schedule changes for this Material record successfully saved.
-                ChDat: {{ changed_data.schedule }}
-            </div>
-        {% endif %}
-
-    </div>
+        </div>
     </div>
     <hr>
 
-    {{ frmMain.showPK.value }}
-    
-    <!-- GoTo -->
-    <form id="gotoForm" method="GET" action="{% url 'ReloadMatlForm' frmMain.showPK.value %}">
-    <div class="container text-center bg-secondary">
-        <div class="row mx-auto max-width=95%">
-            <div class="col mx-auto">
-                <h1><label for="Material-choice">GoTo Material #</label>
-                <input list="Material-list" id="gotoID" name="gotoID" onfocus="$(this).select();" onchange="processGoToReq();" value="{{gotoForm.gotoItem.Material}}">
-                <span class="bi-caret-down-square" style="position:relative;top:+0px;font-size:45px;left:-59px;" onclick="$gotoTextBox.focus();"></span>
-            </h1>
-                <datalist id="Material-list">
-                    {% for itm in gotoForm.choicelist %}
-                        <option value="{{itm.Material}}">
-                    {% endfor %}
-                </datalist>
+    <!-- subforms -->
+    <div class="container-fluid active" id="Materials">
+        <div class="card">
+            <div class="card-header">
+                {{ materials.management_form }}
+                {{ materials.errors|default:'' }}
+                <br>
+                <div class="container"><div class="row">
+                ..... 
+                <div class="col-2">Material</div>
+                <div class="col-2">PartType</div>
+                <div class="col-3">Price / PriceUnit</div>
+                <div class="col-3">TypeContQty / TypePltQty</div>
+                </div></div>
             </div>
-        </div>
-    </div>
-    </form>
-
-    <form id="FmMain" class="trackformchanges" method="post">
-        {% csrf_token %}
-        <!-- form header -->
-        {{ frmMain.errors }}
-        {% render_field frmMain.org hidden="true" %}
-        <hr>
-
-        <!-- main part of form -->
-        <div class="container-fluid">
-            <div class="row">
-                <div class="col-7">
-                    Material: {% render_field frmMain.Material size="15" %} Description: {% render_field frmMain.Description size="50" %}
-                </div>
-                <div class="col-5">
-                    Part Type:  {% render_field frmMain.PartType style="width:10em" %}
-                </div>
-            </div>
-            <div class="row">
-                <div class="col">
-                    SAP Matl Type: {% render_field frmMain.SAPMaterialType size="4" %}
-                    SAP Matl Grp: {% render_field frmMain.SAPMaterialGroup size="4" %}
-                    Price: {% render_field frmMain.Price style="width:8em" %}
-                    Price Unit: {% render_field frmMain.PriceUnit style="width:8em" %}
-                    Typ Container Qty: {% render_field frmMain.TypicalContainerQty style="width:6em" %}
-                    Typ Plt Qty: {% render_field frmMain.TypicalPalletQty style="width:6em" %}
-                </div>
-            </div>
-            <div class="row">
-            <div class="col">
-                Notes: {% render_field frmMain.Notes size="80" %}
-            </div>
-            </div>
-            <hr>
-            SAP Date: {{ SAPSet.SAPDate }}
-            <div class="container">
-                {% for s in SAPSet.SAPTable %}({{ s.Material }}, {{ s.StorageLocation }}, {{ s.Amount }}){% endfor %}
-            </div>
-            Last Found At {{ lastFoundAt.lastFoundAt }} on {{ lastFoundAt.lastCountDate }}
-        </div>
-        <hr>
-
-        <!-- subforms, implemented by Bootstrap Nav pills -->
-        <ul class="nav nav-pills ps-1">
-          <li class="nav-item">
-            <a class="nav-link active" data-bs-toggle="pill" href="#CountDetail">Actual Count Detail</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="pill" href="#CountSummary">Actual Count Summary</a>
-          </li>
-          <li class="nav-item">
-            <a class="nav-link" data-bs-toggle="pill" href="#CountSchedule">Count Scheduling</a>
-          </li>
-        </ul>
-        <!-- Tab panes -->
-        <div class="tab-content">
-            <div class="tab-pane container-fluid active" id="CountDetail">
-                <div class="card">
-                    <div class="card-header">
-                        {{ countset.management_form }}
-                        {{ countset.errors }}
-                        <br>
-                        <div class="container"><div class="row">
-                        <div class="col-1">Count Date</div>
-                        <div class="col-2">Counter</div>
-                        <div class="col-4">Physical Inventory</div>
-                        <div class="col-1">BLDG</div>
-                        <div class="col-1">LOCATION</div>
-                        <div class="col-3">Count Notes</div>
-                        </div></div>
-                    </div>
-                    <div class="card-body no-padding" style="height:210px; overflow: auto;">
-                        {% for ff in countset %}
-                        <div class="row">
-                            {{ ff.id }}
-                            <div class="col-1">{% render_field ff.CountDate size="10" %}</div>
-                            <div class="col-2">{% render_field ff.Counter size="10" %}</div>
-                            {% with sCE_parm=forloop.counter0  %}
-                            <div class="col-4">
-                                {# django AND widget_tweaks both screw up the dynamic onchange building, so I'm doing it myself! #}
-                                <input type="text"
-                                        name="{{ff.prefix}}-{{ff.CTD_QTY_Expr.name}}"
-                                        {% if ff.CTD_QTY_Expr.value != None %} value="{{ ff.CTD_QTY_Expr.value|stringformat:'s' }}"{% endif %}
-                                        maxlength="500" size="40" id="{{ ff.CTD_QTY_Expr.id_for_label }}"
-                                        onchange="showCountExpr(this.id, 'EvalExpr{{ sCE_parm }}');">
-                                {% comment %}
-                                {{ ff.CTD_QTY_Expr }}
-                                {% endcomment %}
-                                <span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
-                            </div>
-                            {% endwith %}
-                            <div class="col-1">{% render_field ff.BLDG size="10" %}</div>
-                            <div class="col-1">{% render_field ff.LOCATION size="10" %}</div>
-                            <div class="col-3">{% render_field ff.Notes size="30" %}</div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-            <div class="tab-pane container fade" id="CountSummary">
-                <div class="card">
-                    <div class="card-header">
-                        {{ countsummset.management_form }}
-                        <div class="container"><div class="row">
-                        <div class="col-2">Material</div>
-                        <div class="col-1">Count Date</div>
-                        <div class="col-2">Total Counted</div>
-                        </div></div>
-                    </div>
-                    <div class="card-body no-padding" style="height:210px; overflow: auto;">
-                        <ul>
-                        {% for ffrm in countsummset %}
-                            <li>
-                            {% for ffld in ffrm %}
-                                {{ ffld }}
+            <div class="card-body no-padding" style="height:210px; overflow: auto;">
+                <ul>
+                {% for ff in materials %}
+                <li>
+                <div class="row">
+                    {{ ff.id }}{{ff.id.value }}
+                    {% render_field ff.org hidden="true" %}
+                    <div class="col-2">{% render_field ff.Material %}</div>
+                    <div class="col-2">
+                        {# PartType {% render_field ff.PartType type="select" %} #}
+                        {# I want users to be able to edit the PartType, if necessary.  Since it's the ForeignKey field, I must render it myself #}
+                        <select type="select"
+                            id="{{ff.PartType.id_for_label}}" name="{{ff.PartType.html_name}}"
+                            tabindex="-1" 
+                            value="{{ff.PartType.value}}"
+                            style="width:10em;">
+                            {% for itm in gotoForm.choicelist %}
+                                <option value="{{itm.id}}"{% if itm.id == ff.PartType.value %} selected{% endif %}>{{itm.WhsePartType}}</option>
                             {% endfor %}
-                            </li>
-                        {% endfor %}
-                        </ul>
+                        </select>
                     </div>
+                    <div class="col-3"> {% render_field ff.Price style="width:6em;" %}  {% render_field ff.PriceUnit style="width:6em;" %} </div>
+                    <div class="col-3"> {% render_field ff.TypicalContainerQty style="width:6em;" %}  {% render_field ff.TypicalPalletQty style="width:6em;" %} </div>
                 </div>
+                <div class="row">
+                    ... 
+                    <div class="col-5">Desc: {% render_field ff.Description size="50" %}</div>
+                    <div class="col-5">Notes: {% render_field ff.Notes size="50" %}</div>
+                </div>
+            </li>
+                {% endfor %}
+            </ul>
             </div>
-            <div class="tab-pane container fade" id="CountSchedule">
-                <div class="card">
-                    <div class="card-header">
-                        {{ scheduleset.management_form }}
-                        {{ scheduleset.errors }}
-                        <div class="container"><div class="row">
-                            <div class="col-1">Count Date</div>
-                            <div class="col-2">Counter</div>
-                            <div class="col-1">Priority</div>
-                            <div class="col-3">Reason Scheduled</div>
-                            <div class="col-1">CM Flag</div>
-                            <div class="col-2">Notes</div>
-                            <div class="col-2">
-                                <button id="SchedCount" type="button">Schedule Count</button>
-                            </div>
-                        </div></div>
-                    </div>
-                    <div class="card-body no-padding" style="height:210px; overflow: auto;">
-                        {% for ff in scheduleset %}
-                        <div class="row">
-                            {{ ff.id }}
-                            <div class="col-1">{% render_field ff.CountDate size="10" %}</div>
-                            <div class="col-2">{% render_field ff.Counter size="10" %}</div>
-                            <div class="col-1">{% render_field ff.Priority size="10" %}</div>
-                            <div class="col-3">{% render_field ff.ReasonScheduled size="40" %}</div>
-                            <div class="col-1">{{ ff.CMPrintFlag }}</div>
-                            <div class="col-4">{% render_field ff.Notes size="30" %}</div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- form footer -->
-        <br>
-        <div class="container">
-            <div class="row mx-auto max-width=100%">
-                <div class="col-4">
-                    <button id="save_btn" type="submit">
-                        <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
-                        Save changes
-                    </button>
-                </div>
-                <div class="col-6"></div>
-                <div class="col">
-                    <button id="close_btn" type="button">
-                        <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
-                        Close Form
-                    </button>
-                </div>
-            </div>
-        </div>
-    </form>
-
-    <!-- Modal to check for dismissal of dirty record -->
-        <div class="modal-sm fade" id="modalCloseCheck" role="dialog">
-            <div class="modal-dialog">
-
-                <!-- Modal content-->
-                <div class="modal-content">
-                    <div class="modal-header">
-                    <button type="button" class="close" data-dismiss="modal">&times;</button>
-                    <h4 class="modal-title">Record Changed!</h4>
-                </div>
-                <div class="modal-body">
-                    This record has changed<br>
-                    Do you really want to leave without saving?
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-default" onclick="modalCloseCheckResult = false;" data-dismiss="modal">No</button>
-                    <button type="button" class="btn" onclick="modalCloseCheckResult = true;" data-dismiss="modal">Yes, abandon changes</button>
-                </div>
+            <div class="card-footer no-padding">
+                Add Material
+                Remove (per Material) - really??
             </div>
         </div>
     </div>
+    
+    <!-- form footer -->
+    <br>
+    <div class="container">
+        <div class="row mx-auto max-width=100%">
+            <div class="col-3">
+                <button id="save_btn" type="submit">
+                    <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                    Save changes
+                </button>
+            </div>
+            <div class="col-7">
+                Add Part Type
+                Remove Part Type
+            </div>
+            <div class="col">
+                <button id="close_btn" type="button">
+                    <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                    Close Form
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
 
-    <script>
-        var $forms = $(".trackformchanges");
-        var initialState
-        var $gotoTextBox = $("#gotoID");
-        // record the ID and GPN of current record (it's used often!)
-        var thisMtlID = {{frmMain.showPK.value}}, thisMtlGPN = "{{frmMain.Material.value}}"
-        var modalCloseCheckResult, modalCloseCheckClosed;
+<!-- Modal to check for dismissal of dirty record -->
+<div class="modal-sm fade" id="modalCloseCheck" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h4 class="modal-title">Record Changed!</h4>
+        </div>
+        <div class="modal-body" id="dismissal_question">
+        </div>
+        <div class="modal-footer">
+        <form>
+            <fieldset>
+            <button type="button" class="btn btn-default" name="leaveForm" value="false" data-dismiss="modal">No</button>
+            <button type="button" class="btn"             name="leaveForm" value="true"  data-dismiss="modal">Yes, abandon changes</button>
+            <!-- Allow form submission with keyboard without duplicating the dialog button -->
+            <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+            </fieldset>
+        </form>
+        </div>
+    </div>
+</div>
+{% comment %}
+<div id="get-MenuID-dialog" title="New Menu Group/ID">
+    <form>
+        <fieldset>
+            <label for="NewMnuGroup">Menu Group</label>
+            <input type="number" name="NewMnuGroup" id="NewMnuGroup" class="text ui-widget-content ui-corner-all">
+            <label for="NewMnuID">Menu ID</label>
+            <input type="number" name="NewMnuID" id="NewMnuID" class="text ui-widget-content ui-corner-all">
+    
+            <!-- Allow form submission with keyboard without duplicating the dialog button -->
+            <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+        </fieldset>
+    </form>
+</div>
 
+<!-- generalize this one day ... -->
+<div id="yesno-dialog" title="Are You Sure?">
+    <div id="yesno-dialog-text"></div>
+</div>
+{% endcomment %}    
 
-        $(document).ready(function() {
-            initialState = $forms.serialize();
-            // fill in the Count evals
-            // I'll clean this up later, I promise!
-            for (let i=0; i < document.getElementById("id_countset-TOTAL_FORMS").value; i++) {
-                CQtyID = 'id_countset-' + i + '-CTD_QTY_Expr';
-                EvID = 'EvalExpr' + i;
-                showCountExpr(CQtyID, EvID);
-                //fbody = "function CQE_" + i + "_df () { showCountExpr(this.id, '" + EvID + "'); };"
-                fbody = Function("function dummyCE" + i + "() { showCountExpr(this.id, '" + EvID + "'); };");
-                // console.log(fbody);
-                //jIDName = "#" + CQtyID
-                //$(jIDName).on("change", fbody);
-            };
-            });
-        document.body.onbeforeunload = function() {
-            document.getElementById("wait_spinner").style.display = "block";
-            }
+<script>
+    var $forms = $(".trackformchanges");
+    var initialState
+    var $gotoTextBox = $("#gotoID");
+    // record the ID and GPN of current record (it's used often!)
+    // var thisMtlID = {{frmMain.showPK.value}}, thisMtlGPN = "{{frmMain.Material.value}}"
+    var modalCloseCheckResult, modalCloseCheckClosed;
 
-        // later, duplicate this for closeform (see document.body.onbeforeunload)
-        document.getElementById("close_btn").addEventListener("click",
-            function(evobj){
-                if (confirmLeave()) {
-                    window.close()
-                }
-            });
+    const mapPartTypes = new Map();
+    {% for PT in gotoForm.choicelist %}
+        mapPartTypes.set('{{PT.WhsePartType}}', {{PT.id}})
+    {% endfor %}
 
-        $("#SchedCount").on("click",
-        function() {
-            dVal = (new Date()).toISOString().substring(0,10)
-            R = 0   // not needed, since R=0 is hardcoded in the url below.  But this is good for documentation
-            
-            newRec = "{% url 'CountScheduleForm' 0 'passedMatlNum' 'passedCountDate' 'None' %}"
-            newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
-            newRec = newRec.replace("/passedCountDate","/"+dVal);
-            window.open(newRec,'_blank')
+    $(document).ready(function() {
+        initialState = $forms.serialize();
+        });
+    document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
+        }
+
+    // later, duplicate this for closeform (see document.body.onbeforeunload)
+    document.getElementById("close_btn").addEventListener("click",
+        function(evobj){
+            confirmLeave(closeform)
         });
 
-        function processGoToReq() {
-            if (confirmLeave()) {
-                loadMaterialRec();
-            }
-        };
-
-        function isFormChanged() {
-            currState = $forms.serialize();
-            return !(initialState === currState);
-        };
-
-        // I'd like to use Bootstrap modals for this, but they're not really modal; they don't halt execution until dismissal
-        document.getElementById('modalCloseCheck').addEventListener('hidden.bs.modal',
-            function() {
-               modalCloseCheckClosed = true;
-            });
-            //TODO: only check if the forms I care about have changed - multi-form and serialize by form
-        function confirmLeave(){
-            if (isFormChanged()) {
-                return confirm("This record has changed\nDo you really want to leave without saving?");
-                // modalCloseCheckResult = false;
-                // modalCloseCheckClosed = false;
-                // $('#modalCloseCheck').modal();
-                // while (!modalCloseCheckClosed) {
-                //     // do nothing!
-                //     } ;
-                // alert(modalCloseCheckResult);
-                // return modalCloseCheckResult;
-            } else {
-                return true;
-            }
-        };
-
-        // to become obsolete??
-        function loadMaterialRec() {
-          goID = document.getElementById('gotoID');
-          if (goID.value != null || goID.value == thisMtlGPN) {
-              document.getElementById("gotoForm").submit()
-          } else {
-              goID.value = thisMtlGPN;
-          }
-        };
-
-        // document.getElementById("{{frmMain.CTD_QTY_Expr.id_for_label}}").addEventListener("onchange",
-        function sCE(n){
-            showCountExpr('id_countset-' + n + '-CTD_QTY_Expr', 'EvalExpr'+str(n));
-        };
-// move to common???
-        function showCountExpr(expr_fld, rslt) {
-            document.getElementById(rslt).innerHTML = "= " + EvalExpr(document.getElementById(expr_fld).value);
-        };
-
-
-    </script>
-    <script>
-        function create_empty_user() {
-            var form_idx = $('#id_form-TOTAL_FORMS').val()
-            // check against max-forms before allowing add
-            $('#form_set').append($('#empty_form').html().replace(/__prefix__/g, form_idx).replace("hidden",""))
-            $('#id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1)
+    // because Bootstrap "modals" aren't really modal, execution must transfer to the modal, then wait until the modal triggers an answering function
+    function processGoToRec() {
+        confirmLeave(loadMaterialRec)
+    };
+    function leavequestion_chosen() {
+        var leeve = $("#idCloseCheck").find( "form" ).find("[name='leaveForm']").val()
+        if (leeve) {
+            fn_postclosecheck();
         }
-    </script>
+    }
+    $("#idCloseCheck").find( "form" ).on( "submit", function( event ) {
+        event.preventDefault();
+        leavequestion_chosen();
+    });
+    function isFormChanged() {
+        currState = $forms.serialize();
+        return !(initialState === currState);
+    };
+    function confirmLeave(postclose_fn){
+        fn_postclosecheck = postclose_fn
+        if (isFormChanged()) {
+            document.getElementById("dismissal_question").innerHTML = "This record has changed<br>Do you really want to leave without saving?"
+            $('#modalCloseCheck').modal();
+        } else {
+            fn_postclosecheck();
+        }
+    };
+
+    // to become obsolete??
+    function loadMaterialRec() {
+        var realID;
+        realID = mapPartTypes.get($gotoTextBox.val())
+        document.getElementById("realGotoID").value = realID
+        document.getElementById("gotoForm").submit()
+    };
+    function closeform() {
+        window.close()
+    }
+
+    $("#SchedCount").on("click",
+    function() {
+        dVal = (new Date()).toISOString().substring(0,10)
+        R = 0   // not needed, since R=0 is hardcoded in the url below.  But this is good for documentation
+        
+        newRec = "{% url 'CountScheduleForm' 0 'passedMatlNum' 'passedCountDate' 'None' %}"
+        newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
+        newRec = newRec.replace("/passedCountDate","/"+dVal);
+        window.open(newRec,'_blank')
+    });
+
+</script>
+<script>
+    function create_empty_user() {
+        var form_idx = $('#id_form-TOTAL_FORMS').val()
+        // check against max-forms before allowing add
+        $('#form_set').append($('#empty_form').html().replace(/__prefix__/g, form_idx).replace("hidden",""))
+        $('#id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1)
+    }
+</script>
 {% endblock %}
 
