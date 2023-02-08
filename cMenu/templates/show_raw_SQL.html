@@ -1,0 +1,59 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load evaluate_arithmetic %}
+{% load static %}
+
+
+{% block tTitle %}Enter SQL{% endblock %}
+{% block tHeader %}{% endblock %}
+{% block boddy %} {% block boddyAttr %}{% endblock %}
+<div class="container text-center mx-auto">
+<div class="row">
+    <div class="col-10 fs-1">
+        <u>{{ orgname }}</u>
+    </div>
+    <div class="col-2 text-end"> {{ uname }} </div>
+</div>
+<div class="row"> <!-- status messages -->
+
+    <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+
+</div>
+</div>
+<hr>
+
+<div class="container mx-auto">
+    {{ nRecs }} Records<br>
+    {{ colNames }}
+</div>
+<div class="container">
+<div class="container"  style="height:210px; overflow:auto;">
+
+    <ul>
+    {% for row in SQLresults %}
+        <li>
+        {{ row }}
+        {% comment %}
+        {% for vv in row %}
+            {% for x in vv %} {{ x }}/ {% endfor %} |
+        {% endfor %}
+        {% endcomment %}
+        {% comment %}
+        {% for key, val in row %}
+            {{ key }}:{{ val }} |
+        {% endfor %}
+        {% endcomment %}
+        </li>
+    {% endfor %}
+    </ul>
+    <hr>
+</div>
+</div>
+
+<script>
+    document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
+        }
+</script>
+{% endblock %}
+

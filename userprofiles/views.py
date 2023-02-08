@@ -111,7 +111,7 @@ def fnWICSuserForm(req):
                 #endif
             #endfor
             # close the window
-            templt = 'Uadmin_success_test000.html'
+            templt = 'Uadmin.html'
             pass
         else:
             # reveal the errors and try again

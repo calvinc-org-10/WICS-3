@@ -23,10 +23,18 @@
         {{ ulist.management_form }}
         <!-- form main -->
         <div class="row">
-            <div class="col">
             {{ ulist.non_form_errors }}
-            <hr>
-                ID - UserName - Menu Group - First Name - Last Name - email - superuser? - administrator? - active? - Last Login
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-9">
+                ID - UserName - Menu Group - First Name - Last Name - email - 
+            </div>
+            <div class="col">
+                superuser? - administrator? - active? - Last Login
+            </div>
+        </div>
+        <div class="row">
             <ul id="form_set">
             {% for u in ulist %}
                 {{ u.errors }}

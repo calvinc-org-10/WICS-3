@@ -16,7 +16,6 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import include, path
 
-
 urlpatterns = [
     # path('', include("cMenu.load_data.load_orig_cMenu")),
     # path('', include("WICS.load_data.load_L6_Materials")),
@@ -24,6 +23,7 @@ urlpatterns = [
     # path('', log_in.loginbegin,name='log_in'), # to become obsolete once migrated to django authentication
     # path('_c_u_s_r',log_in.checkuser,name='checkuser'), # to become obsolete once migrated to django authentication
     path('menu/', include("cMenu.urls")),
+    path('util/', include("cMenu.utilurls")),
     path('WICS/', include("WICS.urls")),
     path('admin/',admin.site.urls),
     path('akntt/',include("userprofiles.urls")),

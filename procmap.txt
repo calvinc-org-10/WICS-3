@@ -13,6 +13,8 @@ url:FormBrowse = path:/menu/FormBrowse -> cMenu.menucommand_handlers.FormBrowse 
 url:MenuCreate = path:/menu/MenuCreate -> cMenu.views.MenuCreate -> url:EditMenu
 url:MenuRemove = path:/menu/MenuRemove -> cMenu.views.MenuRemove -> url:EditMenu
 
+    path('util/',include("cMenu.utilurls")),
+
 
 url:WICSlogout = path:/WICS/logout -> userprofiles.logout.WICSlogout -> auth_views.logout_then_login(req,login_url=reverse('login'))
 url:ActualCountList = path:/WICS/ActualCountList -> WICS.procs_ActualCounts.ActualCountListForm.as_view()

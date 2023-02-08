@@ -15,7 +15,6 @@ Including another URLconf
 """
 from django.urls import path
 from cMenu import views, menucommand_handlers
-# import userprofiles.globals
 
 urlpatterns = [
     path('loadmenu/<int:menuGroup>/<int:menuNum>/',views.LoadMenu,name='LoadMenu'),

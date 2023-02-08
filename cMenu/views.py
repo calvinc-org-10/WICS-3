@@ -1,11 +1,14 @@
+from django import forms, db
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
 from django.shortcuts import render
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse, resolve
 from django.utils.text import slugify
+from django.views.generic.edit import FormView
+from typing import Any
 from cMenu.utils import WrapInQuotes
-from django import forms
 from cMenu import menucommand_handlers
 from cMenu.menucommand_handlers import MENUCOMMAND
 from cMenu.models import menuCommands, menuItems, menuGroups
@@ -74,7 +77,7 @@ def EditMenu(req, menuGroup, menuNum):
         return commandchoices_html
 
     mnItem_qset = menuItems.objects.filter(MenuGroup = menuGroup, MenuID = menuNum)     #.values('OptionNumber','OptionText','Command','Argument')
-    mnuName = mnItem_qset.get(OptionNumber=0).OptionText
+    mnuGroupRec = menuGroups.objects.get(id=menuGroup)
 
     mnItem_list = [{'OptionText':'',
                     'Command':'',
@@ -94,6 +97,14 @@ def EditMenu(req, menuGroup, menuNum):
                     mnTitle.save()
                     if changed_data: changed_data += ", "
                     changed_data += "Menu Name changed"
+                continue
+            if "menugroupName" in pdat[0]:
+                # mnuGroupRec is captured above
+                if mnuGroupRec.GroupName != pdat[1]:
+                    mnuGroupRec.GroupName = pdat[1]
+                    mnuGroupRec.save()
+                    if changed_data: changed_data += ", "
+                    changed_data += "Menu Group Name changed"
                 continue
             pdat_line = pdat[0].split('-')
             idx = int(pdat_line[1])-1
@@ -284,12 +295,15 @@ def EditMenu(req, menuGroup, menuNum):
                 'menuID_choices':menuItems.objects.filter(MenuGroup=menuGroup,OptionNumber=0)
                 }
 
-    ctxt = {'menuName':mnuName,
-            'menuGoto':mnuGoto,
-            'menuContents':fullMenuHTML,
-            'changed_data': changed_data,
-            'orgname':_userorg.orgname,
-            'uname':req.user.get_full_name()}
+    ctxt = {
+        'menuGroupName': mnuGroupRec.GroupName,
+        'menuName':mnItem_qset.get(OptionNumber=0).OptionText,
+        'menuGoto':mnuGoto,
+        'menuContents':fullMenuHTML,
+        'changed_data': changed_data,
+        'orgname':_userorg.orgname,
+        'uname':req.user.get_full_name()
+        }
     tmplt = "cMenuEdit.html"
     return render(req, tmplt, context=ctxt)
 
@@ -373,7 +387,8 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
         fn = getattr(menucommand_handlers, CommandArg)
         retHTTP = fn(req)
     elif CommandNum == MENUCOMMAND.RunSQLStatement.value:
-        pass
+        # retHTTP = reverse('RunSQL')
+        return HttpResponseRedirect(reverse('RunSQL'))
     elif CommandNum == MENUCOMMAND.ConstructSQLStatement.value:
         pass
     elif CommandNum == MENUCOMMAND.ChangePW.value:
@@ -390,4 +405,92 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
         pass
 
     return HttpResponse(retHTTP)
+
+
+from collections import namedtuple
+
+def dictfetchall(cursor):
+    "Return all rows from a cursor as a dict"
+    columns = [col[0] for col in cursor.description]
+    return [
+        dict(zip(columns, row))
+        for row in cursor.fetchall()
+    ]
+def namedtuplefetchall(cursor, ResultName = 'Result'):
+    "Return all rows from a cursor as a namedtuple"
+    desc = cursor.description
+    nt_result = namedtuple(ResultName, [col[0] for col in desc])
+    return [nt_result(*row) for row in cursor.fetchall()]
+
+class fm_cRawSQL(forms.Form):
+    inputSQL = forms.CharField(widget=forms.Textarea)
+
+# class cRawSQL(LoginRequiredMixin, FormView):
+#     form_class = fm_cRawSQL
+#     template_name = "enter_raw_SQL.html"
+
+#     def setup(self, request: HttpRequest, *args: Any, **kwargs: Any) -> None:
+#         self._userorg = WICSuser.objects.get(user=request.user).org
+#         self.extra_context = {
+#             'orgname':self._userorg.orgname, 'uname':request.user.get_full_name()
+#             }
+#         self.success_url = reverse("ShowRunSQLResults")
+#         return super().setup(request, *args, **kwargs)
+    
+#     def get(self, request: HttpRequest, *args: str, **kwargs: Any) -> HttpResponse:
+#         self.template_name = "enter_raw_SQL.html"
+#         return super().get(request, *args, **kwargs)
+
+#     def post(self, request: HttpRequest, *args: str, **kwargs: Any) -> HttpResponse:
+#         return super().post(request, *args, **kwargs)
+
+#     def form_valid(self, form) -> HttpResponse:
+#         with db.connection.cursor() as cursor:
+#             cursor.execute(form.cleaned_data['inputSQL'])
+#             rows = dictfetchall(cursor)
+        
+#         SQLresults = rows
+#         return super().form_valid(form)
+
+@login_required
+def fn_cRawSQL(req):
+    _userorg = WICSuser.objects.get(user=req.user).org
+
+    contxt = {}
+
+    if req.method == 'POST':
+        SForm = fm_cRawSQL(req.POST)
+
+        if not SForm.is_valid(): raise Exception('The SQL is invalid!!')
+        with db.connection.cursor() as cursor:
+            cursor.execute(SForm.cleaned_data['inputSQL'])
+        colNames = [col[0] for col in cursor.description]
+        #rows = dictfetchall(cursor)
+
+        contxt['colNames'] = colNames
+        contxt['nRecs'] = cursor.rowcount
+        contxt['SQLresults'] = cursor
+        templt = "show_raw_SQL.html"
+    else:
+        SForm = fm_cRawSQL()
+
+        contxt['form'] = SForm
+        templt = "enter_raw_SQL.html"
+        
+
+    contxt['orgname'] = _userorg.orgname
+    contxt['uname'] = req.user.get_full_name()
+    return render(req, templt, context=contxt)
+
+# @login_required
+# def fnShowSQLResults(req):
+#     _userorg = WICSuser.objects.get(user=req.user).org
+
+#     templt = "show_raw_SQL.html"
+#     contxt = {
+#         'SQLResults': SQLResults,
+#         'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+#         }
+#     return render(req, templt, context=contxt)
+    
 
