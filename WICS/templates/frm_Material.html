@@ -68,7 +68,7 @@
     <form id="FmMain" class="trackformchanges" method="post">
         {% csrf_token %}
         <!-- form header -->
-        {{ frmMain.errors }}
+        {{ frmMain.errors|default:'' }}
         {% render_field frmMain.org hidden="true" %}
         <hr>
 
@@ -133,40 +133,47 @@
                 <div class="card">
                     <div class="card-header">
                         {{ countset.management_form }}
-                        {{ countset.errors }}
-                        <br>
-                        <div class="container"><div class="row">
-                        <div class="col-1">Count Date</div>
-                        <div class="col-2">Counter</div>
-                        <div class="col-4">Physical Inventory</div>
-                        <div class="col-1">BLDG</div>
-                        <div class="col-1">LOCATION</div>
-                        <div class="col-3">Count Notes</div>
-                        </div></div>
+                        {% if countset.errors %}{{ countset.errors|default:'' }}<br>{% endif %}
+                        <div class="container">
+                        <div class="row">
+                            <div class="col-2"><button type="button" id="addCount">Add Count</button></div>
+                        </div>
+                        <div class="row">
+                            <div class="col-1">Count Date</div>
+                            <div class="col-2">Counter</div>
+                            <div class="col-3">Loc Only / Physical Inventory</div>
+                            <div class="col-1">BLDG</div>
+                            <div class="col-1">LOCATION</div>
+                            <div class="col-2">Pos Not Rec / Mvmnt</div>
+                            <div class="col">Count Notes</div>
+                        </div>
+                        </div>
                     </div>
                     <div class="card-body no-padding" style="height:210px; overflow: auto;">
                         {% for ff in countset %}
                         <div class="row">
                             {{ ff.id }}
                             <div class="col-1">{% render_field ff.CountDate size="10" %}</div>
-                            <div class="col-2">{% render_field ff.Counter size="10" %}</div>
-                            {% with sCE_parm=forloop.counter0  %}
-                            <div class="col-4">
-                                {# django AND widget_tweaks both screw up the dynamic onchange building, so I'm doing it myself! #}
-                                <input type="text"
-                                        name="{{ff.prefix}}-{{ff.CTD_QTY_Expr.name}}"
-                                        {% if ff.CTD_QTY_Expr.value != None %} value="{{ ff.CTD_QTY_Expr.value|stringformat:'s' }}"{% endif %}
-                                        maxlength="500" size="40" id="{{ ff.CTD_QTY_Expr.id_for_label }}"
-                                        onchange="showCountExpr(this.id, 'EvalExpr{{ sCE_parm }}');">
-                                {% comment %}
-                                {{ ff.CTD_QTY_Expr }}
-                                {% endcomment %}
-                                <span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
+                            <div class="col-1">{% render_field ff.Counter size="10" %}</div>
+                            <div class="col-4 text-start">
+                                {{ ff.LocationOnly }} 
+                                {% with sCE_parm=forloop.counter0  %}
+                                    {# django AND widget_tweaks both screw up the dynamic onchange building, so I'm doing it myself! #}
+                                    <input type="text"
+                                            name="{{ff.prefix}}-{{ff.CTD_QTY_Expr.name}}"
+                                            {% if ff.CTD_QTY_Expr.value != None %} value="{{ ff.CTD_QTY_Expr.value|stringformat:'s' }}"{% endif %}
+                                            maxlength="500" size="35" id="{{ ff.CTD_QTY_Expr.id_for_label }}"
+                                            onchange="showCountExpr(this.id, 'EvalExpr{{ sCE_parm }}');">
+                                    {% comment %}
+                                    {{ ff.CTD_QTY_Expr }}
+                                    {% endcomment %}
+                                    <span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
+                                {% endwith %}
                             </div>
-                            {% endwith %}
                             <div class="col-1">{% render_field ff.BLDG size="10" %}</div>
                             <div class="col-1">{% render_field ff.LOCATION size="10" %}</div>
-                            <div class="col-3">{% render_field ff.Notes size="30" %}</div>
+                            <div class="col-1">{{ ff.FLAG_PossiblyNotRecieved }} {{ ff.FLAG_MovementDuringCount }}</div>
+                            <div class="col-2">{% render_field ff.Notes size="30" %}</div>
                         </div>
                         {% endfor %}
                     </div>
@@ -178,8 +185,10 @@
                         {{ countsummset.management_form }}
                         <div class="container"><div class="row">
                         <div class="col-2">Material</div>
-                        <div class="col-1">Count Date</div>
+                        <div class="col-2">Count Date</div>
                         <div class="col-2">Total Counted</div>
+                        <div class="col-2">SAP Date</div>
+                        <div class="col-2">SAP Qty</div>
                         </div></div>
                     </div>
                     <div class="card-body no-padding" style="height:210px; overflow: auto;">

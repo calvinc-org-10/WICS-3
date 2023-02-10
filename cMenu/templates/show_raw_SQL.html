@@ -27,7 +27,7 @@
     {{ colNames }}
 </div>
 <div class="container">
-<div class="container"  style="height:210px; overflow:auto;">
+<div class="container"  style="height:350px; overflow:auto;">
 
     <ul>
     {% for row in SQLresults %}
@@ -48,12 +48,24 @@
     </ul>
     <hr>
 </div>
+<div class="row mx-auto max-width=100%">
+    <div class="col-4"></div>
+    <div class="col-6"></div>
+    <div class="col">
+        <button id="close_btn" type="button">
+            <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+            Close
+        </button>
+    </div>
+</div>
 </div>
 
 <script>
     document.body.onbeforeunload = function() {
         document.getElementById("wait_spinner").style.display = "block";
         }
+
+    $("#close_btn").on("click", function () { window.close() });
 </script>
 {% endblock %}
 

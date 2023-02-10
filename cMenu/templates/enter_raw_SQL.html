@@ -21,7 +21,13 @@
 </div>
 </div>
 <hr>
-
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
 Enter SQL to run (only SELECT statements are supported)
 <div class="container mx-auto">
 <form id="FmMain" class="trackformchanges" method="post">
@@ -52,6 +58,8 @@ Enter SQL to run (only SELECT statements are supported)
     document.body.onbeforeunload = function() {
         document.getElementById("wait_spinner").style.display = "block";
         }
+
+    $("#close_btn").on("click", function () { window.close() });
 </script>
 {% endblock %}
 

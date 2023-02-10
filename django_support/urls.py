@@ -28,4 +28,5 @@ urlpatterns = [
     path('admin/',admin.site.urls),
     path('akntt/',include("userprofiles.urls")),
     path('akntt/',include("django.contrib.auth.urls")),
+    path('__debug__',include("debug_toolbar.urls")),
 ]

@@ -3,6 +3,7 @@ from datetime import datetime
 from dateutil import parser
 from django import forms
 from django.contrib.auth.decorators import login_required
+from django.db.models import Max
 from django.shortcuts import render
 from openpyxl import load_workbook
 from cMenu.models import getcParm
@@ -105,8 +106,12 @@ def fnUploadSAP(req):
                     }
             templt = 'frm_upload_SAP_Success.html'
     else:
+        LastSAPUpload = SAP_SOHRecs.objects.filter(org=_userorg).aggregate(LastSAPDate=Max('uploaded_at'))
+        # .first().values('LastSAPDate')['LastSAPDate']
+
         form = UploadSAPForm()
         cntext = {'form': form, 
+                'LastSAPUploadDate': LastSAPUpload['LastSAPDate'],
                 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
                 }
         templt = 'frm_upload_SAP.html'

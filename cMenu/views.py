@@ -423,7 +423,7 @@ def namedtuplefetchall(cursor, ResultName = 'Result'):
     return [nt_result(*row) for row in cursor.fetchall()]
 
 class fm_cRawSQL(forms.Form):
-    inputSQL = forms.CharField(widget=forms.Textarea)
+    inputSQL = forms.CharField(widget=forms.Textarea(attrs={'cols':120}))
 
 # class cRawSQL(LoginRequiredMixin, FormView):
 #     form_class = fm_cRawSQL
@@ -462,15 +462,26 @@ def fn_cRawSQL(req):
         SForm = fm_cRawSQL(req.POST)
 
         if not SForm.is_valid(): raise Exception('The SQL is invalid!!')
+        sqlerr = None
         with db.connection.cursor() as cursor:
-            cursor.execute(SForm.cleaned_data['inputSQL'])
-        colNames = [col[0] for col in cursor.description]
-        #rows = dictfetchall(cursor)
+            try:
+                cursor.execute(SForm.cleaned_data['inputSQL'])
+            except Exception as err:
+                sqlerr = err
+        if not sqlerr:
+            colNames = [col[0] for col in cursor.description]
+            #rows = dictfetchall(cursor)
 
-        contxt['colNames'] = colNames
-        contxt['nRecs'] = cursor.rowcount
-        contxt['SQLresults'] = cursor
-        templt = "show_raw_SQL.html"
+            contxt['colNames'] = colNames
+            contxt['nRecs'] = cursor.rowcount
+            contxt['SQLresults'] = cursor
+            templt = "show_raw_SQL.html"
+        else:
+            SForm = fm_cRawSQL(req.POST)
+
+            contxt['form'] = SForm
+            messages.add_message(req, messages.WARNING,message= sqlerr) 
+            templt = "enter_raw_SQL.html"
     else:
         SForm = fm_cRawSQL()
 

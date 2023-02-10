@@ -22,7 +22,8 @@
     <hr>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
-        <p>SAP Date: {{ form.uploaded_at }}</p>
+        <p>Last Upload was <span class="h4"> {{ LastSAPUploadDate|date:'Y-m-d H:i' }}</span></p>
+        <p>This upload will have date: {{ form.uploaded_at }}</p>
         <p>{{ form.SAPFile }}</p>
 
         <!-- form footer -->

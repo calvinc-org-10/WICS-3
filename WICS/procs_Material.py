@@ -13,7 +13,7 @@ from django.shortcuts import render
 from django.views.generic import ListView
 from cMenu.models import getcParm
 from userprofiles.models import WICSuser
-from WICS.models import MaterialList, ActualCounts, CountSchedule, \
+from WICS.models import MaterialList, ActualCounts, CountSchedule, SAP_SOHRecs, \
                         WhsePartTypes, LastFoundAt
 from WICS.procs_SAP import fnSAPList
 from typing import Any, Dict
@@ -87,6 +87,8 @@ class MaterialCountSummary(forms.Form):
     Material = forms.CharField(max_length=100, disabled=True)
     CountDate = forms.DateField(required=False, disabled=True)
     CountQTY_Eval = forms.IntegerField(required=False, disabled=True)
+    SAPDate = forms.DateField(required=False, disabled=True)
+    SAPQty = forms.CharField(max_length=20, required=False, disabled=True)
 
 
 @login_required
@@ -201,21 +203,35 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False):
     # endif
 
     # count summary subform
+    SAPTotals = SAP_SOHRecs.objects.filter(org=_userorg).values('uploaded_at','Material').annotate(SAPQty=Sum('Amount')).order_by('uploaded_at', 'Material')
     raw_countdata = ActualCounts.objects.filter(Material=currRec).order_by('Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
     LastMaterial = None ; LastCountDate = None
     initdata = []
     for r in raw_countdata:
         try:
-            r.QtyEval = eval(r.CTD_QTY_Expr)    # later, use ast.literal_eval
+            r.QtyEval = eval(r.CTD_QTY_Expr)    # later, use ast.literal_eval, or write a parser
         # except (ValueError, SyntaxError):
         except:
             r.QtyEval = 0
         if (r.Material != LastMaterial or r.CountDate != LastCountDate):
             LastMaterial = r.Material ; LastCountDate = r.CountDate
+            if SAPTotals.filter(Material=r.Material,uploaded_at__date__lte=r.CountDate).exists():
+                SAPDate = SAPTotals.filter(Material=r.Material,uploaded_at__date__lte=r.CountDate).latest()['uploaded_at']
+                SAPQty = SAPTotals.filter(Material=r.Material,uploaded_at__date__lte=r.CountDate).latest()['SAPQty']
+            else:
+                if SAPTotals.filter(Material=r.Material).exists():
+                    SAPDate = SAPTotals.filter(Material=r.Material).first()['uploaded_at']
+                    SAPQty = SAPTotals.filter(Material=r.Material).first()['SAPQty']
+                else:
+                    SAPDate = ''
+                    SAPQty = ''
+
             initdata.append({
                 'Material': r.Material,
                 'CountDate': r.CountDate,
                 'CountQTY_Eval': 0,
+                'SAPDate': SAPDate,
+                'SAPQty': SAPQty,
             })
         n = initdata[-1]['CountQTY_Eval'] + r.QtyEval
         initdata[-1]['CountQTY_Eval'] = n
@@ -304,9 +320,11 @@ def fnLocationList(req):
     DoABuildSQLFunction += " FROM WICS_actualcounts act JOIN WICS_materiallist matl ON act.Material_id=matl.id"
     DoABuildSQLFunction += " WHERE ROW(Material_id, CountDate) IN ("
     DoABuildSQLFunction +=   " SELECT Material_id, Max(CountDate) as LastCountDate"
-    DoABuildSQLFunction +=   " FROM WICS_actualcounts maxdate GROUP BY Material_id"
-    DoABuildSQLFunction +=   ")"
-    DoABuildSQLFunction += "ORDER BY BLDG, LOCATION"
+    DoABuildSQLFunction +=   " FROM WICS_actualcounts maxdate "
+    DoABuildSQLFunction +=   " WHERE maxdate.org_id = " + str(_userorg.pk)
+    DoABuildSQLFunction +=   " GROUP BY Material_id"
+    DoABuildSQLFunction +=   ") AND matl.org_id = " + str(_userorg.pk)
+    DoABuildSQLFunction += " ORDER BY BLDG, LOCATION"
     DoABuildSQLFunction +=";"
 
     locations_qs = ActualCounts.objects.raw(DoABuildSQLFunction)
