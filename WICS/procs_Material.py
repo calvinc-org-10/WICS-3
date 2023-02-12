@@ -345,6 +345,7 @@ class PartTypesForm(forms.ModelForm):
 
 MatlSubFm_fldlist = ['id','org','Material', 'Description', 'PartType', 'Price', 'PriceUnit', 'TypicalContainerQty', 'TypicalPalletQty', 'Notes']
 
+# later -- check for uniqueness of (org, WhsePartType), (org,PartTypePriority)
 @login_required
 def fnPartTypesForm(req, recNum = -1, gotoRec=False):
     _userorg = WICSuser.objects.get(user=req.user).org
@@ -352,8 +353,9 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
 
     # get current record
     currRec = None
-    if gotoRec and req.method == 'GET' and 'realGotoID' in req.GET:
-        currRec = WhsePartTypes.objects.get(org=_userorg, pk=req.GET['realGotoID'])
+    #if gotoRec and req.method == 'GET' and 'realGotoID' in req.GET:
+    if gotoRec and req.method == 'GET':
+        currRec = WhsePartTypes.objects.get(org=_userorg, pk=recNum)
     if not currRec:
         if recNum < 0:
             currRec = WhsePartTypes.objects.filter(org=_userorg).first()

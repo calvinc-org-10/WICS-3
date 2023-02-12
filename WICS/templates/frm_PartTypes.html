@@ -44,8 +44,7 @@
 . {{ showID }}
 
 <!-- GoTo -->
-<form id="gotoForm" method="get" action="{% url 'ReloadPTypForm' showID|default_if_none:0 %}">
-<div class="container text-center bg-secondary">
+<div id="gotoForm" class="container text-center bg-secondary">
     <div class="row mx-auto max-width=95%">
         <div class="col mx-auto">
             <h1><label for="gotoID">GoTo Part Type</label>
@@ -61,7 +60,6 @@
         </div>
     </div>
 </div>
-</form>
 
 <form id="FmMain" class="trackformchanges" method="post">
     {% csrf_token %}
@@ -211,13 +209,38 @@
 
     // go to another Part Type if no changes here, or user abandons changes
     function processGoToRec() {
-        confirmLeave(loadMaterialRec, fnIgnore)
+        if (mapPartTypes.has($gotoTextBox.val())) {
+            confirmLeave(loadMaterialRec, fnIgnore)
+        } else {
+            $ModalYesNo.dialog("option","title","Bad Part Type");
+            document.getElementById("modal_question").innerHTML = "There is no such Part Type as ".concat($gotoTextBox.val())
+    
+            $ModalYesNo.dialog("option","buttons", [])
+            
+            $ModalYesNo.dialog("open");
+            $gotoTextBox.val('')
+            return;    
+        }
     };
     function loadMaterialRec() {
         var realID;
-        realID = mapPartTypes.get($gotoTextBox.val())
-        document.getElementById("realGotoID").value = realID
-        document.getElementById("gotoForm").submit()
+        if (mapPartTypes.has($gotoTextBox.val())) {
+            realID = mapPartTypes.get($gotoTextBox.val())
+            document.getElementById("realGotoID").value = realID
+            newRec = "{% url 'ReloadPTypForm' 0 %}"
+            newRec = newRec.replace("/0","/".concat(realID));
+            window.location = newRec;
+            // document.getElementById("gotoForm").submit()
+        } else {
+            $ModalYesNo.dialog("option","title","Bad Part Type");
+            document.getElementById("modal_question").innerHTML = "There is no such Part Type as ".concat($gotoTextBox.val())
+    
+            $ModalYesNo.dialog("option","buttons", [])
+            
+            $ModalYesNo.dialog("open");
+            $gotoTextBox.val('')
+            return;    
+        }
     };
 
     function fnIgnore() {}  // does nothing
@@ -293,8 +316,6 @@
         $ModalYesNo.dialog("open");
     };
     function doRemove(RecNum) {
-        // alert("The delete option will be done later...  RecNum=".concat(RecNum))
-        // return;
         newRec = "{% url 'DeletePTyp' 0 %}"
         newRec = newRec.replace("/0","/".concat(RecNum));
         window.location = newRec;
