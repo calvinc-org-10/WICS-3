@@ -102,7 +102,11 @@
                 <div class="row">
                     <div class="col-10 text-start">
                         SAP Date: {{ SAPSet.SAPDate }}
-                        {% for s in SAPSet.SAPTable %}({{ s.Material }}, {{ s.StorageLocation }}, {{ s.Amount }}){% endfor %}
+                        {% if SAPSet.SAPTable %}
+                            {% for s in SAPSet.SAPTable %}({{ s.Material }}, {{ s.StorageLocation }}, {{ s.Amount }}){% endfor %}
+                        {% else %}
+                            <b> No SAP Quantity</b>
+                        {% endif %}
                         <br>
                         Last Found At {{ lastFoundAt.lastFoundAt }} on {{ lastFoundAt.lastCountDate }}
                     </div>

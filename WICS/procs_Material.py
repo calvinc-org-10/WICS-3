@@ -1,15 +1,16 @@
 from datetime import timedelta, date, MINYEAR
+from multiprocessing import current_process
 import dateutil.utils
-from django import forms
+from django import forms, urls
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import models
 from django.db.models import Value, Sum
 from django.db.models.query import QuerySet
 from django.forms import inlineformset_factory, formset_factory
-from django.http import HttpResponse, HttpRequest
+from django.http import HttpResponse, HttpRequest, HttpResponseRedirect
 from django.shortcuts import render
-#from django.urls import reverse
 from django.views.generic import ListView
 from cMenu.models import getcParm
 from userprofiles.models import WICSuser
@@ -351,11 +352,14 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
 
     # get current record
     currRec = None
-    if gotoRec:
+    if gotoRec and req.method == 'GET' and 'realGotoID' in req.GET:
         currRec = WhsePartTypes.objects.get(org=_userorg, pk=req.GET['realGotoID'])
     if not currRec:
-        if recNum <= 0:
+        if recNum < 0:
             currRec = WhsePartTypes.objects.filter(org=_userorg).first()
+        elif recNum == 0:
+            # provide new record
+            currRec = WhsePartTypes(org=_userorg)
         else:
             currRec = WhsePartTypes.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
         # endif
@@ -411,10 +415,10 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
                 #raise Exception('counts saved')
 
     else: # request.method == 'GET' or something else
-        #if currRec:
-        PtTypFm = PartTypesForm(instance=currRec, initial=initvals['main'], prefix=prefixes['main'])
-        #else:
-        #    PtTypFm = MaterialForm(initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg}, prefix='material')
+        if currRec:
+            PtTypFm = PartTypesForm(instance=currRec, initial=initvals['main'], prefix=prefixes['main'])
+        else:
+            PtTypFm = PartTypesForm(initial=initvals['main'], prefix=prefixes['main'])
 
         # Material subform
         MaterialSubFm_class = forms.inlineformset_factory(WhsePartTypes,MaterialList, 
@@ -444,4 +448,24 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
             }
     templt = 'frm_PartTypes.html'
     return render(req, templt, cntext)
+
+
+def fnDeletPartTypes(req, recNum):
+    _userorg = WICSuser.objects.get(user=req.user).org
+    if not _userorg: raise Exception('User is corrupted!!')
+
+    # get record.  If related Material, cannot delete, else do so
+    currRec = WhsePartTypes.objects.get(id=recNum)
+    # later, handle record not found -- but then, that really shouldn't happen
+
+    if MaterialList.objects.filter(PartType=currRec).exists():
+        messages.add_message(req,messages.ERROR,'There is Material with Part Type %s.  The Part Type cannot be removed' % currRec.WhsePartType)
+        next = urls.reverse('ReloadPTypForm',args=[currRec.pk])
+    else:
+        deletedPT = currRec.WhsePartType
+        currRec.delete()
+        messages.add_message(req,messages.SUCCESS,'Part Type %s has been removed' % deletedPT)
+        next = urls.reverse('PartTypeForm')
+
+    return HttpResponseRedirect(next)
 

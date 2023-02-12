@@ -1,11 +1,11 @@
 {% extends "WICS_common.html" %}
 {% load widget_tweaks %}
-{% load evaluate_arithmetic %}
 {% load static %}
 
 {% block tTitle %}Part Types{% endblock %}
 
 {% block boddy %}
+
 <div class="container text-center mx-auto">
 <div class="row">
     <div class="col-10 fs-1">
@@ -20,25 +20,31 @@
     {% if changes_saved.main %}
         <div class="alert alert-success p-0 alert-dismissible fade show">
             <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
-            This Material record successfully saved.
+            This Part Type record successfully saved.
             ChDat: {{ changed_data.main }}
         </div>
     {% endif %}
     {% if changes_saved.matl %}
         <div class="alert alert-success p-0 alert-dismissible fade show">
             <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
-            Count changes for this Material record successfully saved.
+            Material record(s) successfully saved.
             ChDat: {{ changed_data.matl }}
         </div>
     {% endif %}
-</div>
+    {% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}</div>
 </div>
 <hr>
 
 . {{ showID }}
 
 <!-- GoTo -->
-<form id="gotoForm" method="get" action="{% url 'ReloadPTypForm' showID %}">
+<form id="gotoForm" method="get" action="{% url 'ReloadPTypForm' showID|default_if_none:0 %}">
 <div class="container text-center bg-secondary">
     <div class="row mx-auto max-width=95%">
         <div class="col mx-auto">
@@ -81,12 +87,12 @@
         <div class="card">
             <div class="card-header">
                 {{ materials.management_form }}
-                {{ materials.errors|default:'' }}
+                {% if materials.errors %} {{ materials.errors }} <br> {% endif %}
+                To change the Part Type of a Material or add new Materials, use the Material Form
                 <br>
                 <div class="container"><div class="row">
                 ..... 
                 <div class="col-2">Material</div>
-                <div class="col-2">PartType</div>
                 <div class="col-3">Price / PriceUnit</div>
                 <div class="col-3">TypeContQty / TypePltQty</div>
                 </div></div>
@@ -99,19 +105,6 @@
                     {{ ff.id }}{{ff.id.value }}
                     {% render_field ff.org hidden="true" %}
                     <div class="col-2">{% render_field ff.Material %}</div>
-                    <div class="col-2">
-                        {# PartType {% render_field ff.PartType type="select" %} #}
-                        {# I want users to be able to edit the PartType, if necessary.  Since it's the ForeignKey field, I must render it myself #}
-                        <select type="select"
-                            id="{{ff.PartType.id_for_label}}" name="{{ff.PartType.html_name}}"
-                            tabindex="-1" 
-                            value="{{ff.PartType.value}}"
-                            style="width:10em;">
-                            {% for itm in gotoForm.choicelist %}
-                                <option value="{{itm.id}}"{% if itm.id == ff.PartType.value %} selected{% endif %}>{{itm.WhsePartType}}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
                     <div class="col-3"> {% render_field ff.Price style="width:6em;" %}  {% render_field ff.PriceUnit style="width:6em;" %} </div>
                     <div class="col-3"> {% render_field ff.TypicalContainerQty style="width:6em;" %}  {% render_field ff.TypicalPalletQty style="width:6em;" %} </div>
                 </div>
@@ -125,8 +118,6 @@
             </ul>
             </div>
             <div class="card-footer no-padding">
-                Add Material
-                Remove (per Material) - really??
             </div>
         </div>
     </div>
@@ -141,9 +132,17 @@
                     Save changes
                 </button>
             </div>
-            <div class="col-7">
-                Add Part Type
-                Remove Part Type
+            <div class="col-5">
+                <button id="add_btn" type="button">
+                    <img src="{% static 'addition-color-outline-icon.svg' %}" width="20" height="20"></img>
+                    Add Part Type
+                </button>
+                <button id="remv_btn" type="button">
+                    <img src="{% static 'database-remove-icon.svg' %}" width="20" height="20"></img>
+                    Remove Part Type
+                </button>
+            </div>
+            <div class="col-2">
             </div>
             <div class="col">
                 <button id="close_btn" type="button">
@@ -155,134 +154,179 @@
     </div>
 </form>
 
-<!-- Modal to check for dismissal of dirty record -->
-<div class="modal-sm fade" id="modalCloseCheck" role="dialog">
-    <div class="modal-dialog">
-        <!-- Modal content-->
-        <div class="modal-content">
-            <div class="modal-header">
-            <button type="button" class="close" data-dismiss="modal">&times;</button>
-            <h4 class="modal-title">Record Changed!</h4>
-        </div>
-        <div class="modal-body" id="dismissal_question">
-        </div>
-        <div class="modal-footer">
-        <form>
-            <fieldset>
-            <button type="button" class="btn btn-default" name="leaveForm" value="false" data-dismiss="modal">No</button>
-            <button type="button" class="btn"             name="leaveForm" value="true"  data-dismiss="modal">Yes, abandon changes</button>
-            <!-- Allow form submission with keyboard without duplicating the dialog button -->
-            <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
-            </fieldset>
-        </form>
-        </div>
+<!-- Somewhat generic Modal -->
+<!-- later, allow btn-default to be chosen -->
+<div id="modalYesNo" >
+    <div id="modal_question">
     </div>
+    <input type="hidden" name="modelextrainfo" id="model_extra_info"></input>
 </div>
-{% comment %}
-<div id="get-MenuID-dialog" title="New Menu Group/ID">
-    <form>
-        <fieldset>
-            <label for="NewMnuGroup">Menu Group</label>
-            <input type="number" name="NewMnuGroup" id="NewMnuGroup" class="text ui-widget-content ui-corner-all">
-            <label for="NewMnuID">Menu ID</label>
-            <input type="number" name="NewMnuID" id="NewMnuID" class="text ui-widget-content ui-corner-all">
-    
-            <!-- Allow form submission with keyboard without duplicating the dialog button -->
-            <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
-        </fieldset>
-    </form>
-</div>
-
-<!-- generalize this one day ... -->
-<div id="yesno-dialog" title="Are You Sure?">
-    <div id="yesno-dialog-text"></div>
-</div>
-{% endcomment %}    
 
 <script>
     var $forms = $(".trackformchanges");
     var initialState
     var $gotoTextBox = $("#gotoID");
-    // record the ID and GPN of current record (it's used often!)
-    // var thisMtlID = {{frmMain.showPK.value}}, thisMtlGPN = "{{frmMain.Material.value}}"
-    var modalCloseCheckResult, modalCloseCheckClosed;
+    var $ModalYesNo = $("#modalYesNo")
+
+    // because Bootstrap (nor jQuery) "modals" aren't really modal, execution must transfer to the modal, then wait until the modal triggers an answering function
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
 
     const mapPartTypes = new Map();
     {% for PT in gotoForm.choicelist %}
         mapPartTypes.set('{{PT.WhsePartType}}', {{PT.id}})
     {% endfor %}
 
+    //-----------------------------
+
     $(document).ready(function() {
         initialState = $forms.serialize();
+        $("#remv_btn").attr("disabled",({{ materials.management_form.TOTAL_FORMS.value }}!=0 || {{ showID|default_if_none:0 }}==0))
+        $("#add_btn").attr("disabled",({{ showID|default_if_none:0 }}==0))
         });
     document.body.onbeforeunload = function() {
         document.getElementById("wait_spinner").style.display = "block";
         }
 
-    // later, duplicate this for closeform (see document.body.onbeforeunload)
-    document.getElementById("close_btn").addEventListener("click",
-        function(evobj){
-            confirmLeave(closeform)
-        });
+    //------------------------
 
-    // because Bootstrap "modals" aren't really modal, execution must transfer to the modal, then wait until the modal triggers an answering function
-    function processGoToRec() {
-        confirmLeave(loadMaterialRec)
-    };
-    function leavequestion_chosen() {
-        var leeve = $("#idCloseCheck").find( "form" ).find("[name='leaveForm']").val()
-        if (leeve) {
-            fn_postclosecheck();
-        }
-    }
-    $("#idCloseCheck").find( "form" ).on( "submit", function( event ) {
-        event.preventDefault();
-        leavequestion_chosen();
-    });
     function isFormChanged() {
         currState = $forms.serialize();
         return !(initialState === currState);
     };
-    function confirmLeave(postclose_fn){
-        fn_postclosecheck = postclose_fn
-        if (isFormChanged()) {
-            document.getElementById("dismissal_question").innerHTML = "This record has changed<br>Do you really want to leave without saving?"
-            $('#modalCloseCheck').modal();
-        } else {
-            fn_postclosecheck();
-        }
-    };
+    
+    //------------------
 
-    // to become obsolete??
+    // close this form if no changes here, or user abandons changes
+    // later, duplicate this for closeform (see document.body.onbeforeunload)
+    document.getElementById("close_btn").addEventListener("click",
+        function(evobj){
+            confirmLeave(closeform, fnIgnore)
+        });
+    function closeform() {
+        window.close()
+    }
+
+    //------------------------
+
+    // go to another Part Type if no changes here, or user abandons changes
+    function processGoToRec() {
+        confirmLeave(loadMaterialRec, fnIgnore)
+    };
     function loadMaterialRec() {
         var realID;
         realID = mapPartTypes.get($gotoTextBox.val())
         document.getElementById("realGotoID").value = realID
         document.getElementById("gotoForm").submit()
     };
-    function closeform() {
-        window.close()
-    }
 
-    $("#SchedCount").on("click",
-    function() {
-        dVal = (new Date()).toISOString().substring(0,10)
-        R = 0   // not needed, since R=0 is hardcoded in the url below.  But this is good for documentation
+    function fnIgnore() {}  // does nothing
+
+    //-----------------------
+
+    function confirmLeave(modalYes_fn, modalNo_fn) {
+
+        if (isFormChanged()) {
+            $ModalYesNo.dialog("option","title","Leave Record?");
+            document.getElementById("modal_question").innerHTML = "This record has changed<br>Do you really want to leave without saving?"
+
+            $ModalYesNo.dialog("option","buttons", 
+                { 
+                    "Yes": function() { 
+                        modalYes_fn();
+                        $(this).dialog("close"); },
+                    "No" : function() {
+                        modalNo_fn();
+                        $(this).dialog("close"); }
+                }
+                )
+            
+            $ModalYesNo.dialog("open");
+        } else {
+            modalYes_fn();
+        }
+    };
+
+    //---------------------------
+
+    $("#add_btn").on("click",addNewPartTypeRec)
+
+    function addNewPartTypeRec(event) {
+        newRec = "{% url 'ReloadPTypForm' 0 %}"
+        window.location = newRec;
+    };
+
+    //---------------------------------
+
+    $("#remv_btn").on("click",remvPartTypeRec)
+
+    // do you really want to remove this record?
+    function remvPartTypeRec(event) {
+
+        if ({{ materials.management_form.TOTAL_FORMS.value }}!=0 || {{ showID|default_if_none:0 }}==0) {
+            $ModalYesNo.dialog("option","title","Cannot Remove Record");
+            document.getElementById("modal_question").innerHTML = "There are Materials with Part Type {{frmMain.WhsePartType.value}}.  You cannot remove it."
+    
+            $ModalYesNo.dialog("option","buttons", [])
+            
+            $ModalYesNo.dialog("open");
+            return;    
+        }
+
+        R = parseInt({{ showID }})
+
+        $ModalYesNo.dialog("option","title","Remove Record?");
+        document.getElementById("modal_question").innerHTML = "Are you sure you want to remove Part Type {{frmMain.WhsePartType.value}}?"
+
+        $ModalYesNo.dialog("option","buttons", 
+            {
+                "Yes": function() { 
+                    doRemove(R);
+                    $(this).dialog("close");
+                },
+                "No" : function() {
+                    $(this).dialog("close");
+                }
+            }
+            )
         
-        newRec = "{% url 'CountScheduleForm' 0 'passedMatlNum' 'passedCountDate' 'None' %}"
-        newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
-        newRec = newRec.replace("/passedCountDate","/"+dVal);
-        window.open(newRec,'_blank')
+        $ModalYesNo.dialog("open");
+    };
+    function doRemove(RecNum) {
+        // alert("The delete option will be done later...  RecNum=".concat(RecNum))
+        // return;
+        newRec = "{% url 'DeletePTyp' 0 %}"
+        newRec = newRec.replace("/0","/".concat(RecNum));
+        window.location = newRec;
+};
+
+    //---------------------------
+
+    // helpers for the Modal Form
+    
+    // handle return from Modal
+    $("#modalYesNo").dialog({
+        autoOpen: false,
+        closeOnEscape: false,
+        modal: true,
+        hide: "puff",
+        position: {
+            my: "top center", at: "top center"
+        }
+        /***
+        buttons: {
+            "Yes": function() {
+                yesno_chosen(true);
+                $(this).dialog("close");
+            },
+            "No":  function() {
+                yesno_chosen(false);
+                $(this).dialog("close");
+            }
+        }
+        ***/
     });
 
 </script>
-<script>
-    function create_empty_user() {
-        var form_idx = $('#id_form-TOTAL_FORMS').val()
-        // check against max-forms before allowing add
-        $('#form_set').append($('#empty_form').html().replace(/__prefix__/g, form_idx).replace("hidden",""))
-        $('#id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1)
-    }
-</script>
-{% endblock %}
 
+{% endblock %}

@@ -101,7 +101,9 @@
                 "><b>{{ ent.Accuracy|floatformat:2 }}%</b></div>
                 <div class="col-1"></div>
                 <div class="col-1"></div>
-                <div class="col-1"></div>
+                <div class="col-1">
+                    <button type="button" class="btnSchCt" value="{{ ent.Material }}"><small>Schedule Count</small></button>
+                </div>
             </div>
             {% if ent.ReasonScheduled %}
             <div class="row g-0 small">
