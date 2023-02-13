@@ -1,5 +1,4 @@
 from datetime import timedelta, date, MINYEAR
-from multiprocessing import current_process
 import dateutil.utils
 from django import forms, urls
 from django.contrib import messages
@@ -354,7 +353,7 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
     # get current record
     currRec = None
     #if gotoRec and req.method == 'GET' and 'realGotoID' in req.GET:
-    if gotoRec and req.method == 'GET':
+    if gotoRec and req.method == 'GET' and recNum > 0:
         currRec = WhsePartTypes.objects.get(org=_userorg, pk=recNum)
     if not currRec:
         if recNum < 0:
