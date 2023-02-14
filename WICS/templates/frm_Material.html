@@ -47,7 +47,7 @@
     {{ frmMain.showPK.value }}
     
     <!-- GoTo -->
-    <form id="gotoForm" method="GET" action="{% url 'ReloadMatlForm' frmMain.showPK.value %}">
+    <form id="gotoForm" method="GET" action="{% url 'ReloadMatlForm' frmMain.showPK.value|default_if_none:0 %}">
     <div class="container text-center bg-secondary">
         <div class="row mx-auto max-width=95%">
             <div class="col mx-auto">
@@ -140,7 +140,7 @@
                         {% if countset.errors %}{{ countset.errors|default:'' }}<br>{% endif %}
                         <div class="container">
                         <div class="row">
-                            <div class="col-2"><button type="button" id="addCount">Add Count</button></div>
+                            <div class="col-2"><button type="button" id="AddCount">Add Count</button></div>
                         </div>
                         <div class="row">
                             <div class="col-1">Count Date</div>
@@ -214,11 +214,11 @@
                         {{ scheduleset.management_form }}
                         {{ scheduleset.errors }}
                         <div class="container"><div class="row">
-                            <div class="col-1">Count Date</div>
-                            <div class="col-2">Counter</div>
-                            <div class="col-1">Priority</div>
-                            <div class="col-3">Reason Scheduled</div>
-                            <div class="col-1">CM Flag</div>
+                            <div class="col-4">
+                                Count Date - Counter - Priority
+                            </div>
+                            <div class="col-4">Reason Scheduled</div>
+                            <div class="col-1" >CM Flag</div>
                             <div class="col-2">Notes</div>
                             <div class="col-2"></div>
                         </div></div>
@@ -227,12 +227,14 @@
                         {% for ff in scheduleset %}
                         <div class="row">
                             {{ ff.id }}
-                            <div class="col-1">{% render_field ff.CountDate size="10" %}</div>
-                            <div class="col-2">{% render_field ff.Counter size="10" %}</div>
-                            <div class="col-1">{% render_field ff.Priority size="10" %}</div>
-                            <div class="col-3">{% render_field ff.ReasonScheduled size="40" %}</div>
+                            <div class="col-4">
+                                {% render_field ff.CountDate size="10" %}
+                                {% render_field ff.Counter size="10" %}
+                                {% render_field ff.Priority size="10" %}
+                            </div>
+                            <div class="col-4">{% render_field ff.ReasonScheduled size="40" %}</div>
                             <div class="col-1">{{ ff.CMPrintFlag }}</div>
-                            <div class="col-4">{% render_field ff.Notes size="30" %}</div>
+                            <div class="col-3">{% render_field ff.Notes size="30" %}</div>
                         </div>
                         {% endfor %}
                     </div>
@@ -244,13 +246,18 @@
         <br>
         <div class="container">
             <div class="row mx-auto max-width=100%">
-                <div class="col-4">
+                <div class="col-3">
                     <button id="save_btn" type="submit">
                         <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
                         Save changes
                     </button>
                 </div>
-                <div class="col-6"></div>
+                <div class="col-7">
+                    <button id="add_btn" type="button">
+                        <img src="{% static 'addition-color-outline-icon.svg' %}" width="20" height="20"></img>
+                        Add New Material
+                    </button>   
+                </div>
                 <div class="col">
                     <button id="close_btn" type="button">
                         <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
@@ -288,9 +295,10 @@
         var initialState
         var $gotoTextBox = $("#gotoID");
         // record the ID and GPN of current record (it's used often!)
-        var thisMtlID = {{frmMain.showPK.value}}, thisMtlGPN = "{{frmMain.Material.value}}"
+        var thisMtlID = {{frmMain.showPK.value|default_if_none:0}}, thisMtlGPN = "{{frmMain.Material.value}}"
         var modalCloseCheckResult, modalCloseCheckClosed;
 
+        //------------------
 
         $(document).ready(function() {
             initialState = $forms.serialize();
@@ -300,16 +308,14 @@
                 CQtyID = 'id_countset-' + i + '-CTD_QTY_Expr';
                 EvID = 'EvalExpr' + i;
                 showCountExpr(CQtyID, EvID);
-                //fbody = "function CQE_" + i + "_df () { showCountExpr(this.id, '" + EvID + "'); };"
                 fbody = Function("function dummyCE" + i + "() { showCountExpr(this.id, '" + EvID + "'); };");
-                // console.log(fbody);
-                //jIDName = "#" + CQtyID
-                //$(jIDName).on("change", fbody);
             };
             });
         document.body.onbeforeunload = function() {
             document.getElementById("wait_spinner").style.display = "block";
             }
+
+        //---------------
 
         // later, duplicate this for closeform (see document.body.onbeforeunload)
         document.getElementById("close_btn").addEventListener("click",
@@ -319,9 +325,13 @@
                 }
             });
 
+        //-------------------
+
         $("#SchedCount").on("click",
         function() {
-            dVal = (new Date()).toISOString().substring(0,10)
+            dVal = (new Date())                         // today
+            dVal.setDate(dVal.getDate()+1)              // tomorrow
+            dVal = dVal.toISOString().substring(0,10)   // make it a string
             R = 0   // not needed, since R=0 is hardcoded in the url below.  But this is good for documentation
             
             newRec = "{% url 'CountScheduleForm' 0 'passedMatlNum' 'passedCountDate' 'None' %}"
@@ -329,6 +339,30 @@
             newRec = newRec.replace("/passedCountDate","/"+dVal);
             window.open(newRec,'_blank')
         });
+
+        $("#AddCount").on("click",
+        function() {
+            dVal = (new Date())                         // today
+            dVal = dVal.toISOString().substring(0,10)   // make it a string
+            
+            newRec = "{% url 'CountEntryForm' 0 'passedCountDate' 'matl' %}"
+            newRec = newRec.replace("passedCountDate",dVal)
+            mtlnmID = $('#{{frmMain.Material.id_for_label}}');
+            mNum="None"; if (mtlnmID.val() != "") {mNum = mtlnmID.val()}
+            newRec = newRec.replace("/matl","/"+mNum)
+            window.open(newRec,'_blank')
+        });
+
+        //---------------------------
+
+        $("#add_btn").on("click",addNewMatlRec)
+
+        function addNewMatlRec(event) {
+            newRec = "{% url 'NewMatlForm' %}"
+            window.location = newRec;
+        };
+
+        //-----------------
 
         function processGoToReq() {
             if (confirmLeave()) {

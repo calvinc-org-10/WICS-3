@@ -92,27 +92,47 @@ class MaterialCountSummary(forms.Form):
 
 
 @login_required
-def fnMaterialForm(req, recNum = -1, gotoRec=False):
+def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
     _userorg = WICSuser.objects.get(user=req.user).org
     if not _userorg: raise Exception('User is corrupted!!')
 
+    ### original code
+    # # get current record
+    # currRec = None
+    # if gotoRec:
+        # currRec = MaterialList.objects.filter(org=_userorg, Material=req.GET['gotoID']).first()
+    # if not currRec:
+        # if recNum <= 0:
+            # currRec = MaterialList.objects.filter(org=_userorg).first()
+        # else:
+            # currRec = MaterialList.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
+        # # endif
+    # #endif
     # get current record
     currRec = None
-    if gotoRec:
+    if gotoRec and req.method == 'GET' and 'gotoID' in req.GET:
         currRec = MaterialList.objects.filter(org=_userorg, Material=req.GET['gotoID']).first()
     if not currRec:
-        if recNum <= 0:
+        if newRec:
+            # provide new record
+            currRec = MaterialList(org=_userorg)
+        elif recNum <= 0:
             currRec = MaterialList.objects.filter(org=_userorg).first()
         else:
             currRec = MaterialList.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
         # endif
     #endif
+
     if not currRec: #there are no MaterialList records for this org!!
         thisPK = 0
     else:
         thisPK = currRec.pk
 
-    SAP_SOH = fnSAPList(_userorg, matl=currRec.Material)
+    if newRec:
+        # SAP_SOH = {'reqDate': dateutil.utils.today(), 'SAPDate': dateutil.utils.today(), 'SAPTable':[]}
+        SAP_SOH = fnSAPList(_userorg,matl='-')
+    else:
+        SAP_SOH = fnSAPList(_userorg, matl=currRec.Material)
 
     gotoForm = {}
     gotoForm['gotoItem'] = currRec

@@ -52,6 +52,8 @@ urlpatterns = [
             procs_Material.fnMaterialForm, name='MatlForm'),
     path('MaterialForm/<int:recNum>',
             procs_Material.fnMaterialForm, {'gotoRec':True}, name='ReloadMatlForm'),
+    path('MaterialForm/newRec',
+            procs_Material.fnMaterialForm, {'gotoRec':False, 'newRec':True}, name='NewMatlForm'),
     path('MatlByPartType',procs_Material.MaterialByPartType.as_view(), name='MatlByPartType'),
     path('MaterialLocations',
             procs_Material.MaterialLocationsList.as_view(),name='MaterialLocations'),

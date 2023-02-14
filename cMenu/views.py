@@ -469,18 +469,24 @@ def fn_cRawSQL(req):
             except Exception as err:
                 sqlerr = err
         if not sqlerr:
-            colNames = [col[0] for col in cursor.description]
-            #rows = dictfetchall(cursor)
+            if cursor.description:
+                colNames = [col[0] for col in cursor.description]
+                #rows = dictfetchall(cursor)
 
-            contxt['colNames'] = colNames
-            contxt['nRecs'] = cursor.rowcount
-            contxt['SQLresults'] = cursor
-            templt = "show_raw_SQL.html"
+                contxt['colNames'] = colNames
+                contxt['nRecs'] = cursor.rowcount
+                contxt['SQLresults'] = cursor
+                templt = "show_raw_SQL.html"
+            else:
+                contxt['colNames'] = 'NO RECORDS RETURNED'
+                contxt['nRecs'] = 0
+                contxt['SQLresults'] = []
+                templt = "show_raw_SQL.html"                
         else:
             SForm = fm_cRawSQL(req.POST)
 
             contxt['form'] = SForm
-            messages.add_message(req, messages.WARNING,message= sqlerr) 
+            messages.add_message(req, messages.WARNING,message=sqlerr) 
             templt = "enter_raw_SQL.html"
     else:
         SForm = fm_cRawSQL()
