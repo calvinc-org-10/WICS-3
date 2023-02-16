@@ -317,6 +317,19 @@
 
         //---------------
 
+        const fmMain = document.getElementById('FmMain');
+        
+        function setPOSTAction(event) {
+            newRec = "{% url 'MatlForm' %}"
+            // newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
+            // newRec = newRec.replace("/passedCountDate","/"+dVal);
+            fmMain.action = newRec
+            }
+
+        fmMain.addEventListener('submit', setPOSTAction);
+
+        //---------------
+
         // later, duplicate this for closeform (see document.body.onbeforeunload)
         document.getElementById("close_btn").addEventListener("click",
             function(evobj){

@@ -112,6 +112,9 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
     currRec = None
     if gotoRec and req.method == 'GET' and 'gotoID' in req.GET:
         currRec = MaterialList.objects.filter(org=_userorg, Material=req.GET['gotoID']).first()
+    elif req.method == 'POST':
+        currRec = MaterialList.objects.filter(org=_userorg, Material=req.POST['material-Material']).first()
+
     if not currRec:
         if newRec:
             # provide new record
