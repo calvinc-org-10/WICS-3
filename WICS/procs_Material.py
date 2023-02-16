@@ -287,7 +287,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
 
 class MaterialByPartType(LoginRequiredMixin, ListView):
     #login_url = reverse('WICSlogin')
-    ordering = ['PartType__PartTypePriority', 'Material']
+    ordering = ['PartType__PartTypePriority', 'PartType__WhsePartType', 'Material']
     context_object_name = 'MatlList'
     template_name = 'frm_MatlByPartTypeList.html'
     SAPSums = {}
@@ -295,7 +295,7 @@ class MaterialByPartType(LoginRequiredMixin, ListView):
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
         self._userorg = WICSuser.objects.get(user=self._user).org
-        self.queryset = MaterialList.objects.filter(org=self._userorg).order_by('PartType__PartTypePriority', 'Material').annotate(LFADate=Value(0), LFALocation=Value(''), enumerate_in_group=Value(0), SAPQty=Value(0))   # figure out how to pass in self.ordering
+        self.queryset = MaterialList.objects.filter(org=self._userorg).order_by('PartType__PartTypePriority', 'PartType__WhsePartType', 'Material').annotate(LFADate=Value(0), LFALocation=Value(''), enumerate_in_group=Value(0), SAPQty=Value(0))   # figure out how to pass in self.ordering
         
         # it's more efficient to pull this all now and store it for the upcoming qs request
         SAP = fnSAPList(self._userorg)
