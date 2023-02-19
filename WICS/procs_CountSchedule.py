@@ -1,5 +1,4 @@
 import datetime
-from json import load
 from dateutil import parser
 from dateutil.utils import today
 from django import forms
@@ -11,7 +10,6 @@ from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render
 from django.views.generic import ListView
 from barcode import Code128
-from pyparsing import DebugExceptionAction
 from userprofiles.models import WICSuser
 from WICS.models import MaterialList, CountSchedule, \
                         WhsePartTypes, LastFoundAt, WorksheetZones, Location_WorksheetZone
