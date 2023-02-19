@@ -280,8 +280,7 @@
                 return;
             }
 
-            newRec = "{% url 'CountScheduleForm' 0 'passedMatlNum' 'passedCountDate' 'None' %}"  // gotoCommand = None
-            if (thisRecNum > 0) { newRec = newRec.replace("/0","/"+thisRecNum) };
+            newRec = "{% url 'CountScheduleForm' 'passedCountDate' 'passedMatlNum' %}"  // gotoCommand = None
             newRec = newRec.replace("passedCountDate",dVal)
             mNum="None"; if (mtlnmID.val() != "") {mNum = mtlnmID.val()}
             newRec = newRec.replace("/passedMatlNum","/"+mNum)
@@ -302,15 +301,16 @@
                 if (R < 0) {R = 0};
                 goCmd = goDir
             }
-            newRec = "{% url 'CountScheduleForm' 0 'None' 'passedCountDate' 'gotoCommand' %}"
-            newRec = newRec.replace("/0","/"+R);
-            newRec = newRec.replace("/passedCountDate","/"+dVal);
+            newRec = "{% url 'CountScheduleFormGoto' 'gotoCommand' %}"
             newRec = newRec.replace("/gotoCommand","/"+goCmd);
             window.location = newRec;
         };
 
         function SubmMainFm() {
-            $("#CSchForm").submit()
+            // enable CountDate and Material so they'll be send back with the form
+            ctdtID.prop("disabled", false);
+            mtlnmID.prop("disabled", false);
+            $("#CSchForm").submit();
         }
 
     </script>

@@ -417,45 +417,63 @@ def fnUploadActCountSprsht(req):
                 MatObj = None
 
             if MatObj:
+                requiredFields={
+                        'CountDate': False,
+                        'Material': False,
+                        'Counter': False,
+                        'BLDG': False,
+                        'Both LocationOnly and CTD_QTY': False,
+                        }
                 MatChanged = False
                 SRec = ActualCounts(org = _userorg)
                 for fldName, colNum in SAPcolmnMap.items():
                     V = row[colNum]
-                    if V==None: V = ''
+                    if V!=None: 
+                        if   fldName == 'CountDate': 
+                            setattr(SRec, fldName, V)
+                            requiredFields['CountDate'] = True
+                        elif fldName == 'Material': 
+                            setattr(SRec, fldName, MatObj)
+                            requiredFields['Material'] = True
+                        elif fldName == 'Counter': 
+                            setattr(SRec, fldName, V)
+                            requiredFields['Counter'] = True
+                        elif fldName == 'BLDG': 
+                            setattr(SRec, fldName, V)
+                            requiredFields['BLDG'] = True
+                        elif fldName == 'LOCATION': setattr(SRec, fldName, V)
+                        elif fldName == 'LocationOnly': 
+                            setattr(SRec, fldName, makebool(V))
+                            requiredFields['Both LocationOnly and CTD_QTY'] = True
+                        elif fldName == 'CTD_QTY_Expr': 
+                            setattr(SRec, fldName, V)
+                            requiredFields['Both LocationOnly and CTD_QTY'] = True
+                        elif fldName == 'Notes': setattr(SRec, fldName, V)
+                        elif fldName == 'TypicalContainerQty' \
+                        or fldName == 'TypicalPalletQty':
+                            if V == '' or V == None: V = 0
+                            if V != 0 and V != getattr(MatObj,fldName,0): 
+                                setattr(MatObj, fldName, V)
+                                MatChanged = True
 
-                    if   fldName == 'CountDate': 
-                        # later, make sure BLDG not blank
-                        setattr(SRec, fldName, V)
-                    elif fldName == 'Counter': 
-                        # later, make sure BLDG not blank
-                        setattr(SRec, fldName, V)
-                    elif fldName == 'BLDG': 
-                        # later, make sure BLDG not blank
-                        setattr(SRec, fldName, V)
-                    elif fldName == 'LOCATION': setattr(SRec, fldName, V)
-                    elif fldName == 'Material': setattr(SRec, fldName, MatObj)
-                    elif fldName == 'LocationOnly': setattr(SRec, fldName, makebool(V))
-                    elif fldName == 'CTD_QTY_Expr': setattr(SRec, fldName, V)
-                    elif fldName == 'Notes': setattr(SRec, fldName, V)
-                    elif fldName == 'TypicalContainerQty' \
-                      or fldName == 'TypicalPalletQty':
-                        if V == '' or V == None: V = 0
-                        if V != 0 and V != getattr(MatObj,fldName,0): 
-                            setattr(MatObj, fldName, V)
-                            MatChanged = True
-                    
-                SRec.save()
-                if MatChanged: MatObj.save()
-                qs = type(SRec).objects.filter(pk=SRec.pk).values().first()
-                res = {'error': False, 'rowNum':rowNum, 'TypicalQty':MatChanged, 'MaterialNum': row[SAPcolmnMap['Material']] }
-                res.update(qs)
-                UplResults.append(res)
-                nRows += 1
+                # are all required fields present?
+                AllRequiredPresent = True
+                for keyname, Prsnt in requiredFields.items():
+                    AllRequiredPresent = AllRequiredPresent and Prsnt
+                    if not Prsnt:
+                        UplResults.append({'error':keyname+' missing', 'rowNum':rowNum})
+
+                if AllRequiredPresent:
+                    SRec.save()
+                    if MatChanged: MatObj.save()
+                    qs = type(SRec).objects.filter(pk=SRec.pk).values().first()
+                    res = {'error': False, 'rowNum':rowNum, 'TypicalQty':MatChanged, 'MaterialNum': row[SAPcolmnMap['Material']] }
+                    res.update(qs)
+                    UplResults.append(res)
+                    nRows += 1
             else:
                 if row[SAPcolmnMap['Material']]:
                     UplResults.append({'error':row[SAPcolmnMap['Material']]+' does not exist in MaterialList', 'rowNum':rowNum})
-                # else:
-                #     UplResults.append({'error':'invalid row with no Material given'})
 
         # close and kill temp files
         wb.close()

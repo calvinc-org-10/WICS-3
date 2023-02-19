@@ -6,6 +6,11 @@ WICS/__pycache__/
 cMenu/__pycache__/
 userprofiles/__pycache__/
 
+# very experimental code, not yet ready for the world
+WICS/notreadyforprimetime.not yet py
+# to be phased out and eventually deleted
+WICS/procs_CountSchedule orig.py
+
 .vscode/
 .pylintrc
 

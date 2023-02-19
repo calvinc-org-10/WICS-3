@@ -51,7 +51,15 @@ class cParameters(models.Model):
         ordering = ['ParmName']
 
     def __str__(self) -> str:
-        return self.ParmName + ' (' + self.ParmValue + ')'
+        S = ''
+        if self.ParmName: 
+            S += self.ParmName
+        else:
+            S += '----'
+        S += ' ('
+        if self.ParmValue: S += self.ParmValue
+        S += ')'
+        return S
 
 def getcParm(parmname):
     if cParameters.objects.filter(ParmName=parmname).exists():

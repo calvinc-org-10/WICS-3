@@ -17,6 +17,13 @@
     <div class="row"> <!-- status messages -->
 
         <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
 
         {% if changes_saved.main %}
             <div class="alert alert-success p-0 alert-dismissible fade show">
@@ -47,7 +54,7 @@
     {{ frmMain.showPK.value }}
     
     <!-- GoTo -->
-    <form id="gotoForm" method="GET" action="{% url 'ReloadMatlForm' frmMain.showPK.value|default_if_none:0 %}">
+    <!-- <form id="gotoForm"> -->
     <div class="container text-center bg-secondary">
         <div class="row mx-auto max-width=95%">
             <div class="col mx-auto">
@@ -63,7 +70,7 @@
             </div>
         </div>
     </div>
-    </form>
+    <!-- </form> -->
 
     <form id="FmMain" class="trackformchanges" method="post">
         {% csrf_token %}
@@ -77,6 +84,7 @@
             <div class="row">
                 <div class="col-7">
                     Material: {% render_field frmMain.Material size="15" %} Description: {% render_field frmMain.Description size="50" %}
+                    <input type="hidden" name="OrigMaterial" value="{{ frmMain.Material.value }}"></input>
                 </div>
                 <div class="col-5">
                     Part Type:  {% render_field frmMain.PartType style="width:10em" %}
@@ -330,6 +338,19 @@
 
         //---------------
 
+        function loadMaterialRec() {
+            goID = document.getElementById('gotoID');
+            if (goID.value != null && goID.value != thisMtlGPN) {
+                newRec="{% url 'ReloadMatlForm' 'gotoMatl' %}"
+                newRec = newRec.replace("/gotoMatl","/"+goID.value);
+                window.location = newRec
+          } else {
+                goID.value = thisMtlGPN;
+          }
+        };
+
+        //---------------
+
         // later, duplicate this for closeform (see document.body.onbeforeunload)
         document.getElementById("close_btn").addEventListener("click",
             function(evobj){
@@ -345,9 +366,8 @@
             dVal = (new Date())                         // today
             dVal.setDate(dVal.getDate()+1)              // tomorrow
             dVal = dVal.toISOString().substring(0,10)   // make it a string
-            R = 0   // not needed, since R=0 is hardcoded in the url below.  But this is good for documentation
             
-            newRec = "{% url 'CountScheduleForm' 0 'passedMatlNum' 'passedCountDate' 'None' %}"
+            newRec = "{% url 'CountScheduleForm' 'passedCountDate' 'passedMatlNum' %}"
             newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
             newRec = newRec.replace("/passedCountDate","/"+dVal);
             window.open(newRec,'_blank')
@@ -408,16 +428,6 @@
             } else {
                 return true;
             }
-        };
-
-        // to become obsolete??
-        function loadMaterialRec() {
-          goID = document.getElementById('gotoID');
-          if (goID.value != null || goID.value == thisMtlGPN) {
-              document.getElementById("gotoForm").submit()
-          } else {
-              goID.value = thisMtlGPN;
-          }
         };
 
         // document.getElementById("{{frmMain.CTD_QTY_Expr.id_for_label}}").addEventListener("onchange",

@@ -82,15 +82,10 @@
 
     function loadCountEntryRec(event) {
 
-        dVal = (new Date()).toISOString().substring(0,10)   //bacause we need to pass in a valid date
-        goCmd = 'None'
-
         R = parseInt(this.value)
 
-        newRec = "{% url 'CountScheduleForm' 0 'None' 'passedCountDate' 'gotoCommand' %}"
+        newRec = "{% url 'CountScheduleForm' 0 %}"
         newRec = newRec.replace("/0","/"+R);
-        newRec = newRec.replace("/passedCountDate","/"+dVal);
-        newRec = newRec.replace("/gotoCommand","/"+goCmd);
         window.open(newRec,'_blank');
 
     };

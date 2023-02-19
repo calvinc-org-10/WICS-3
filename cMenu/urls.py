@@ -39,4 +39,8 @@ urlpatterns = [
     path('MenuRemove/<menuGroup>/<menuNum>',
             views.MenuRemove,
             name='MenuRemove'),
+    path('cUtil/ParmEdit', 
+            #views.cParmFormList.as_view(),   
+            views.fncParmForm,
+            name='EditParms'),
 ]

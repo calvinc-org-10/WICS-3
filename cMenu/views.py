@@ -1,17 +1,22 @@
+from msilib.schema import ListView
+from attr import fields
 from django import forms, db
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.forms import formset_factory, modelformset_factory, CharField
 from django.shortcuts import render
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import reverse, resolve
 from django.utils.text import slugify
+from django.views.generic import ListView
 from django.views.generic.edit import FormView
 from typing import Any
 from cMenu.utils import WrapInQuotes
 from cMenu import menucommand_handlers
 from cMenu.menucommand_handlers import MENUCOMMAND
-from cMenu.models import menuCommands, menuItems, menuGroups
+from cMenu.models import menuCommands, menuItems, menuGroups, cParameters
+
 # imports below are WICS-specific
 from userprofiles.models import WICSuser
 
@@ -396,7 +401,7 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
     elif CommandNum == MENUCOMMAND.EditMenu.value :
         return HttpResponseRedirect(reverse('EditMenu_init'))
     elif CommandNum == MENUCOMMAND.EditParameters.value :
-        pass
+        return HttpResponseRedirect(reverse('EditParms'))
     elif CommandNum == MENUCOMMAND.EditGreetings.value :
         pass
     elif CommandNum == MENUCOMMAND.ExitApplication.value :
@@ -425,32 +430,6 @@ def namedtuplefetchall(cursor, ResultName = 'Result'):
 class fm_cRawSQL(forms.Form):
     inputSQL = forms.CharField(widget=forms.Textarea(attrs={'cols':120}))
 
-# class cRawSQL(LoginRequiredMixin, FormView):
-#     form_class = fm_cRawSQL
-#     template_name = "enter_raw_SQL.html"
-
-#     def setup(self, request: HttpRequest, *args: Any, **kwargs: Any) -> None:
-#         self._userorg = WICSuser.objects.get(user=request.user).org
-#         self.extra_context = {
-#             'orgname':self._userorg.orgname, 'uname':request.user.get_full_name()
-#             }
-#         self.success_url = reverse("ShowRunSQLResults")
-#         return super().setup(request, *args, **kwargs)
-    
-#     def get(self, request: HttpRequest, *args: str, **kwargs: Any) -> HttpResponse:
-#         self.template_name = "enter_raw_SQL.html"
-#         return super().get(request, *args, **kwargs)
-
-#     def post(self, request: HttpRequest, *args: str, **kwargs: Any) -> HttpResponse:
-#         return super().post(request, *args, **kwargs)
-
-#     def form_valid(self, form) -> HttpResponse:
-#         with db.connection.cursor() as cursor:
-#             cursor.execute(form.cleaned_data['inputSQL'])
-#             rows = dictfetchall(cursor)
-        
-#         SQLresults = rows
-#         return super().form_valid(form)
 
 @login_required
 def fn_cRawSQL(req):
@@ -499,15 +478,73 @@ def fn_cRawSQL(req):
     contxt['uname'] = req.user.get_full_name()
     return render(req, templt, context=contxt)
 
-# @login_required
-# def fnShowSQLResults(req):
-#     _userorg = WICSuser.objects.get(user=req.user).org
-
-#     templt = "show_raw_SQL.html"
-#     contxt = {
-#         'SQLResults': SQLResults,
-#         'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
-#         }
-#     return render(req, templt, context=contxt)
     
+
+class cParmFormList(LoginRequiredMixin, ListView):
+    model = cParameters
+    template_name = 'cParameters.html'
+    context_object_name = 'plist'
+    extra_context = {}
+
+    def setup(self, request: HttpRequest, *args: Any, **kwargs: Any) -> None:
+        return super().setup(request, *args, **kwargs)
+
+    def post():
+        pass
+
+class cParmForm(forms.ModelForm):
+    class Meta:
+        model = cParameters
+        fields = '__all__'
+class cParmForm2(forms.Form):
+    ParmName = forms.CharField()
+    ParmValue = forms.CharField()
+    UserModifiable = forms.BooleanField()
+    Comments = forms.CharField()
+class cParmFormset(forms.BaseFormSet):
+    pass
+
+
+
+@login_required
+def fncParmForm(req):
+    _userorg = req.user.WICSuser.org
+    mdlForm = cParmForm
+    mdlClass = cParameters
+    mdlFields = ['ParmName', 'ParmValue', 'UserModifiable', 'Comments']
+
+    initRecs = mdlClass.objects.all()
+    initvals = {'UserModifiable':True}
+
+
+    pFormSet_class = modelformset_factory(mdlClass, fields=mdlFields, can_delete=True)      # , initial={'menuGroup':menuGroup for org}
+    changes = {}
+    templt = 'cParameters.html'
+
+    if req.method == 'POST':
+        pFormSet = pFormSet_class(req.POST, queryset=initRecs)
+        if pFormSet.is_valid():
+            pFormSet.save()
+            changes['changed'] = None
+            if pFormSet.changed_objects: changes['changed'] = pFormSet.changed_objects 
+            changes['deleted'] = None
+            if pFormSet.deleted_objects: changes['deleted'] = pFormSet.deleted_objects 
+            changes['added'] = None
+            if pFormSet.new_objects: changes['added'] = pFormSet.new_objects 
+            templt = 'cParameters-success.html'
+        else:
+            # reveal the errors and try again
+            pass
+        #endif
+    else:
+        pFormSet = pFormSet_class(queryset=initRecs)
+    #endif
+
+    cntext = {
+        'plist': pFormSet, 
+        'Changes': changes, 
+        'request':req,
+        'orgname':_userorg.orgname, 'uname':req.user.get_full_name(), 
+        }
+    return render(req, templt, cntext)
 

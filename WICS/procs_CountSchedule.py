@@ -1,4 +1,5 @@
 import datetime
+from json import load
 from dateutil import parser
 from dateutil.utils import today
 from django import forms
@@ -10,6 +11,7 @@ from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render
 from django.views.generic import ListView
 from barcode import Code128
+from pyparsing import DebugExceptionAction
 from userprofiles.models import WICSuser
 from WICS.models import MaterialList, CountSchedule, \
                         WhsePartTypes, LastFoundAt, WorksheetZones, Location_WorksheetZone
@@ -37,7 +39,7 @@ class CountScheduleRecordForm(forms.ModelForm):
 
     class Meta:
         model = CountSchedule
-        fields = ['CountDate', 'Counter', 'Priority', 'ReasonScheduled', 'CMPrintFlag', 'Notes']
+        fields = ['id', 'CountDate', 'Counter', 'Priority', 'ReasonScheduled', 'CMPrintFlag', 'Notes']
     def __init__(self, org, *args, **kwargs):
         self.org = org
         super().__init__(*args, **kwargs)
@@ -102,48 +104,74 @@ class RelatedMaterialInfo(forms.ModelForm):
 
 @login_required
 def fnCountScheduleRecordForm(req, recNum = 0, 
-    passedMatlNum = None, 
-    passedCountDate=str(nextWorkdayAfter(extraNonWorkdayList=HolidayList())), 
+    loadMatlNum = None, 
+    loadCountDate=str(nextWorkdayAfter(extraNonWorkdayList=HolidayList())), 
     gotoCommand=None
     ):
 
     _userorg = WICSuser.objects.get(user=req.user).org
+    FormMain = CountScheduleRecordForm
+    FormSubs = [S for S in [RelatedMaterialInfo]]
 
-    # the string 'None' is not the same as the value None
-    if passedMatlNum=='None': passedMatlNum=None
-    if gotoCommand=='None': gotoCommand=None
+    modelMain = FormMain.Meta.model
+    modelSubs = [S.Meta.model for S in FormSubs]
 
     # this is used often enough to have it as a baseline
-    allCtSchdRecs = CountSchedule.objects.filter(org=_userorg)
+    allCtSchdRecs = modelMain.objects.filter(org=_userorg)
 
-    # if a record number was passed in, retrieve it
-    # # later, handle record not found (i.e. - invalid recNum passed in)
-    if recNum <= 0:
-        currRec = allCtSchdRecs.none()
-        # set Matl flds
-        if passedMatlNum:
-            matlRec = MaterialList.objects.get(org=_userorg, Material=passedMatlNum)
-        else:
-            matlRec = MaterialList.objects.none()
-    else:
+    # the string 'None' is not the same as the value None
+    if loadMatlNum=='None': loadMatlNum=None
+    if gotoCommand=='None': gotoCommand=None
+
+    prefixvals = {
+            'main': 'sched',
+            'matl': 'matl',
+            }
+    initialvals = {
+            'main': {'CountDate':parser.parse(loadCountDate)},
+            'matl': {},
+            }
+
+    currRec = None
+    # get current record
+    # CRUD Delete existing record - handled by a separate fn - see fnDeletePartTypes 
+    # Get/link related info - part of the process of getting the current record
+    #---
+    # CRUD Read: GoTo record (GoTo Item not implemented - id is the only unique CountSched rec identifier)
+    if   gotoCommand=='gotoRec':
         currRec = allCtSchdRecs.get(pk=recNum)
         matlRec = currRec.Material
-    # endif
+    # CRUD Read: initial load
+    # CRUD Create New Record - for this form, these two are the same function
+    elif gotoCommand==None and req.method=='GET': # or gotoCommand=='New' - New is handled below...:   # orgotoCommand = 'setDateMaterial'
+        currRec = allCtSchdRecs.none()
+        if loadMatlNum: 
+            matlRec = MaterialList.objects.get(org=_userorg, Material=loadMatlNum)
+            currRec.Material = matlRec
+        else:
+            matlRec = MaterialList.objects.none()
+        currRec.CountDate = loadCountDate
+    # CRUD Update (save) new record
+    elif req.method=='POST':
+        if req.POST[prefixvals['main']+'-id']:
+            currRec = allCtSchdRecs.get(pk=req.POST[prefixvals['main']+'-id'])
+            matlRec = currRec.Material
+        else:
+            currRec = allCtSchdRecs.none()
+            matlRec = MaterialList.objects.get(org=_userorg, Material=loadMatlNum)
+        # matlRec = MaterialList.objects.none()
+    else:
+        # wha??????
+        currRec = allCtSchdRecs.none()
+        matlRec = MaterialList.objects.none()
     MaterialID = getattr(matlRec, 'pk', None)
     
-    prefixvals = {}
-    prefixvals['main'] = 'sched'
-    prefixvals['matl'] = 'matl'
-    initialvals = {}
-    initialvals['main'] = {'CountDate':parser.parse(passedCountDate)}
-    initialvals['matl'] = {}
-
     changes_saved = {
         'main': False,
         'matl': False,
         }
     chgd_dat = {
-        'main':None, 
+        'main': None, 
         'matl': None, 
         }
 
@@ -154,12 +182,13 @@ def fnCountScheduleRecordForm(req, recNum = 0,
         gotoCommand = None
 
         # process main form
-        if currRec: mainFm = CountScheduleRecordForm(_userorg, req.POST, instance=currRec,  prefix=prefixvals['main'])
-        else: mainFm = CountScheduleRecordForm(_userorg, req.POST, initial=initialvals['main'],  prefix=prefixvals['main']) 
-        matlSubFm = RelatedMaterialInfo(_userorg, MaterialID, req.POST, instance=matlRec, prefix=prefixvals['matl'])
+        if currRec: mainFm = FormMain(_userorg, req.POST, instance=currRec,  prefix=prefixvals['main'])
+        else: mainFm = FormMain(_userorg, req.POST, initial=initialvals['main'],  prefix=prefixvals['main']) 
+        matlSubFm = FormSubs[0](_userorg, MaterialID, req.POST, instance=matlRec, prefix=prefixvals['matl'])
 
-        s = CountSchedule.objects.none()
+        s = allCtSchdRecs.none()
 
+        # in the generalization, and the is_valid's of all FormSub's
         if mainFm.is_valid() and matlSubFm.is_valid():
             if mainFm.has_changed():
                 s = mainFm.save()
@@ -180,7 +209,8 @@ def fnCountScheduleRecordForm(req, recNum = 0,
         currRec = allCtSchdRecs.order_by('id').first()
         if currRec: 
             recNum = currRec.id
-            passedMatlNum = currRec.Material.Material
+            loadMatlNum = currRec.Material.Material
+            loadCountDate = currRec.CountDate
             matlRec = currRec.Material
             MaterialID = matlRec.id
         else: recNum = 0
@@ -188,7 +218,8 @@ def fnCountScheduleRecordForm(req, recNum = 0,
         currRec = allCtSchdRecs.filter(pk__lt=recNum).order_by('id').last()
         if currRec: 
             recNum = currRec.id
-            passedMatlNum = currRec.Material.Material
+            loadMatlNum = currRec.Material.Material
+            loadCountDate = currRec.CountDate
             matlRec = currRec.Material
             MaterialID = matlRec.id
         else: recNum = 0
@@ -196,7 +227,8 @@ def fnCountScheduleRecordForm(req, recNum = 0,
         currRec = allCtSchdRecs.filter(pk__gt=recNum).order_by('id').first()
         if currRec: 
             recNum = currRec.id
-            passedMatlNum = currRec.Material.Material
+            loadMatlNum = currRec.Material.Material
+            loadCountDate = currRec.CountDate
             matlRec = currRec.Material
             MaterialID = matlRec.id
         else: recNum = 0
@@ -204,7 +236,8 @@ def fnCountScheduleRecordForm(req, recNum = 0,
         currRec = allCtSchdRecs.order_by('id').last()
         if currRec: 
             recNum = currRec.id
-            passedMatlNum = currRec.Material.Material
+            loadMatlNum = currRec.Material.Material
+            loadCountDate = currRec.CountDate
             matlRec = currRec.Material
             MaterialID = matlRec.id
         else: recNum = 0
@@ -213,25 +246,28 @@ def fnCountScheduleRecordForm(req, recNum = 0,
         # currRec is already set above
         if currRec: 
             recNum = currRec.id
-            passedMatlNum = currRec.Material.Material
+            loadMatlNum = currRec.Material.Material
+            loadCountDate = currRec.CountDate
             matlRec = currRec.Material
             MaterialID = matlRec.id
         else: recNum = 0
     elif gotoCommand=="New":
         currRec = allCtSchdRecs.none()
         recNum=0
-        passedMatlNum = None
+        loadMatlNum = None
         matlRec = getattr(currRec, 'Material', '')
         MaterialID = getattr(matlRec, 'pk', None)
+        currRec.CountDate = loadCountDate
     else:
         if currRec: 
             recNum = currRec.id
-            passedMatlNum = currRec.Material.Material
+            loadMatlNum = currRec.Material.Material
+            loadCountDate = currRec.CountDate
             matlRec = currRec.Material
             MaterialID = matlRec.id
         else: 
             # recNum remains whatever was passed in (0 - else there would be a currRec)
-            # passedMatlNum remains whatever was passed in
+            # loadMatlNum remains whatever was passed in
             # matlRec remains what was constructed above
             MaterialID = getattr(matlRec, 'pk', None)
     #endif
@@ -239,28 +275,28 @@ def fnCountScheduleRecordForm(req, recNum = 0,
     # prep the forms for the template
     if gotoCommand != "Invalid":
         if currRec: 
-            mainFm = CountScheduleRecordForm(_userorg, instance=currRec, prefix=prefixvals['main'])
+            mainFm = FormMain(_userorg, instance=currRec, prefix=prefixvals['main'])
         else:       
-            mainFm = CountScheduleRecordForm(_userorg, initial=initialvals['main'],  prefix=prefixvals['main'])
+            mainFm = FormMain(_userorg, initial=initialvals['main'],  prefix=prefixvals['main'])
         if matlRec:
-            matlSubFm = RelatedMaterialInfo(_userorg, MaterialID, instance=matlRec, prefix=prefixvals['matl'])
+            matlSubFm = FormSubs[0](_userorg, MaterialID, instance=matlRec, prefix=prefixvals['matl'])
         else:
-            matlSubFm = RelatedMaterialInfo(_userorg, MaterialID, initial=initialvals['matl'], prefix=prefixvals['matl'])
+            matlSubFm = FormSubs[0](_userorg, MaterialID, initial=initialvals['matl'], prefix=prefixvals['matl'])
 
     # CountEntryForm MaterialList dropdown
     matlchoiceForm = {}
     if currRec:
         matlchoiceForm['gotoItem'] = currRec
     else:
-        if passedMatlNum==None: passedMatlNum = ''
-        matlchoiceForm['gotoItem'] = {'Material':passedMatlNum}
+        if loadMatlNum==None: loadMatlNum = ''
+        matlchoiceForm['gotoItem'] = {'Material':loadMatlNum}
     matlchoiceForm['choicelist'] = MaterialList.objects.filter(org=_userorg).values('id','Material')
 
     #finally, if this is a new rec, and a rec already exists for this CountDate and Material, the Material must be rejected
     msgDupSched = ''
-    if (not currRec) and fnCountScheduleRecord(_userorg,passedCountDate,passedMatlNum):
-        msgDupSched = 'A count for ' + str(passedMatlNum) + ' is already scheduled for ' + str(passedCountDate)
-        passedMatlNum = None
+    if (not currRec) and fnCountScheduleRecordExists(_userorg,loadCountDate,loadMatlNum):
+        msgDupSched = 'A count for ' + str(loadMatlNum) + ' is already scheduled for ' + str(loadCountDate)
+        loadMatlNum = None
         matlchoiceForm['gotoItem']['Material'] = ''
 
     # display the form
@@ -271,14 +307,14 @@ def fnCountScheduleRecordForm(req, recNum = 0,
             'changes_saved': changes_saved,
             'changed_data': chgd_dat,
             'recNum': recNum,
-            'matlnum_changed': passedMatlNum,
+            'matlnum_changed': loadMatlNum,
             'MaterialID': MaterialID,
             'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
             }
     templt = 'frm_CountScheduleRec.html'
     return render(req, templt, cntext)
 
-def fnCountScheduleRecord(org, CtDate, Matl):
+def fnCountScheduleRecordExists(org, CtDate, Matl):
     """
     used to check if a CountSchedule redcord exists for the given CtDate and Material
     (only one such record is allowed).
