@@ -165,9 +165,10 @@
         document.body.onload = function() {
 
             // if this is an existing record, disable CountDate and Material; allowing those to change is just too much work
+            // nope, it's OK now
             if (thisRecNum > 0) {
-                ctdtID.prop("disabled", true);
-                mtlnmID.prop("disabled", true);
+                // ctdtID.prop("disabled", true);
+                // mtlnmID.prop("disabled", true);
             }
 
             // turn off controls that need the Date and Material first

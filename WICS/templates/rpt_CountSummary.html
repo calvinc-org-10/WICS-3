@@ -158,14 +158,20 @@
 <script>
     var mainscroll = "height:350px; overflow:auto;"
 
+    //---------
+
     document.body.onbeforeunload = function() {
         document.getElementById("wait_spinner").style.display = "block";
         }
+
+    //---------
 
     function confirmLeave(){
         // this is not an input form; we're always ready to leave
         return true;
     };
+
+    //---------
 
     document.getElementById("close_btn").addEventListener("click",
         function(evobj){
@@ -174,10 +180,30 @@
             }
         });
 
+    //---------
+
+    $(".btnSchCt").on("click",
+        function() {
+            dVal = (new Date())                         // today
+            dVal.setDate(dVal.getDate()+1)              // tomorrow
+            dVal = dVal.toISOString().substring(0,10)   // make it a string
+
+            thisMtlGPN = this.value
+            
+            newRec = "{% url 'CountScheduleForm' 'passedCountDate' 'passedMatlNum' %}"
+            newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
+            newRec = newRec.replace("/passedCountDate","/"+dVal);
+            window.open(newRec,'_blank')
+        });
+
+    //---------
+
     function newCtDate() {
         var newRec = "{% url 'CountSummaryReport' 'PCD' %}".replace('/PCD','/'+$('#CtDate').val())
         window.location = newRec;
     }
+
+    //---------
 
     function swap_prt_disp() {
         // remove scroll from mainReport so it can be printed or put it back for a scrolling window

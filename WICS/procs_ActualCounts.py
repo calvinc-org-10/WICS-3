@@ -37,7 +37,7 @@ class CountEntryForm(forms.ModelForm):
     Notes  = forms.CharField(required=False)
     class Meta:
         model = ActualCounts
-        fields = ['CountDate', 'CycCtID', 'Counter', 'LocationOnly', 
+        fields = ['id', 'CountDate', 'CycCtID', 'Counter', 'LocationOnly', 
                 'BLDG', 'LOCATION', 'CTD_QTY_Expr', 'PKGID_Desc', 'TAGQTY',
                 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes']
     def __init__(self, org, *args, **kwargs):

@@ -166,7 +166,7 @@
                 <div class="card-body no-padding" style="height:70px; overflow: auto;">
                     <div class="row g-0">
                         {{ frmSchedInfo.id }} {# render_field frmSchedInfo.id hidden="true" #}
-                        <div class="col-1">{% render_field frmSchedInfo.CountDate size="10" disabled=true %}</div>
+                        <div class="col-1">{% render_field frmSchedInfo.CountDate size="10" %}</div>
                         <div class="col-2">{% render_field frmSchedInfo.Counter class="need-Matl-Dt" size="10" tabindex="-1" %}</div>
                         <div class="col-1">{% render_field frmSchedInfo.Priority class="need-Matl-Dt" size="10" tabindex="-1" %}</div>
                         <div class="col-3">{% render_field frmSchedInfo.ReasonScheduled class="need-Matl-Dt" size="30" tabindex="-1" %}</div>
@@ -242,9 +242,10 @@
             sCE();  // show calculated value of CTD_QTY
 
             // if this is an existing record, disable CountDate and Material; allowing those to change is just too much work
+            // nope, I can do that now
             if (thisRecNum > 0) {
-                ctdtID.prop("readonly", true);
-                mtlnmID.prop("readonly", true);
+                // ctdtID.prop("readonly", true);
+                // mtlnmID.prop("readonly", true);
             }
 
             // turn off controls that need the Date and Material first

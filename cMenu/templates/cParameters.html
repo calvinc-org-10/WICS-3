@@ -67,6 +67,7 @@
     <div class="container">
         <ul id="form_set">
         {% for cprm in plist %}
+            {% if cprm.UserModifiable.value == True or request.user.is_superuser %}
             <li>
             <div class="row mx-auto max-width=100%">
                 {% if cprm.errors %} {{ cprm.errors }}<br> {% endif %}
@@ -90,6 +91,7 @@
             </div>
             </li>
             <hr>
+            {% endif %}
         {% endfor %}
         </ul>
     </div>

@@ -478,36 +478,34 @@ def fn_cRawSQL(req):
 
     
 
-class cParmFormList(LoginRequiredMixin, ListView):
-    model = cParameters
-    template_name = 'cParameters.html'
-    context_object_name = 'plist'
-    extra_context = {}
+# class cParmFormList(LoginRequiredMixin, ListView):
+#     model = cParameters
+#     template_name = 'cParameters.html'
+#     context_object_name = 'plist'
+#     extra_context = {}
 
-    def setup(self, request: HttpRequest, *args: Any, **kwargs: Any) -> None:
-        return super().setup(request, *args, **kwargs)
+#     def setup(self, request: HttpRequest, *args: Any, **kwargs: Any) -> None:
+#         return super().setup(request, *args, **kwargs)
 
-    def post():
-        pass
+#     def post():
+#         pass
 
-class cParmForm(forms.ModelForm):
-    class Meta:
-        model = cParameters
-        fields = '__all__'
-class cParmForm2(forms.Form):
-    ParmName = forms.CharField()
-    ParmValue = forms.CharField()
-    UserModifiable = forms.BooleanField()
-    Comments = forms.CharField()
-class cParmFormset(forms.BaseFormSet):
-    pass
+# class cParmForm(forms.ModelForm):
+#     class Meta:
+#         model = cParameters
+#         fields = '__all__'
+# class cParmForm2(forms.Form):
+#     ParmName = forms.CharField()
+#     ParmValue = forms.CharField()
+#     UserModifiable = forms.BooleanField()
+#     Comments = forms.CharField()
 
 
 
 @login_required
 def fncParmForm(req):
     _userorg = req.user.WICSuser.org
-    mdlForm = cParmForm
+    # mdlForm = cParmForm
     mdlClass = cParameters
     mdlFields = ['ParmName', 'ParmValue', 'UserModifiable', 'Comments']
 
