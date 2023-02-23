@@ -10,6 +10,7 @@ userprofiles/__pycache__/
 WICS/notreadyforprimetime.not yet py
 # to be phased out and eventually deleted
 WICS/procs_CountSchedule orig.py
+WICS/procs_ActualCounts orig.py
 
 .vscode/
 .pylintrc
