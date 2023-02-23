@@ -14,6 +14,7 @@ WICS/procs_ActualCounts orig.py
 
 .vscode/
 .pylintrc
+.gitignore
 
 
 # Byte-compiled / optimized / DLL files
