@@ -44,16 +44,16 @@
     </div><!-- container -->
     <hr>
 
-   {{ recNum }}
+   {{ recNum }} / {{ frmMain.id.value }}
 
     <form id="CEForm" class="trackformchanges" method="post">
         {% csrf_token %}
         <!-- form header -->
         {{ frmMain.errors }}
+        {{ frmMain.id }}
         <input type="hidden" id="RecPK" name="RecPK" value={{ recNum }} required></input>
         <div class="container">
             <div class="row">
-                <div class="col-1">{{ frmMain.id }}</div>
                 <div class="col-5 bg-secondary text-warning">Fields in <span class="bg-danger fw-bold">RED</span> are required before Saving the form</div>
             </div>
         </div>
@@ -118,7 +118,7 @@
         </div>
         <hr>
         <div class="row g-0">
-            {{ frmMatlInfo.id }} 
+            {{ frmMatlInfo.id }}
             <input type="hidden" id="MatlPK" name="MatlPK" value={{ frmMatlInfo.id }} required></input>
             <div class="col-4">Desc: {% render_field frmMatlInfo.Description size="40" %}</div>
             <div class="col-2">Pt Type: {% render_field frmMatlInfo.PartType class="need-Matl-Dt" style="width:7em" %}</div>
@@ -279,7 +279,7 @@
                 }
 
                 R = 0   // not needed, since R=0 is hardcoded in the url below.  But this is good for documentation
-                newRec = "{% url 'CountScheduleForm' 'passedCountDate' 'passedMatlNum' %}"
+                newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
                 newRec = newRec.replace("/passedMatlNum","/"+mtlnmID.val());
                 newRec = newRec.replace("/passedCountDate","/"+dVal);
                 window.open(newRec,'_blank')
@@ -377,30 +377,20 @@
                 return;
             }
 
-            newRec = "{% url 'CountEntryForm' 0 'passedCountDate' 'matl' %}"
-            if (thisRecNum > 0) { newRec = newRec.replace("/0","/"+thisRecNum) };
-            newRec = newRec.replace("passedCountDate",dVal)
-            mNum="None"; if (mtlnmID.val() != "") {mNum = mtlnmID.val()}
-            newRec = newRec.replace("/matl","/"+mNum)
+            newRec = "{% url 'CountEntryForm' 9999 'passedCountDate' 'matl' %}";
+            R = Number.parseInt( document.getElementById('{{frmMain.id.id_for_label}}').value );
+            if ( isNaN(R) ) { R = 0 };
+            newRec = newRec.replace("/9999","/"+R);
+            newRec = newRec.replace("passedCountDate",dVal);
+            mNum="None"; if (mtlnmID.val() != "") {mNum = mtlnmID.val()};
+            newRec = newRec.replace("/matl","/"+mNum);
             window.location = newRec;
         };
         function loadCountEntryRec(goDir) {
-            if (!isValid_Date()) {return;}
-            else {
-                dVal = (new Date(ctdtID.val())).toISOString().substring(0,10)
-            }
-
-            /****
-            {
-                if (typeof(dVal) == 'string') { dVal = new Date(dVal) };
-                dVal =  dtstr(dt = dVal, fmt = "YYYY-MM-DD")
-            }
-            *****/
-            R = {{recNum}}
-            if (R < 0) {R = 0};
-            newRec = "{% url 'CountEntryFormGoto' 0 'passedCountDate' 'None' 'gotoCommand' %}"
+            R = Number.parseInt( document.getElementById('{{frmMain.id.id_for_label}}').value );
+            if ( isNaN(R) ) { R = 0 };
+            newRec = "{% url 'CountEntryFormGo' 0 'gotoCommand' %}"
             newRec = newRec.replace("/0","/"+R);
-            newRec = newRec.replace("/passedCountDate","/"+dVal);
             newRec = newRec.replace("/gotoCommand","/"+goDir);
             window.location = newRec;
         };

@@ -44,7 +44,7 @@
     </div><!-- container -->
     <hr>
 
-    {{ recNum }}
+    {{ recNum }} / {{ frmMain.id.value }}
     <input type="hidden" id="thisRecNum" value="{{recNum}}">
 
     <form id="CSchForm" class="trackformchanges" method="post">
@@ -94,16 +94,17 @@
             Material Info
         </div>
         <div class=row g-0>
-            {{ MaterialID }} <input type="hidden" name="MaterialID" value="{{MaterialID}}">
-            <div class="col-5">Description: {% render_field frmMatl.Description class="need-Matl-Dt" size="50" tabindex="-1" %}</div>
-            <div class="col-2">Part Type: {% render_field frmMatl.PartType class="need-Matl-Dt" style="width:7em" tabindex="-1" %}</div>
+            {{ frmMatlInfo.id }}
+            <input type="hidden" id="MatlPK" name="MatlPK" value={{ frmMatlInfo.id }} required></input>
+            <div class="col-5">Description: {% render_field frmMatlInfo.Description class="need-Matl-Dt" size="50" tabindex="-1" %}</div>
+            <div class="col-2">Part Type: {% render_field frmMatlInfo.PartType class="need-Matl-Dt" style="width:7em" tabindex="-1" %}</div>
             <div class="col-4">
-                Typ Container Qty: {% render_field frmMatl.TypicalContainerQty class="need-Matl-Dt" style="width:7em" tabindex="-1" %}
-                Typ Plt Qty: {% render_field frmMatl.TypicalPalletQty class="need-Matl-Dt" style="width:7em" tabindex="-1" %}
+                Typ Container Qty: {% render_field frmMatlInfo.TypicalContainerQty class="need-Matl-Dt" style="width:7em" tabindex="-1" %}
+                Typ Plt Qty: {% render_field frmMatlInfo.TypicalPalletQty class="need-Matl-Dt" style="width:7em" tabindex="-1" %}
             </div>
         </div>
         <div class=row g-0>
-            <div class="col-12">Material Notes: {% render_field frmMatl.Notes size="100" class="need-Matl-Dt" tabindex="-1" %}</div>
+            <div class="col-12">Material Notes: {% render_field frmMatlInfo.Notes size="100" class="need-Matl-Dt" tabindex="-1" %}</div>
         </div>
         </div>  <!-- container-fluid, on same level with rows -->
     </form>
@@ -281,29 +282,22 @@
                 return;
             }
 
-            newRec = "{% url 'CountScheduleForm' 'passedCountDate' 'passedMatlNum' %}"  // gotoCommand = None
+            newRec = "{% url 'CountScheduleForm' 9999 'passedCountDate' 'passedMatlNum' %}"  // gotoCommand = None
+            R = Number.parseInt( document.getElementById('{{frmMain.id.id_for_label}}').value );
+            if ( isNaN(R) ) { R = 0 };
+            newRec = newRec.replace("/9999","/"+R);
             newRec = newRec.replace("passedCountDate",dVal)
             mNum="None"; if (mtlnmID.val() != "") {mNum = mtlnmID.val()}
             newRec = newRec.replace("/passedMatlNum","/"+mNum)
             window.location = newRec;
         };
         function loadCountEntryRec(goDir) {
-            let dVal;
-            if (!isValid_Date()) {return;}
-            else {
-                dVal = (new Date(ctdtID.val())).toISOString().substring(0,10)
-            }
 
-            if (typeof(goDir)=="number") {
-                R = $("#sel_gotorec").val()
-                goCmd = 'None'
-            } else {
-                R = thisRecNum
-                if (R < 0) {R = 0};
-                goCmd = goDir
-            }
-            newRec = "{% url 'CountScheduleFormGoto' 'gotoCommand' %}"
-            newRec = newRec.replace("/gotoCommand","/"+goCmd);
+            newRec = "{% url 'CountScheduleFormGo' 9999 'gotoCommand' %}"
+            R = Number.parseInt( document.getElementById('{{frmMain.id.id_for_label}}').value );
+            if ( isNaN(R) ) { R = 0 };
+            newRec = newRec.replace("/9999","/"+R);
+            newRec = newRec.replace("/gotoCommand","/"+goDir);
             window.location = newRec;
         };
 

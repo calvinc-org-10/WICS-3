@@ -16,7 +16,8 @@ Including another URLconf
 from django.urls import path, reverse
 from django.shortcuts import redirect
 from WICS import userinit, \
-        procs_SAP, procs_CountSchedule, procs_ActualCounts, procs_Material
+        procs_SAP, procs_CountSchedule, procs_ActualCounts, procs_Material, \
+        views
 from WICS import adhoc_2023_02_01_001
 from userprofiles import logout
 
@@ -24,8 +25,81 @@ urlpatterns = [
     path('', lambda request: redirect(reverse('login'),permanent=False), name='WICSlogin'),       # this is actually the entry point to WICS
     path('inituser', userinit.inituser , name='initWICSuser'),
     path('logout',logout.WICSlogout, name='WICSlogout'),
+
     path('ActualCountList',
             procs_ActualCounts.ActualCountListForm.as_view(), name='ActualCountList'),
+
+    path('CountScheduleList',
+            procs_CountSchedule.CountScheduleListForm.as_view(),name='CountScheduleList'),
+
+    path('CountEntryForm',
+            views.fnCountEntryView, name='CountEntryForm'),
+    path('CountEntryForm/Go/<int:recNum>',
+            views.fnCountEntryView, name='CountEntryFormGo'),
+    path('CountEntryForm/Go/<int:recNum>/<str:gotoCommand>',
+            views.fnCountEntryView,
+            name='CountEntryFormGo'),    
+    path('CountEntryForm/<int:recNum>/<str:reqDate>/<str:MatlNum>',
+            views.fnCountEntryView, {'gotoCommand':'ChgKey'},
+            name='CountEntryForm'),
+
+    path('CountScheduleForm',
+            views.fnCountScheduleRecView, name='CountScheduleForm'),
+    path('CountScheduleForm/Go/<int:recNum>',
+            views.fnCountScheduleRecView, name='CountScheduleFormGo'),
+    path('CountScheduleForm/Go/<int:recNum>/<str:gotoCommand>',
+            views.fnCountScheduleRecView,
+            name='CountScheduleFormGo'),    
+    path('CountScheduleForm/<int:recNum>/<str:reqDate>/<str:MatlNum>',
+            views.fnCountScheduleRecView, {'gotoCommand':'ChgKey'},
+            name='CountScheduleForm'),
+
+    path('CountSummaryRpt',
+            procs_ActualCounts.fnCountSummaryRpt, name='CountSummaryReport'),
+    path('CountSummaryRpt/<str:passedCountDate>',
+            procs_ActualCounts.fnCountSummaryRpt, name='CountSummaryReport'),
+
+    path('CountWorksheet',
+            procs_CountSchedule.CountWorksheetReport.as_view(),name='CountWorksheet'),
+    path('CountWorksheet/<CountDate>',
+            procs_CountSchedule.CountWorksheetReport.as_view(),name='CountWorksheet'),
+
+    path('MaterialForm',
+            procs_Material.fnMaterialForm, name='MatlForm'),
+    path('MaterialForm/newRec',
+            procs_Material.fnMaterialForm, {'gotoRec':False, 'newRec':True}, name='NewMatlForm'),       #this MUST occur before name='ReloadMatlForm'
+    path('MaterialForm/<str:gotoMatl>',
+            procs_Material.fnMaterialForm, {'gotoRec':True}, name='ReloadMatlForm'),
+
+    path('MatlByPartType',procs_Material.MaterialByPartType.as_view(), name='MatlByPartType'),
+
+    path('MaterialLocations',
+            procs_Material.MaterialLocationsList.as_view(),name='MaterialLocations'),
+
+    path('LocationList',
+            procs_Material.fnLocationList,name='LocationList'),
+
+    path('PartTypeForm',
+            procs_Material.fnPartTypesForm, {'recNum':-999}, name='PartTypeForm'),
+    path('PartTypeForm/<int:recNum>',
+            procs_Material.fnPartTypesForm, {'gotoRec':True}, name='ReloadPTypForm'),
+    path('DeltePartType/<int:recNum>',
+            procs_Material.fnDeletPartTypes, name='DeletePTyp'),
+
+    path('SAP',procs_SAP.fnShowSAP,name='showtable-SAP'),
+    path('SAP/<str:reqDate>',procs_SAP.fnShowSAP,name='showtable-SAP'),
+
+    path('UpldActCtSprsht', procs_ActualCounts.fnUploadActCountSprsht, name='UploadActualCountSprsht'),
+
+    path('UpdateMatlListfromSAP',procs_SAP.fnUpdateMatlListfromSAP, name='UpdateMatlListfromSAP'),
+
+    path('UpldSAPSprsht',procs_SAP.fnUploadSAP, name='UploadSAPSprSht'),
+
+    path('adhoc-2023-02-01-001',adhoc_2023_02_01_001.adhoc001,name='adhoc-2023-02-01-001'),
+
+]
+
+oldpatterns = [
     path('CountEntryForm',
             procs_ActualCounts.fnCountEntryForm, name='CountEntryForm'),
     path('CountEntryForm/<int:recNum>',
@@ -34,8 +108,7 @@ urlpatterns = [
             procs_ActualCounts.fnCountEntryForm, name='CountEntryForm'),
     path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>/<str:gotoCommand>',
             procs_ActualCounts.fnCountEntryForm, name='CountEntryFormGoto'),
-    path('CountScheduleList',
-            procs_CountSchedule.CountScheduleListForm.as_view(),name='CountScheduleList'),
+
     path('CountScheduleForm',
             procs_CountSchedule.fnCountScheduleRecordForm,name='CountScheduleForm'),
     path('CountScheduleForm/Go/<int:recNum>',
@@ -47,37 +120,7 @@ urlpatterns = [
     path('CountScheduleForm/<str:loadCountDate>/<str:loadMatlNum>',
             procs_CountSchedule.fnCountScheduleRecordForm, {'gotoCommand':'None'},
             name='CountScheduleForm'),
-    path('CountSummaryRpt',
-            procs_ActualCounts.fnCountSummaryRpt, name='CountSummaryReport'),
-    path('CountSummaryRpt/<str:passedCountDate>',
-            procs_ActualCounts.fnCountSummaryRpt, name='CountSummaryReport'),
-    path('CountWorksheet',
-            procs_CountSchedule.CountWorksheetReport.as_view(),name='CountWorksheet'),
-    path('CountWorksheet/<CountDate>',
-            procs_CountSchedule.CountWorksheetReport.as_view(),name='CountWorksheet'),
-    path('MaterialForm',
-            procs_Material.fnMaterialForm, name='MatlForm'),
-    path('MaterialForm/newRec',
-            procs_Material.fnMaterialForm, {'gotoRec':False, 'newRec':True}, name='NewMatlForm'),       #this MUST occur before name='ReloadMatlForm'
-    path('MaterialForm/<str:gotoMatl>',
-            procs_Material.fnMaterialForm, {'gotoRec':True}, name='ReloadMatlForm'),
-    path('MatlByPartType',procs_Material.MaterialByPartType.as_view(), name='MatlByPartType'),
-    path('MaterialLocations',
-            procs_Material.MaterialLocationsList.as_view(),name='MaterialLocations'),
-    path('LocationList',
-            procs_Material.fnLocationList,name='LocationList'),
-    path('PartTypeForm',
-            procs_Material.fnPartTypesForm, {'recNum':-999}, name='PartTypeForm'),
-    path('PartTypeForm/<int:recNum>',
-            procs_Material.fnPartTypesForm, {'gotoRec':True}, name='ReloadPTypForm'),
-    path('DeltePartType/<int:recNum>',
-            procs_Material.fnDeletPartTypes, name='DeletePTyp'),
-    path('SAP',procs_SAP.fnShowSAP,name='showtable-SAP'),
-    path('SAP/<str:reqDate>',procs_SAP.fnShowSAP,name='showtable-SAP'),
-    path('UpldActCtSprsht', procs_ActualCounts.fnUploadActCountSprsht, name='UploadActualCountSprsht'),
-    path('UpdateMatlListfromSAP',procs_SAP.fnUpdateMatlListfromSAP, name='UpdateMatlListfromSAP'),
-    path('UpldSAPSprsht',procs_SAP.fnUploadSAP, name='UploadSAPSprSht'),
-
-    path('adhoc-2023-02-01-001',adhoc_2023_02_01_001.adhoc001,name='adhoc-2023-02-01-001'),
+]
+newpatterns = [
 
 ]

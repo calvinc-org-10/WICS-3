@@ -190,7 +190,7 @@
 
             thisMtlGPN = this.value
             
-            newRec = "{% url 'CountScheduleForm' 'passedCountDate' 'passedMatlNum' %}"
+            newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
             newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
             newRec = newRec.replace("/passedCountDate","/"+dVal);
             window.open(newRec,'_blank')

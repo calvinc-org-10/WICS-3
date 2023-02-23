@@ -48,10 +48,10 @@ class CountEntryForm(forms.ModelForm):
             return None
         dbmodel = self.Meta.model
         required_fields = ['CountDate', 'Material', 'Counter'] #id, org handled separately
-        PriK = self.data['RecPK']
+        # PriK = self.data['RecPK']
+        PriK = self['id'].value()
         M = MaterialList.objects.get(org=self.org, Material=self.cleaned_data['Material']) 
         if not str(PriK).isnumeric(): PriK = -1
-        else: PriK = int(PriK)
         existingrec = dbmodel.objects.filter(pk=PriK).exists()
         if existingrec: rec = dbmodel.objects.get(pk=PriK)
         else:   rec = dbmodel()
@@ -145,16 +145,30 @@ class RelatedScheduleInfo(forms.ModelForm):
 @login_required
 def fnCountEntryForm(req, recNum = 0, 
     loadMatlInfo = None, 
-    passedCountDate=str(datetime.date.today()), 
+    loadCountDate=str(datetime.date.today()), 
     gotoCommand=None
     ):
 # one day I will clean this up ...
 
     _userorg = WICSuser.objects.get(user=req.user).org
+    FormMain = CountEntryForm
+    FormSubs = [S for S in [RelatedMaterialInfo, RelatedScheduleInfo]]
+
+    modelMain = FormMain.Meta.model
+    modelSubs = [S.Meta.model for S in FormSubs]
 
     # the string 'None' is not the same as the value None
     if loadMatlInfo=='None': loadMatlInfo=None
     if gotoCommand=='None': gotoCommand=None
+
+    prefixvals = {}
+    prefixvals['main'] = 'counts'
+    prefixvals['matl'] = 'matl'
+    prefixvals['schedule'] = 'schedule'
+    initialvals = {}
+    initialvals['main'] = {'CountDate':datetime.date.fromisoformat(loadCountDate)}
+    initialvals['matl'] = {}
+    initialvals['schedule'] = {'CountDate':datetime.date.fromisoformat(loadCountDate)}
 
     # recover currRec and matlSubFm from POST data
     if req.method == 'POST':
@@ -178,15 +192,6 @@ def fnCountEntryForm(req, recNum = 0,
     # endif
     MaterialID = getattr(matlRec, 'pk', None)
     
-    prefixvals = {}
-    prefixvals['main'] = 'counts'
-    prefixvals['matl'] = 'matl'
-    prefixvals['schedule'] = 'schedule'
-    initialvals = {}
-    initialvals['main'] = {'CountDate':datetime.date.fromisoformat(passedCountDate)}
-    initialvals['matl'] = {}
-    initialvals['schedule'] = {'CountDate':datetime.date.fromisoformat(passedCountDate)}
-
     changes_saved = {
         'main': False,
         'matl': False,
@@ -309,7 +314,7 @@ def fnCountEntryForm(req, recNum = 0,
             matlSubFm = RelatedMaterialInfo(_userorg, MaterialID, initial=initialvals['matl'], prefix=prefixvals['matl'])
     # all counts for this Material today
     if matlRec: 
-        todayscounts = ActualCounts.objects.filter(CountDate=passedCountDate,Material=matlRec)
+        todayscounts = ActualCounts.objects.filter(CountDate=loadCountDate,Material=matlRec)
     else: 
         todayscounts = ActualCounts.objects.none()
     # schedFm
@@ -324,7 +329,7 @@ def fnCountEntryForm(req, recNum = 0,
         if loadMatlInfo != None:
             # fill in MatlInfo and CountSchedInfo
             if recNum > 0: getDate = currRec.CountDate 
-            else: getDate = passedCountDate
+            else: getDate = loadCountDate
             if CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlRec).exists():
                 schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
             else:
