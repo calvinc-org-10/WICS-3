@@ -84,7 +84,7 @@
 
         R = parseInt(this.value)
 
-        newRec = "{% url 'CountScheduleForm' 0 %}"
+        newRec = "{% url 'CountScheduleFormGo' 0 %}"
         newRec = newRec.replace("/0","/"+R);
         window.open(newRec,'_blank');
 

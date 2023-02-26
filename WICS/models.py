@@ -167,6 +167,6 @@ class WorksheetZones(models.Model):
 
 
 class Location_WorksheetZone(models.Model):
-    location = models.CharField(max_length=10,blank=False)
+    location = models.CharField(max_length=50,blank=False)
     zone = models.ForeignKey('WorksheetZones', on_delete=models.RESTRICT)
 

@@ -1,4 +1,5 @@
 import datetime
+import re
 from dateutil import parser
 from dateutil.utils import today
 from django import forms
@@ -404,7 +405,8 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
             rec.LastFoundAt = LastFoundAt(rec.Material)
             zoneList = []
             for lz in Location_WorksheetZone.objects.all().values('location','zone'):
-                if lz['location'] in rec.LastFoundAt['lastFoundAt']: zoneList.append(lz['zone'])
+                if re.search(lz['location'],rec.LastFoundAt['lastFoundAt']):    #if lz['location'] in rec.LastFoundAt['lastFoundAt']: 
+                    zoneList.append(lz['zone'])
             rec.Zones = zoneList
             for SAProw in SAP_SOH['SAPTable'].filter(Material=rec.Material): 
                 rec.SAPQty += SAProw.Amount

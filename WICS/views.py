@@ -238,6 +238,8 @@ def fnCountScheduleRecView(req,
         'matl': None, 
         }
 
+    msgDupSched = ''
+
     if req.method == 'POST':
         R = req.POST[prefixvals['main']+'-id']
         recNum = int(R) if R.isnumeric() else 0
@@ -309,7 +311,6 @@ def fnCountScheduleRecView(req,
             currRec = modelMain.objects.get(pk=recNum)
             matlRec = currRec.Material  # subject to change
 
-        msgDupSched = ''
         if gotoCommand == 'ChgKey':
             #finally, if this is a new rec, and a rec already exists for this CountDate and Material, the Material must be rejected
             exstSchdRec = getattr(fnCountScheduleRecordExists(_userorg,reqDate,MatlNum),'id', False)

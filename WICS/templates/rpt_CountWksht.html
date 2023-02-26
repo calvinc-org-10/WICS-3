@@ -3,6 +3,15 @@
 
 
 {% block tTitle %}Counting Agenda/Worksheet{% endblock %}
+{% block tHeader %}
+<style>
+    @page {
+        size: landscape;
+        margin: 1.0;
+        padding: 0;
+    }
+</style>
+{% endblock %}
 {% block boddy %}
 <!-- menu head -->
 <div class="container text-center mx-auto">
@@ -28,7 +37,7 @@
 <hr>
 <!-- body -->
     
-<div class="container">
+<div class="container mx-0">
     <ul class="nav nav-pills">
         {% for Cntr in CounterList %}
         <li class="nav-item">
@@ -69,7 +78,7 @@
                     <thead>
                         <tr>
                         {% for zName in zoneList %}
-                            <th class="calvin-smalltext">{{zName}}</th>
+                            <th class="calvin-microtext">{{zName}}</th>
                         {% endfor %}
                         </tr>
                     </thead>
@@ -77,7 +86,7 @@
                     <tr>
                     {% for z in zoneList %}
                         {% if forloop.counter in itm.Zones %}
-                            <td class="text-center"><b>O</b></td>
+                            <td class="text-center"><b>&#x25EF</b></td>
                         {% else %}
                             <td> </td>
                         {% endif %}

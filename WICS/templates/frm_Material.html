@@ -367,7 +367,7 @@
             dVal.setDate(dVal.getDate()+1)              // tomorrow
             dVal = dVal.toISOString().substring(0,10)   // make it a string
             
-            newRec = "{% url 'CountScheduleForm' 'passedCountDate' 'passedMatlNum' %}"
+            newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
             newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
             newRec = newRec.replace("/passedCountDate","/"+dVal);
             window.open(newRec,'_blank')
