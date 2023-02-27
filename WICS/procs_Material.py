@@ -233,7 +233,7 @@ def fnMaterialForm(req, recNum = -1, gotoMatl=None, gotoRec=False, newRec=False)
                     SAPQty = SAPTotals.filter(Material=r.Material).first()['SAPQty']
                 else:
                     SAPDate = ''
-                    SAPQty = ''
+                    SAPQty = 0
 
             initdata.append({
                 'Material': r.Material,
