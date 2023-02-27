@@ -196,11 +196,11 @@
                     <div class="card-header">
                         {{ countsummset.management_form }}
                         <div class="container"><div class="row">
-                        <div class="col-2">Material</div>
                         <div class="col-2">Count Date</div>
                         <div class="col-2">Total Counted</div>
                         <div class="col-2">SAP Date</div>
                         <div class="col-2">SAP Qty</div>
+                        <div class="col-2"></div>
                         </div></div>
                     </div>
                     <div class="card-body no-padding" style="height:210px; overflow: auto;">
@@ -208,7 +208,7 @@
                         {% for ffrm in countsummset %}
                             <li>
                             {% for ffld in ffrm %}
-                                {{ ffld }}
+                                {% if ffld.name != 'Material' %}{{ ffld }}{% endif %}
                             {% endfor %}
                             </li>
                         {% endfor %}

@@ -29,7 +29,7 @@ def fnCountEntryView(req,
     }
     initialvals = {
         #'main': {'CountDate':datetime.date.fromisoformat(reqDate)},
-        'main': {'CountDate': reqDate},
+        'main': {'CountDate': reqDate,'Counter':req.user.get_short_name()},
         'matl': {},
         #'schedule': {'CountDate':datetime.date.fromisoformat(reqDate)},
         'schedule': {'CountDate': reqDate},
@@ -54,7 +54,7 @@ def fnCountEntryView(req,
         except:
             currRec = modelMain(org=_userorg)
         matlRec = modelSubs[0].objects.get(org=_userorg, Material=req.POST[prefixvals['main']+'-Material'])
-        schedRecs = modelSubs[1].objects.filter(org=_userorg, CountDate=req.POST[prefixvals['main']+'-CountDate'], Material=matlRec)
+        #schedRecs = modelSubs[1].objects.filter(org=_userorg, CountDate=req.POST[prefixvals['main']+'-CountDate'], Material=matlRec)
 
         # process main form
         if currRec: mainFm = FormMain(_userorg, req.POST, instance=currRec,  prefix=prefixvals['main'])   # do I need to pass in intial?
@@ -82,7 +82,7 @@ def fnCountEntryView(req,
             #      changes_saved['schedule'] = True
 
             # prep new record to present
-            currRec = modelMain(org=_userorg, CountDate=reqDate)
+            currRec = modelMain(org=_userorg, CountDate=reqDate,Counter=req.user.get_short_name())
             recNum=0
             MatlNum = None
             matlRec = getattr(currRec,'Material', '')
@@ -99,7 +99,7 @@ def fnCountEntryView(req,
 
 
     else:
-        currRec = modelMain(org=_userorg, CountDate=reqDate)
+        currRec = modelMain(org=_userorg, CountDate=reqDate,Counter=req.user.get_short_name())
         matlRec = modelSubs[0].objects.none()
         # TODO: later, do try..except blocks
         if gotoCommand == 'First':

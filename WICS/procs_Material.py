@@ -89,6 +89,8 @@ class MaterialCountSummary(forms.Form):
     CountQTY_Eval = forms.IntegerField(required=False, disabled=True)
     SAPDate = forms.DateField(required=False, disabled=True)
     SAPQty = forms.CharField(max_length=20, required=False, disabled=True)
+    Diff = forms.CharField(max_length=20, required=False, disabled=True)
+    Accuracy = forms.CharField(max_length=20, required=False, disabled=True)
 
 
 @login_required
@@ -240,8 +242,12 @@ def fnMaterialForm(req, recNum = -1, gotoMatl=None, gotoRec=False, newRec=False)
                 'SAPDate': SAPDate,
                 'SAPQty': SAPQty,
             })
-        n = initdata[-1]['CountQTY_Eval'] + r.QtyEval
-        initdata[-1]['CountQTY_Eval'] = n
+        PIQty = initdata[-1]['CountQTY_Eval'] + r.QtyEval
+        initdata[-1]['CountQTY_Eval'] = PIQty
+        initdata[-1]['Diff'] = PIQty - SAPQty
+        divsr = 1
+        if PIQty!=0 or SAPQty!=0: divsr = max(PIQty, SAPQty)
+        initdata[-1]['Accuracy'] = f"{min(PIQty, SAPQty) / divsr * 100:.2f}%"
     subFm_class = formset_factory(MaterialCountSummary,extra=0)
     summarySet = subFm_class(initial=initdata, prefix='summaryset')
 
