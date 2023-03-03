@@ -1,6 +1,33 @@
+import datetime
+from datetime import date
 from dateutil.parser import parse
 from dateutil.rrule import *
 import dateutil.utils
+
+
+class calvindate(date):
+    def __new__(cls, *args):
+        D = datetime.date.today()        # set default to datetime.date.today()
+        if len(args) == 3:  # year, month, day was passed in
+            D = date(int(args[0]), int(args[1]), int(args[2]))
+            # D =  super().__new__(int(args[0]), int(args[1]), int(args[2]))
+        elif len(args) == 2:    # month, day passed in , year should be current year
+            yrr = datetime.date.today().year
+            D =  date(int(yrr), int(args[0]), int(args[1]))
+            # D =  super().__new__(int(yrr), int(args[0]), int(args[1]))
+        elif len(args) == 1:    # either a date string or date object passed in
+            if isinstance(args[0],(datetime.date, datetime.datetime)):
+                DStr = str(args[0])
+            else:
+                DStr = args[0]
+            D = parse(DStr,default=datetime.date.today())
+        else:
+            # invalid number of args.  Do nothing; let the default stand
+            pass
+        return D
+    def __init__(self) -> None:
+        super().__init__()
+
 
 
 def WrapInQuotes(strg, openquotechar = chr(34), closequotechar = chr(34)):

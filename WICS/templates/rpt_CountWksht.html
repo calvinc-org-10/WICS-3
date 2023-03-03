@@ -65,8 +65,6 @@
             {% endif %}
             {{ itm.MaterialBarCode|safe }}
             {# {{ itm.Material.Material }} | #}
-            {{ itm.Material.PartType.WhsePartType }} | Prio: <b>{{ itm.Priority }}</b> |
-            Sched Counter: {{ itm.Counter }}
             </div>
             <div class="col-7">
                 <table class="table-bordered table-sm">
@@ -98,19 +96,17 @@
         </div>
         <div class="row g-0">
             <div class="col-11">
-            {{ CountDate|date:'Y-m-d' }} | 
-            {{ itm.Material.Description }}
-            </div>
-        </div>
-        <div class="row g-0">
-            <div class="col-10">
-            Last Found On {{ itm.LastFoundAt.lastCountDate }} At {{ itm.LastFoundAt.lastFoundAt }}
+                {{ CountDate|date:'Y-m-d' }} | 
+                {{ itm.Material.PartType.WhsePartType }} | Prio: <b>{{ itm.Priority }}</b> |
+                Sched Counter: {{ itm.Counter }} |
+                {{ itm.Material.Description }}
             </div>
         </div>
         <div class="row g-0">
             <div class="col-10">
             Typical Container Qty = {{ itm.Material.TypicalContainerQty }},
-            Typical Pallet Qty = {{ itm.Material.TypicalPalletQty }}
+            Typical Pallet Qty = {{ itm.Material.TypicalPalletQty }} | 
+            Last Found On {{ itm.LastFoundAt.lastCountDate }} At {{ itm.LastFoundAt.lastFoundAt }}
             </div>
         </div>
         <div class="row g-0 calvin-smalltext">

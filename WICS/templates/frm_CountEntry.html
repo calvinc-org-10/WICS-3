@@ -92,29 +92,35 @@
             </div>
         </div>
         <div class="row g-0">
-            <div class="col-6">Ctd Qty:
+            <div class="col-5">Ctd Qty:
                 {% render_field frmMain.CTD_QTY_Expr class="need-Matl-Dt" size="45" onchange="sCE();" autocomplete="off" %}
                 <span class="container-md" id="EvalExpr">????</span>
             </div>
             <div class="col-2">Building: 
                 {% render_field frmMain.BLDG class="need-Matl-Dt bg-danger fw-bold" size="8" %}
             </div>
-            <div class="col-2">Location: {% render_field frmMain.LOCATION class="need-Matl-Dt" size="8" %}</div>
-        </div>
-        <div class="row g-0">
-            <div class="col-2">
-                Possibly Not Rcvd: {% render_field frmMain.FLAG_PossiblyNotRecieved class="need-Matl-Dt" %}
+            <div class="col-2">Location: 
+                {% render_field frmMain.LOCATION class="need-Matl-Dt" size="8" %}
             </div>
-            <div class="col-2">
+            <div class="col">
+                Possibly Not Rcvd: {% render_field frmMain.FLAG_PossiblyNotRecieved class="need-Matl-Dt" %}
                 Mvmnt During Ct: {% render_field frmMain.FLAG_MovementDuringCount class="need-Matl-Dt" %}
             </div>
+        </div>
+        <div class="row g-0">
             <div class="col-2">
                 Pkg ID/Desc: {% render_field frmMain.PKGID_Desc class="need-Matl-Dt" size="7" %}
             </div>
             <div class="col-2">
                 Tag Qty: {% render_field frmMain.TAGQTY class="need-Matl-Dt" size="7" %}
             </div>
-            <div class="col-4">Notes: {% render_field frmMain.Notes class="need-Matl-Dt" size="35" %}</div>
+            <div class="col-6">Notes: {% render_field frmMain.Notes class="need-Matl-Dt" size="45" %}</div>
+            <div class="col">
+                <button id="save_btn" type="button" form="CEForm" class="need-Matl-Dt" onclick="SubmMainFm();" >
+                    <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                    Save changes
+                </button>
+            </div>
         </div>
         <hr>
         <div class="row g-0">
@@ -183,10 +189,12 @@
     <div class="container">
         <div class="row mx-auto max-width=100%">
             <div class="col-2">
+                <!--
                 <button id="save_btn" type="button" form="CEForm" class="need-Matl-Dt" onclick="SubmMainFm();" >
                     <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
                     Save changes
                 </button>
+                -->
             </div>
             <div class="col-8">
                 <button id="btn_firstrec" type="button" onclick="processGoToReq('First');">First</button>
