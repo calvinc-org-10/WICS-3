@@ -7,6 +7,7 @@ from django.db.models import Max
 from django.shortcuts import render
 from openpyxl import load_workbook
 from cMenu.models import getcParm
+from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
 from WICS.models import SAP_SOHRecs
 from WICS.models import WhsePartTypes, MaterialList, tmpMaterialListUpdate
@@ -43,7 +44,7 @@ def fnShowSAP(req, reqDate=datetime.today()):
 
 
 class UploadSAPForm(forms.Form):
-    uploaded_at = forms.DateTimeField()
+    uploaded_at = forms.DateField()
     SAPFile = forms.FileField()
 
 @login_required
@@ -64,22 +65,31 @@ def fnUploadSAP(req):
             wb = load_workbook(filename=fName, read_only=True)
             ws = wb.active
 
-            # I map Table Fields directly to spreadsheet columns because the SOH spreadsheets
-            # are fairly stable.  If that changes, see fnUpdateMatlListfromSAP
-            # for an alternative way of handling this mapping
-            SAPcolmnMap = {
-                        'Material': 0,
-                        'Description': 1,
-                        'Plant': 2,
-                        'MaterialType': 3,
-                        'StorageLocation': 4,
-                        'BaseUnitofMeasure': 5,
-                        'Amount': 6,
-                        'Currency': 7,
-                        'ValueUnrestricted': 8,
-                        'SpecialStock': 9,
-                        'Batch': 10,
-                        }
+            SAPcolmnNames = ws[1]
+            SAPcolmnMap = {'Material': None}
+            SAP_SSName_TableName_map = {
+                    'Material': 'Material', 
+                    'Material description': 'Description', 
+                    'Plant': 'Plant',
+                    'Material type': 'MaterialType',
+                    'Storage location': 'StorageLocation',
+                    'Base Unit of Measure': 'BaseUnitofMeasure',
+                    'Unrestricted': 'Amount',
+                    'Currency': 'Currency',
+                    'Value Unrestricted': 'ValueUnrestricted',
+                    'Special Stock': 'SpecialStock',
+                    'Batch': 'Batch',
+                    }
+            for col in SAPcolmnNames:
+                if col.value in SAP_SSName_TableName_map:
+                    SAPcolmnMap[SAP_SSName_TableName_map[col.value]] = col.column - 1
+            if (SAPcolmnMap['Material'] == None):   # or SAPcol['StorageLocation'] == None or SAPcol['Amount'] == None):
+                raise Exception('SAP Spreadsheet has bad header row.  See Calvin to fix this.')
+
+            # if SAP SOH records exist for this date, kill them; only one set of SAP SOH records per day
+            # (this was signed off on by user before coming here)
+            UplDate = calvindate(req.POST['uploaded_at'])
+            SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__date=UplDate).delete()
 
             nRows = 0
             for row in ws.iter_rows(min_row=2, values_only=True):
@@ -88,7 +98,7 @@ def fnUploadSAP(req):
                 if len(str(MatNum)):
                     SRec = SAP_SOHRecs(
                                 org = _userorg,
-                                uploaded_at = req.POST['uploaded_at']
+                                uploaded_at = UplDate
                                 )
                     for fldName, colNum in SAPcolmnMap.items():
                         if row[colNum]==None: setval = ''
@@ -101,7 +111,7 @@ def fnUploadSAP(req):
             wb.close()
             os.remove(fName)
 
-            cntext = {'uploaded_at':req.POST['uploaded_at'], 'nRows':nRows,
+            cntext = {'uploaded_at':UplDate, 'nRows':nRows,
                     'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
                     }
             templt = 'frm_upload_SAP_Success.html'

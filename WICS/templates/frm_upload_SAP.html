@@ -24,8 +24,8 @@
     <hr>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
-        <p>Last Upload was <span class="h4"> {{ LastSAPUploadDate|date:'Y-m-d H:i' }}</span></p>
-        <p>This upload will have date: {{ form.uploaded_at }}</p>
+        <p>Last Upload was <span class="h4"> {{ LastSAPUploadDate|date:'Y-m-d' }}</span></p>
+        <p>This upload will have date: {{ form.uploaded_at }} (if an existing upload exists for this date, it will be overwritten)</p>
         <p>{{ form.SAPFile }}</p>
 
         <!-- form footer -->
@@ -54,7 +54,7 @@
 
 
         // expand this one day - this could be useful - Fix it first!!!
-        function dtstr(dt = Date(), fmt = "YYYY-MM-DD HH:NN:SS")
+        function dtstr(dt = Date(), fmt = "YYYY-MM-DD")
         {
             dt = (dt == undefined) ? Date() : dt;   // how do I move dt to localtime??? - easy - by not introducing syntax errors!
             if (typeof(dt) == 'string') { dt = new Date(dt) }
@@ -62,9 +62,9 @@
             d_str = d_str.replaceAll('YYYY',("0000"+dt.getFullYear()).slice(-4))
             d_str = d_str.replaceAll('MM',("00"+(dt.getMonth()+1)).slice(-2))
             d_str = d_str.replaceAll('DD',("00"+dt.getDate()).slice(-2))
-            d_str = d_str.replaceAll('HH',("00"+dt.getHours()).slice(-2))
-            d_str = d_str.replaceAll('NN',("00"+dt.getMinutes()).slice(-2))
-            d_str = d_str.replaceAll('SS',("00"+dt.getSeconds()).slice(-2))
+            //d_str = d_str.replaceAll('HH',("00"+dt.getHours()).slice(-2))
+            //d_str = d_str.replaceAll('NN',("00"+dt.getMinutes()).slice(-2))
+            //d_str = d_str.replaceAll('SS',("00"+dt.getSeconds()).slice(-2))
             // if new_dt = Date(d_str) is invalid, replace with dt.toString()
             return d_str
         }
