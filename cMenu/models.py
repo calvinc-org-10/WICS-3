@@ -1,5 +1,4 @@
 from django.db import models
-from sqlalchemy import UniqueConstraint
 
 
 class menuCommands(models.Model):
@@ -32,10 +31,12 @@ class menuItems(models.Model):
     PWord = models.CharField(max_length=250, blank=True)
     TopLine = models.BooleanField(null=True)
     BottomLine = models.BooleanField(null=True)
-    UniqueConstraint('MenuGroup','MenuID','OptionNumber')
 
     class Meta:
         ordering = ['MenuGroup','MenuID', 'OptionNumber']
+        constraints = [
+                models.UniqueConstraint('MenuGroup','MenuID','OptionNumber', name='mnuItUNQ_mGrp_mID_OptNum')
+            ]
 
     def __str__(self) -> str:
         return str(self.MenuGroup) + ', ' + str(self.MenuID) + '/' + str(self.OptionNumber) + ', ' + self.OptionText

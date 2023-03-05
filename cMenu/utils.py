@@ -1,8 +1,8 @@
+from __future__ import annotations      # to allow calvindate (or any other class) to refer to itself.  See https://stackoverflow.com/questions/40925470/python-how-to-refer-a-class-inside-itself
 import datetime
-from datetime import date
+from datetime import date, timedelta
 from dateutil.parser import parse
 from dateutil.rrule import *
-import dateutil.utils
 
 
 class calvindate(date):
@@ -34,6 +34,73 @@ class calvindate(date):
 #     R = calvindate(testarg)
 #     print(type(R),R)
 #     testarg = input('Next testarg:')
+    def as_datetime(self):
+        return datetime.datetime(self.year,self.month,self.day)
+
+    def today(self):
+        return self.__class__()
+    def daysfrom(self,delta:int) -> calvindate:
+        R_dt = self.as_datetime() + timedelta(days=delta)
+        return calvindate(R_dt)
+    def tomorrow(self):
+        return self.daysfrom(1)
+    def yesterday(self):
+        return self.daysfrom(-1)
+    
+    def nextWorkdayAfter(self, nonWorkdays={SA,SU}, extraNonWorkdayList={}, include_afterdate=False):
+        afterdate = self.as_datetime()
+        
+        excRule = rrule(WEEKLY,dtstart=afterdate,byweekday=nonWorkdays)
+        afterdaysRule = rrule(DAILY,dtstart=afterdate)
+
+        exclSet = rruleset()
+        exclSet.rrule(afterdaysRule)
+        exclSet.exrule(excRule)
+        # loop extraNonWorkdays into exclSet.exdate
+        for xDate in extraNonWorkdayList:
+            exclSet.exdate(xDate)
+
+        return self.__class__( exclSet.after(afterdate,include_afterdate) )
+    
+    # operators
+    def __comparison_workhorse__(LHE, RHE, compOpr):
+        LHExpr = LHE.as_datetime()
+        RHExpr = RHE.as_datetime()
+        if compOpr == 'lt':
+            return LHExpr < RHExpr
+        if compOpr == 'le':
+            return LHExpr <= RHExpr
+        if compOpr == 'eq':
+            return LHExpr == RHExpr
+        if compOpr == 'ne':
+            return LHExpr != RHExpr
+        if compOpr == 'gt':
+            return LHExpr > RHExpr
+        if compOpr == 'ge':
+            return LHExpr >= RHExpr
+        return False
+    def __lt__(self, other):
+        return self.__comparison_workhorse__(self,other,'lt')
+    def __le__(self, other):
+        return self.__comparison_workhorse__(self,other,'le')
+    def __eq__(self, other):
+        return self.__comparison_workhorse__(self,other,'eq')
+    def __ne__(self, other):
+        return self.__comparison_workhorse__(self,other,'ne')
+    def __gt__(self, other):
+        return self.__comparison_workhorse__(self,other,'gt')
+    def __ge__(self, other):
+        return self.__comparison_workhorse__(self,other,'ge')
+    def __add__(self, other):
+        if isinstance(other, int):
+            return self.daysfrom(other)
+        else:
+            return NotImplemented
+    def __sub__(self, other):
+        if isinstance(other, int):
+            return self.daysfrom(-other)
+        else:
+            return NotImplemented
 
 
 def WrapInQuotes(strg, openquotechar = chr(34), closequotechar = chr(34)):
@@ -65,15 +132,3 @@ def isDate(testdate):
     return td
 
 
-def nextWorkdayAfter(afterdate=dateutil.utils.today(), nonWorkdays={SA,SU}, extraNonWorkdayList={}, include_afterdate=False):
-    excRule = rrule(WEEKLY,dtstart=afterdate,byweekday=nonWorkdays)
-    afterdaysRule = rrule(DAILY,dtstart=afterdate)
-
-    exclSet = rruleset()
-    exclSet.rrule(afterdaysRule)
-    exclSet.exrule(excRule)
-    # loop extraNonWorkdays into exclSet.exdate
-    for xDate in extraNonWorkdayList:
-        exclSet.exdate(xDate)
-
-    return exclSet.after(afterdate,include_afterdate)

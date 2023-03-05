@@ -1,7 +1,7 @@
-import datetime
-import re
-from dateutil import parser
-from dateutil.utils import today
+# import datetime
+import re as regex
+#from dateutil import parser
+#from dateutil.utils import today
 from django import forms
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -12,99 +12,22 @@ from django.shortcuts import render
 from django.views.generic import ListView
 from barcode import Code128
 from userprofiles.models import WICSuser
+from WICS.forms import CountScheduleRecordForm, RelatedMaterialInfo
 from WICS.models import MaterialList, CountSchedule, \
                         WhsePartTypes, LastFoundAt, WorksheetZones, Location_WorksheetZone
 from WICS.procs_SAP import fnSAPList
 from typing import *
 # below: skip Sat, Sun using dateutil, dateutil.rrule, dateutil.rruleset
 # implement skipping holidays
-from cMenu.utils import nextWorkdayAfter
+from cMenu.utils import calvindate
 from WICS.procs_misc import HolidayList
 
 
-class CountScheduleRecordForm(forms.ModelForm):
-    id = forms.IntegerField(required=False, widget=forms.HiddenInput)
-    CountDate = forms.DateField(required=True, 
-        initial=nextWorkdayAfter(extraNonWorkdayList=HolidayList())
-        )
-    Material = forms.CharField(required=True)
-        # Material is handled this way because of the way it's done in the html.
-        # later, create a DropdownText widget??
-    Counter = forms.CharField(required=False)
-    Priority = forms.CharField(max_length=50, required=False)
-    ReasonScheduled = forms.CharField(max_length=250, required=False)
-    CMPrintFlag = forms.BooleanField(required=False, initial=False)
-    Notes  = forms.CharField(required=False)
-
-    class Meta:
-        model = CountSchedule
-        fields = ['id', 'CountDate', 'Counter', 'Priority', 'ReasonScheduled', 'CMPrintFlag', 'Notes']
-    def __init__(self, org, *args, **kwargs):
-        self.org = org
-        super().__init__(*args, **kwargs)
-    def save(self):
-        if not self.is_valid():
-            return None
-        dbmodel = self.Meta.model
-        required_fields = ['CountDate', 'Material'] #id, org handled separately
-        PriK = self['id'].value()
-        M = MaterialList.objects.get(org=self.org, Material=self.cleaned_data['Material']) 
-        if not str(PriK).isnumeric(): PriK = -1
-        existingrec = dbmodel.objects.filter(pk=PriK).exists()
-        if existingrec: rec = dbmodel.objects.get(pk=PriK)
-        else: rec = dbmodel()
-        for fldnm in self.changed_data + required_fields:
-            if fldnm=='id' or fldnm=='org': continue
-            elif fldnm=='Material':
-                setattr(rec,fldnm, M)
-            else:
-                setattr(rec, fldnm, self.cleaned_data[fldnm])
-        rec.org = self.org
-        
-        rec.save()
-        return rec
-
-class RelatedMaterialInfo(forms.ModelForm):
-    Description = forms.CharField(max_length=250, required=False)
-    PartType = forms.ModelChoiceField(queryset=WhsePartTypes.objects.filter(org=None).order_by('WhsePartType'))
-    TypicalContainerQty = forms.IntegerField(required=False)
-    TypicalPalletQty = forms.IntegerField(required=False)
-    Notes = forms.CharField(max_length=250, required=False)
-    class Meta:
-        model = MaterialList
-        fields = ['Description', 'PartType', 
-                'TypicalContainerQty', 'TypicalPalletQty', 'Notes']
-    def __init__(self, org, id, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self.id = id
-        self.org = org
-        self.fields['PartType'].queryset=WhsePartTypes.objects.filter(org=org).order_by('WhsePartType').all()
-    def save(self):
-        if not self.is_valid():
-            return None
-        dbmodel = self.Meta.model
-        required_fields = [] #id, org handled separately
-        PriK = self.id
-        if not str(PriK).isnumeric(): PriK = -1
-        existingrec = dbmodel.objects.filter(pk=PriK).exists()
-        if existingrec: rec = dbmodel.objects.get(pk=PriK)
-        else:  raise Exception('Saving Related Material with no PK')  # rec = dbmodel()
-        for fldnm in self.changed_data + required_fields:
-            if fldnm=='id' or fldnm=='org': continue
-            if fldnm=='Material':
-                # no special processing - Material is a string here, not a ForeignField
-                setattr(rec, fldnm, self.cleaned_data[fldnm])
-            else:
-                setattr(rec, fldnm, self.cleaned_data[fldnm])
-        rec.org = self.org
-        
-        rec.save()
-        return rec
 
 @login_required
 def fnCountScheduleRecordForm(req, recNum = 0, 
     loadMatlNum = None, 
-    loadCountDate=str(nextWorkdayAfter(extraNonWorkdayList=HolidayList())), 
+    loadCountDate=str(calvindate().nextWorkdayAfter(extraNonWorkdayList=HolidayList())), 
     gotoCommand=None
     ):
 
@@ -127,7 +50,7 @@ def fnCountScheduleRecordForm(req, recNum = 0,
             'matl': 'matl',
             }
     initialvals = {
-            'main': {'CountDate':parser.parse(loadCountDate)},
+            'main': {'CountDate':calvindate(loadCountDate)},
             'matl': {},
             }
 
@@ -376,8 +299,8 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
         self._user = req.user
         self._userorg = WICSuser.objects.get(user=req.user).org
         if 'CountDate' in kwargs: self.CountDate = kwargs['CountDate']
-        else: self.CountDate = today()
-        if isinstance(self.CountDate,str): self.CountDate = parser.parse(self.CountDate)
+        else: self.CountDate = calvindate().today()
+        if isinstance(self.CountDate,str): self.CountDate = calvindate(self.CountDate)
         return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
@@ -405,7 +328,7 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
             rec.LastFoundAt = LastFoundAt(rec.Material)
             zoneList = []
             for lz in Location_WorksheetZone.objects.all().values('location','zone'):
-                if re.search(lz['location'],rec.LastFoundAt['lastFoundAt']):    #if lz['location'] in rec.LastFoundAt['lastFoundAt']: 
+                if regex.search(lz['location'],rec.LastFoundAt['lastFoundAt']):    #if lz['location'] in rec.LastFoundAt['lastFoundAt']: 
                     zoneList.append(lz['zone'])
             rec.Zones = zoneList
             for SAProw in SAP_SOH['SAPTable'].filter(Material=rec.Material): 

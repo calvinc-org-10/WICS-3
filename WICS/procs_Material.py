@@ -1,5 +1,5 @@
-from datetime import timedelta, date, MINYEAR
-import dateutil.utils
+from datetime import MINYEAR
+#import dateutil.utils
 from django import forms, urls
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -12,6 +12,7 @@ from django.http import HttpResponse, HttpRequest, HttpResponseRedirect
 from django.shortcuts import render
 from django.views.generic import ListView
 from cMenu.models import getcParm
+from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
 from WICS.models import MaterialList, ActualCounts, CountSchedule, SAP_SOHRecs, \
                         WhsePartTypes, LastFoundAt
@@ -53,8 +54,8 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
             rec.SAPList = self.SAPTable.filter(Material=rec.Material)
             # filter Material in SAP_SOH for date OR last count date within 30d
             testdate = rec.LFADate
-            if testdate == None: testdate = date(MINYEAR, 1, 1)
-            rec.DoNotShow = (not rec.SAPList.exists()) and (testdate < (dateutil.utils.today()-timedelta(days=int(getcParm('LOCRPT-COUNTDAYS-IFNOSAP')))).date())
+            if testdate == None: testdate = calvindate(MINYEAR, 1, 1)
+            rec.DoNotShow = (not rec.SAPList.exists()) and (testdate < calvindate().today()-int(getcParm('LOCRPT-COUNTDAYS-IFNOSAP')))
 
         return qs
 
@@ -140,7 +141,6 @@ def fnMaterialForm(req, recNum = -1, gotoMatl=None, gotoRec=False, newRec=False)
     chgd_dat = {'main':None, 'counts': None, 'schedule': None}
 
     if newRec:
-        # SAP_SOH = {'reqDate': dateutil.utils.today(), 'SAPDate': dateutil.utils.today(), 'SAPTable':[]}
         SAP_SOH = fnSAPList(_userorg,matl='-')
     else:
         SAP_SOH = fnSAPList(_userorg, matl=currRec.Material)
@@ -224,9 +224,9 @@ def fnMaterialForm(req, recNum = -1, gotoMatl=None, gotoRec=False, newRec=False)
             r.QtyEval = 0
         if (r.Material != LastMaterial or r.CountDate != LastCountDate):
             LastMaterial = r.Material ; LastCountDate = r.CountDate
-            if SAPTotals.filter(Material=r.Material,uploaded_at__date__lte=r.CountDate).exists():
-                SAPDate = SAPTotals.filter(Material=r.Material,uploaded_at__date__lte=r.CountDate).latest()['uploaded_at']
-                SAPQty = SAPTotals.filter(Material=r.Material,uploaded_at__date__lte=r.CountDate).latest()['SAPQty']
+            if SAPTotals.filter(Material=r.Material,uploaded_at__lte=r.CountDate).exists():
+                SAPDate = SAPTotals.filter(Material=r.Material,uploaded_at__lte=r.CountDate).latest()['uploaded_at']
+                SAPQty = SAPTotals.filter(Material=r.Material,uploaded_at__lte=r.CountDate).latest()['SAPQty']
             else:
                 if SAPTotals.filter(Material=r.Material).exists():
                     SAPDate = SAPTotals.filter(Material=r.Material).first()['uploaded_at']

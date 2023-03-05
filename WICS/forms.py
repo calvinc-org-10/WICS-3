@@ -1,13 +1,13 @@
-import datetime
+# import datetime
 from django import forms
-from cMenu.utils import nextWorkdayAfter
+from cMenu.utils import calvindate
 from WICS.models import MaterialList, ActualCounts, CountSchedule, WhsePartTypes
 from WICS.procs_misc import HolidayList
 
 
 class CountEntryForm(forms.ModelForm):
     id = forms.IntegerField(required=False, widget=forms.HiddenInput)
-    CountDate = forms.DateField(required=True, initial=datetime.date.today())
+    CountDate = forms.DateField(required=True, initial=calvindate().today())
     CycCtID = forms.CharField(required=False)
     Material = forms.CharField(required=True)
         # Material is handled this way because of the way it's done in the html.
@@ -56,7 +56,7 @@ class CountEntryForm(forms.ModelForm):
 class CountScheduleRecordForm(forms.ModelForm):
     id = forms.IntegerField(required=False, widget=forms.HiddenInput)
     CountDate = forms.DateField(required=True, 
-        initial=nextWorkdayAfter(extraNonWorkdayList=HolidayList())
+        initial=calvindate().nextWorkdayAfter(extraNonWorkdayList=HolidayList())
         )
     Material = forms.CharField(required=True)
         # Material is handled this way because of the way it's done in the html.

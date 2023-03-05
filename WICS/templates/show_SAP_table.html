@@ -6,7 +6,7 @@
 <!-- menu head -->
 <div class="container text-center mx-auto">
     <div class="row max-width=100%">
-        <div class="col-3 text-start">Calvin is testing here - please add coffee!!</div>
+        <div class="col-3 text-start"></div>
         <div class="col-7 fs-2">
             <u>{{ orgname }}</u>
             <br>
@@ -14,9 +14,9 @@
             <span class="container">
                 <select id="gotoID" onchange="loadSAPDate();">
                 {% for SD in SAPDateList %}
-                    <option value="{{SD}}" 
+                    <option value="{{SD|slice:':10'}}" 
                     {% if SD == SAPDate %} selected{% endif %}
-                    >{{SD}}</option>
+                    >{{SD|slice:':10'}}</option>
                 {% endfor %}
                 </select>
             </span>

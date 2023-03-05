@@ -1,5 +1,6 @@
-import dateutil.utils as dateutils
+# import dateutil.utils as dateutils
 from django.shortcuts import render
+from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
 from WICS.forms import CountEntryForm, CountScheduleRecordForm, RelatedMaterialInfo, RelatedScheduleInfo
 from WICS.models import MaterialList
@@ -7,7 +8,7 @@ from WICS.procs_CountSchedule import fnCountScheduleRecordExists
 
 
 def fnCountEntryView(req, 
-            recNum = 0, MatlNum = None, reqDate = dateutils.today(),
+            recNum = 0, MatlNum = None, reqDate = calvindate().today(),
             gotoCommand = None
             ):
     _userorg = WICSuser.objects.get(user=req.user).org
@@ -28,10 +29,8 @@ def fnCountEntryView(req,
         'schedule': 'schedule',
     }
     initialvals = {
-        #'main': {'CountDate':datetime.date.fromisoformat(reqDate)},
         'main': {'CountDate': reqDate,'Counter':req.user.get_short_name()},
         'matl': {},
-        #'schedule': {'CountDate':datetime.date.fromisoformat(reqDate)},
         'schedule': {'CountDate': reqDate},
     }
 
@@ -204,7 +203,7 @@ def fnCountEntryView(req,
 
 
 def fnCountScheduleRecView(req, 
-            recNum = 0, MatlNum = None, reqDate = dateutils.today(),
+            recNum = 0, MatlNum = None, reqDate = calvindate().today(),
             gotoCommand = None
             ):
     _userorg = WICSuser.objects.get(user=req.user).org
@@ -224,7 +223,6 @@ def fnCountScheduleRecView(req,
         'matl': 'matl',
     }
     initialvals = {
-        #'main': {'CountDate':datetime.date.fromisoformat(reqDate)},
         'main': {'CountDate': reqDate},
         'matl': {},
     }

@@ -1,7 +1,7 @@
 from django.db import models
-from sqlalchemy import UniqueConstraint
-from django.utils import timezone
-from cMenu.models import getcParm
+# from cMenu.utils import calvindate
+# from django.utils import timezone
+# from cMenu.models import getcParm
 
 # Create your models here.
 # I'm quite happy with automaintained pk fields, so I don't specify any
@@ -32,11 +32,13 @@ class WhsePartTypes(models.Model):
     InactivePartType = models.BooleanField(blank=True, default=False)
     objects = models.Manager()
     orgobjects = orgObjects(org)
-    UniqueConstraint('org', 'WhsePartType')
-    UniqueConstraint('org', 'PartTypePriority')
 
     class Meta:
         ordering = ['org','WhsePartType']
+        constraints = [
+                models.UniqueConstraint('org', 'WhsePartType', name='PTypeUNQ_org_PType'),
+                models.UniqueConstraint('org', 'PartTypePriority', name='PTypeUNQ_org_PTypePrio'),
+            ]
 
     def __str__(self) -> str:
         return self.WhsePartType
@@ -57,10 +59,12 @@ class MaterialList(models.Model):
     Notes = models.CharField(max_length=250, blank=True)
     objects = models.Manager()
     orgobjects = orgObjects(org)
-    UniqueConstraint('org', 'Material')
 
     class Meta:
         ordering = ['org','Material']
+        constraints = [
+                models.UniqueConstraint('org', 'Material', name='MatlListUNQ_org_Material'),
+            ]
 
     def __str__(self) -> str:
         return self.Material
@@ -85,10 +89,13 @@ class CountSchedule(models.Model):
     Notes = models.CharField(max_length=250, blank=True)
     objects = models.Manager()
     orgobjects = orgObjects(org)
-    UniqueConstraint('org', 'CountDate', 'Material')
 
     class Meta:
         ordering = ['org','CountDate', 'Material']
+        constraints = [
+                models.UniqueConstraint('org', 'CountDate', 'Material', name='CSchdUNQ_org_CDate_Material'),
+            ]
+        
     def __str__(self) -> str:
         return str(self.pk) + ": " + str(self.CountDate) + " / " + str(self.Material) + " / " + str(self.Counter)
         # return super().__str__()
@@ -142,7 +149,7 @@ def LastFoundAt(matl):
 
 
 class SAP_SOHRecs(models.Model):
-    uploaded_at = models.DateTimeField(default=timezone.now)
+    uploaded_at = models.DateField()
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
     Material = models.CharField(max_length=100)
     Description = models.CharField(max_length=250, blank=True)

@@ -1,6 +1,6 @@
 import os, uuid
-from datetime import datetime
-from dateutil import parser
+# from datetime import datetime
+# from dateutil import parser
 from django import forms
 from django.contrib.auth.decorators import login_required
 from django.db.models import Max
@@ -16,7 +16,7 @@ ExcelWorkbook_fileext = ".XLSX"
 
 
 @login_required
-def fnShowSAP(req, reqDate=datetime.today()):
+def fnShowSAP(req, reqDate=calvindate().today()):
     _userorg = WICSuser.objects.get(user=req.user).org
 
     _myDtFmt = '%Y-%m-%d %H:%M'
@@ -89,7 +89,7 @@ def fnUploadSAP(req):
             # if SAP SOH records exist for this date, kill them; only one set of SAP SOH records per day
             # (this was signed off on by user before coming here)
             UplDate = calvindate(req.POST['uploaded_at'])
-            SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__date=UplDate).delete()
+            SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=UplDate).delete()
 
             nRows = 0
             for row in ws.iter_rows(min_row=2, values_only=True):
@@ -131,7 +131,7 @@ def fnUploadSAP(req):
 
 
 # read the last SAP list before for_date into a list of SAP_SOHRecs
-def fnSAPList(org, for_date = datetime.today(), matl = None):
+def fnSAPList(org, for_date = calvindate().today(), matl = None):
     """
     matl is a Material (string, NOT object!), or list, tuple or queryset of Materials to list, or None if all records are to be listed
     the SAPDate returned is the last one prior or equal to for_date
@@ -141,15 +141,16 @@ def fnSAPList(org, for_date = datetime.today(), matl = None):
 
     _myDtFmt = '%Y-%m-%d %H:%M'
 
-    if isinstance(for_date,str):
-        dateObj = parser.parse(for_date)
-    elif isinstance(for_date,datetime):
-        dateObj = for_date.date()
-    else:
-        dateObj = for_date
+    dateObj = calvindate(for_date) #.as_datetime().date()
+    # if isinstance(for_date,str):
+    #     dateObj = calvindate(for_date)
+    # elif isinstance(for_date,datetime):
+    #     dateObj = for_date.date()
+    # else:
+    #     dateObj = for_date
 
-    if SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__date__lte=dateObj).exists():
-        SAPDate = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__date__lte=dateObj).latest().uploaded_at
+    if SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__lte=dateObj).exists():
+        SAPDate = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__lte=dateObj).latest().uploaded_at
     else:
         SAPDate = SAP_SOHRecs.objects.filter(org=_userorg).order_by('uploaded_at').first().uploaded_at
 
