@@ -16,10 +16,11 @@ ExcelWorkbook_fileext = ".XLSX"
 
 
 @login_required
-def fnShowSAP(req, reqDate=calvindate().today()):
+def fnShowSAP(req, reqDate=calvindate().today().as_datetime()):
     _userorg = WICSuser.objects.get(user=req.user).org
 
-    _myDtFmt = '%Y-%m-%d %H:%M'
+    if isinstance(reqDate,calvindate): reqDate = reqDate.as_datetime()
+    _myDtFmt = '%Y-%m-%d'
 
     SAP_tbl = fnSAPList(_userorg,for_date=reqDate)
     SAPDatesRaw = choices=SAP_SOHRecs.objects.filter(org=_userorg).order_by('-uploaded_at').values('uploaded_at').distinct()
@@ -34,8 +35,8 @@ def fnShowSAP(req, reqDate=calvindate().today()):
             'SAPSet': SAP_tbl['SAPTable'],
             'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
             }
-    tmplt = 'show_SAP_table.html'
-    return render(req, tmplt, cntext)
+    templt = 'show_SAP_table.html'
+    return render(req, templt, cntext)
 
 
 ####################################################################################
@@ -88,7 +89,7 @@ def fnUploadSAP(req):
 
             # if SAP SOH records exist for this date, kill them; only one set of SAP SOH records per day
             # (this was signed off on by user before coming here)
-            UplDate = calvindate(req.POST['uploaded_at'])
+            UplDate = calvindate(req.POST['uploaded_at']).as_datetime()
             SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=UplDate).delete()
 
             nRows = 0

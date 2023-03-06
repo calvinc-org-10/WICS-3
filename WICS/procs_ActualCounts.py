@@ -43,9 +43,9 @@ def fnCountEntryForm(req, recNum = 0,
     prefixvals['matl'] = 'matl'
     prefixvals['schedule'] = 'schedule'
     initialvals = {}
-    initialvals['main'] = {'CountDate':calvindate(loadCountDate)}
+    initialvals['main'] = {'CountDate':calvindate(loadCountDate).as_datetime()}
     initialvals['matl'] = {}
-    initialvals['schedule'] = {'CountDate':calvindate(loadCountDate)}
+    initialvals['schedule'] = {'CountDate':calvindate(loadCountDate).as_datetime()}
 
     # recover currRec and matlSubFm from POST data
     if req.method == 'POST':

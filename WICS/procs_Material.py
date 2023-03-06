@@ -60,13 +60,13 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
         return qs
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        ctxt = super().get_context_data(**kwargs)
-        ctxt.update({
+        cntext = super().get_context_data(**kwargs)
+        cntext.update({
             'SAPDate': self.SAPDate,
             'showSAP': False,
             'orgname': self._userorg.orgname,  'uname':self._user.get_full_name(),
             })
-        return ctxt
+        return cntext
 
     # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
     #     return super().get(request, *args, **kwargs)
@@ -311,9 +311,9 @@ class MaterialByPartType(LoginRequiredMixin, ListView):
         return qs
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        ctxt = super().get_context_data(**kwargs)
-        ctxt['SAPDate'] = self.SAPDate
-        return ctxt
+        cntext = super().get_context_data(**kwargs)
+        cntext['SAPDate'] = self.SAPDate
+        return cntext
 
     # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
     #     return super().get(request, *args, **kwargs)

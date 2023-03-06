@@ -50,14 +50,14 @@ def LoadMenu(req, menuGroup, menuNum):
     for i in range(10):
         fullMenuHTML += ("<div class=" + WrapInQuotes("row") + "><div class=" + WrapInQuotes("col m-1") + ">" + mnItem_list[i] + "</div>")
         fullMenuHTML += ("<div class=" + WrapInQuotes("col m-1") + ">" + mnItem_list[i+10] + "</div></div>")
-    ctxt = {
+    cntext = {
         'grpNum': menuGroup,
         'menuNum': menuNum,
         'menuName':mnuName , 'menuContents':fullMenuHTML,
         'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
         }
-    tmplt = "cMenu.html"
-    return render(req, tmplt, context=ctxt)
+    templt = "cMenu.html"
+    return render(req, templt, context=cntext)
 
 
 @login_required
@@ -298,7 +298,7 @@ def EditMenu(req, menuGroup, menuNum):
                 'menuID_choices':menuItems.objects.filter(MenuGroup=menuGroup,OptionNumber=0)
                 }
 
-    ctxt = {
+    cntext = {
         'menuGroupName': mnuGroupRec.GroupName,
         'menuName':mnItem_qset.get(OptionNumber=0).OptionText,
         'menuGoto':mnuGoto,
@@ -307,8 +307,8 @@ def EditMenu(req, menuGroup, menuNum):
         'orgname':_userorg.orgname,
         'uname':req.user.get_full_name()
         }
-    tmplt = "cMenuEdit.html"
-    return render(req, tmplt, context=ctxt)
+    templt = "cMenuEdit.html"
+    return render(req, templt, context=cntext)
 
 
 @login_required
@@ -433,7 +433,7 @@ class fm_cRawSQL(forms.Form):
 def fn_cRawSQL(req):
     _userorg = WICSuser.objects.get(user=req.user).org
 
-    contxt = {}
+    cntext = {}
 
     if req.method == 'POST':
         SForm = fm_cRawSQL(req.POST)
@@ -450,31 +450,31 @@ def fn_cRawSQL(req):
                 colNames = [col[0] for col in cursor.description]
                 #rows = dictfetchall(cursor)
 
-                contxt['colNames'] = colNames
-                contxt['nRecs'] = cursor.rowcount
-                contxt['SQLresults'] = cursor
+                cntext['colNames'] = colNames
+                cntext['nRecs'] = cursor.rowcount
+                cntext['SQLresults'] = cursor
                 templt = "show_raw_SQL.html"
             else:
-                contxt['colNames'] = 'NO RECORDS RETURNED'
-                contxt['nRecs'] = 0
-                contxt['SQLresults'] = []
+                cntext['colNames'] = 'NO RECORDS RETURNED'
+                cntext['nRecs'] = 0
+                cntext['SQLresults'] = []
                 templt = "show_raw_SQL.html"                
         else:
             SForm = fm_cRawSQL(req.POST)
 
-            contxt['form'] = SForm
+            cntext['form'] = SForm
             messages.add_message(req, messages.WARNING,message=sqlerr) 
             templt = "enter_raw_SQL.html"
     else:
         SForm = fm_cRawSQL()
 
-        contxt['form'] = SForm
+        cntext['form'] = SForm
         templt = "enter_raw_SQL.html"
         
 
-    contxt['orgname'] = _userorg.orgname
-    contxt['uname'] = req.user.get_full_name()
-    return render(req, templt, context=contxt)
+    cntext['orgname'] = _userorg.orgname
+    cntext['uname'] = req.user.get_full_name()
+    return render(req, templt, context=cntext)
 
     
 

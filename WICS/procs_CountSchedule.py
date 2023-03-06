@@ -50,7 +50,7 @@ def fnCountScheduleRecordForm(req, recNum = 0,
             'matl': 'matl',
             }
     initialvals = {
-            'main': {'CountDate':calvindate(loadCountDate)},
+            'main': {'CountDate':calvindate(loadCountDate).as_datetime()},
             'matl': {},
             }
 
@@ -299,8 +299,8 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
         self._user = req.user
         self._userorg = WICSuser.objects.get(user=req.user).org
         if 'CountDate' in kwargs: self.CountDate = kwargs['CountDate']
-        else: self.CountDate = calvindate().today()
-        if isinstance(self.CountDate,str): self.CountDate = calvindate(self.CountDate)
+        else: self.CountDate = calvindate().today().as_datetime()
+        if isinstance(self.CountDate,str): self.CountDate = calvindate(self.CountDate).as_datetime()
         return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
@@ -357,13 +357,14 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
         context.update({
                 'zoneList': zoneList,
                 'CounterList': CounterList,
-                'CountDate': self.CountDate,
+                'CountDate': self.CountDate,     # .as_datetime(), -- this was done in setup()
                 'SAP_Updated_at': self.SAPDate,
                 'orgname': self._userorg.orgname, 'uname':self._user.get_full_name()
                 })
 
+        ## is this block a leftover from when this DIDN'T work??
         # collect the list of Counters to that tabs can be built in the html
-        self.CounterList = self.get_queryset().values('Counter').distinct()
+        # self.CounterList = self.get_queryset().values('Counter').distinct()
 
         return super().render_to_response(context, **response_kwargs)
 
