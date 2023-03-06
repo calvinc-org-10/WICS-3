@@ -64,8 +64,8 @@ class calvindate(date):
     
     # operators
     def __comparison_workhorse__(LHE, RHE, compOpr):
-        LHExpr = LHE.as_datetime()
-        RHExpr = RHE.as_datetime()
+        LHExpr = calvindate(LHE).as_datetime()
+        RHExpr = calvindate(RHE).as_datetime()
         if compOpr == 'lt':
             return LHExpr < RHExpr
         if compOpr == 'le':
@@ -80,17 +80,17 @@ class calvindate(date):
             return LHExpr >= RHExpr
         return False
     def __lt__(self, other):
-        return self.__comparison_workhorse__(self,other,'lt')
+        return self.__comparison_workhorse__(other,'lt')
     def __le__(self, other):
-        return self.__comparison_workhorse__(self,other,'le')
+        return self.__comparison_workhorse__(other,'le')
     def __eq__(self, other):
-        return self.__comparison_workhorse__(self,other,'eq')
+        return self.__comparison_workhorse__(other,'eq')
     def __ne__(self, other):
-        return self.__comparison_workhorse__(self,other,'ne')
+        return self.__comparison_workhorse__(other,'ne')
     def __gt__(self, other):
-        return self.__comparison_workhorse__(self,other,'gt')
+        return self.__comparison_workhorse__(other,'gt')
     def __ge__(self, other):
-        return self.__comparison_workhorse__(self,other,'ge')
+        return self.__comparison_workhorse__(other,'ge')
     def __add__(self, other):
         if isinstance(other, int):
             return self.daysfrom(other)

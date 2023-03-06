@@ -411,7 +411,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
 
     # get the SAP data
     dtobj_pDate = isDate(passedCountDate)
-    if not dtobj_pDate: dtobj_pDate = calvindate().today()
+    if not dtobj_pDate: dtobj_pDate = calvindate().as_datetime()
     SAP_SOH = fnSAPList(_userorg,dtobj_pDate)
     
     def CreateOutputRows(raw_qs, Eval_CTDQTY=True):
@@ -577,11 +577,17 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
                 'Title':'Scheduled but Not Counted',
                 'outputrows': CreateOutputRows(C_Sched_NotCtd_Ctd_qs, Eval_CTDQTY=False)
                 })
+    AccuracyCutoff = { 
+                'DANGER': float(getcParm('ACCURACY-DANGER')),
+                'SUCCESS': float(getcParm('ACCURACY-SUCCESS')),
+                'WARNING': float(getcParm('ACCURACY-WARNING')),
+                }
 
     # display the form
     cntext = {
             'CountDate': dtobj_pDate,
             'SAPDate': SAP_SOH['SAPDate'],
+            'AccuracyCutoff': AccuracyCutoff,
             'SummaryReport': SummaryReport,
             'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
             }

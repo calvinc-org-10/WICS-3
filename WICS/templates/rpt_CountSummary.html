@@ -94,9 +94,9 @@
                 <div class="col-1">{{ ent.SAPTotal }}</div>
                 <div class="col-1">{{ ent.Diff }}</div>
                 <div class="col-1 
-                    {% if ent.Accuracy < 90 %} bg-danger
-                    {% elif ent.Accuracy > 98.5 %} bg-success
-                    {% elif ent.Accuracy > 95 %} bg-warning
+                    {% if ent.Accuracy < AccuracyCutoff.DANGER  %} bg-danger
+                    {% elif ent.Accuracy > AccuracyCutoff.SUCCESS %} bg-success
+                    {% elif ent.Accuracy > AccuracyCutoff.WARNING %} bg-warning
                     {% endif %}
                 "><b>{{ ent.Accuracy|floatformat:2 }}%</b></div>
                 <div class="col-1"></div>
