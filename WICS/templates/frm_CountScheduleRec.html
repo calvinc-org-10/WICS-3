@@ -54,7 +54,7 @@
         {{ frmMain.id }}
 
         <!-- main part of form -->
-        <!-- put initial focus on Material and/or init CountDate to today(local), skip CycCtID -->
+        <!-- put initial focus on Material and/or init CountDate to today(local) -->
         <div class="container-fluid m-2">
         <div class="row g-0">
             <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" tabindex="-1" size="8" onchange="loadExtraInfo();" %}</div>
@@ -87,7 +87,13 @@
             <div class="col-2">CM Print? {% render_field frmMain.CMPrintFlag class="need-Matl-Dt" %}</div>
         </div>
         <div class="row g-0">
-            <div class="col-6">Schedule Notes: {% render_field frmMain.Notes class="need-Matl-Dt" size="60" %}</div>
+            <div class="col-8">Schedule Notes: {% render_field frmMain.Notes class="need-Matl-Dt" size="60" %}</div>
+            <div class="col-2">
+                <button id="save_btn" type="button" form="CSchForm" class="need-Matl-Dt" onclick="SubmMainFm();" >
+                    <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                    Save changes
+                </button>
+            </div>
         </div>
         <hr>
         <div class="row g-0">
@@ -114,10 +120,6 @@
     <div class="container">
         <div class="row mx-auto max-width=100%">
             <div class="col-2">
-                <button id="save_btn" type="button" form="CSchForm" class="need-Matl-Dt" onclick="SubmMainFm();" >
-                    <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
-                    Save changes
-                </button>
             </div>
             <div class="col-8">
                 <button id="btn_firstrec" type="button" onclick="processGoToReq('First');">First</button>

@@ -29,9 +29,9 @@ def fnCountEntryView(req,
         'schedule': 'schedule',
     }
     initialvals = {
-        'main': {'CountDate': reqDate.as_datetime(),'Counter':req.user.get_short_name()},
+        'main': {'CountDate': calvindate(reqDate).as_datetime(),'Counter':req.user.get_short_name()},
         'matl': {},
-        'schedule': {'CountDate': reqDate.as_datetime()},
+        'schedule': {'CountDate': calvindate(reqDate).as_datetime()},
     }
 
     changes_saved = {
@@ -223,7 +223,7 @@ def fnCountScheduleRecView(req,
         'matl': 'matl',
     }
     initialvals = {
-        'main': {'CountDate': reqDate.as_datetime()},
+        'main': {'CountDate': calvindate(reqDate).as_datetime()},
         'matl': {},
     }
 

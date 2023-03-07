@@ -16,10 +16,10 @@ ExcelWorkbook_fileext = ".XLSX"
 
 
 @login_required
-def fnShowSAP(req, reqDate=calvindate().today().as_datetime()):
+def fnShowSAP(req, reqDate=calvindate().today()):
     _userorg = WICSuser.objects.get(user=req.user).org
 
-    if isinstance(reqDate,calvindate): reqDate = reqDate.as_datetime()
+    reqDate = calvindate(reqDate).as_datetime()
     _myDtFmt = '%Y-%m-%d'
 
     SAP_tbl = fnSAPList(_userorg,for_date=reqDate)
