@@ -1,6 +1,6 @@
 from django import forms, db
 from django.contrib import messages
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.forms import formset_factory, modelformset_factory, CharField
 from django.shortcuts import render
@@ -60,7 +60,40 @@ def LoadMenu(req, menuGroup, menuNum):
     return render(req, templt, context=cntext)
 
 
-@login_required
+def HandleMenuCommand(req,CommandNum,CommandArg):
+    retHTTP = "Command " + menuCommands.objects.get(Command=CommandNum).__str__() + " will be performed with Argument " + CommandArg
+
+    if CommandNum == MENUCOMMAND.LoadMenu.value :
+        retHTTP = LoadMenu(req,int(CommandArg))
+    elif CommandNum == MENUCOMMAND.FormBrowse.value :
+        retHTTP = menucommand_handlers.FormBrowse(req, CommandArg)  # replace this with the url reverse
+    elif CommandNum == MENUCOMMAND.OpenTable.value :
+        retHTTP = menucommand_handlers.ShowTable(req, CommandArg)
+    elif CommandNum == MENUCOMMAND.RunCode.value :
+        fn = getattr(menucommand_handlers, CommandArg)
+        retHTTP = fn(req)
+    elif CommandNum == MENUCOMMAND.RunSQLStatement.value:
+        # retHTTP = reverse('RunSQL')
+        return HttpResponseRedirect(reverse('RunSQL'))
+    elif CommandNum == MENUCOMMAND.ConstructSQLStatement.value:
+        pass
+    elif CommandNum == MENUCOMMAND.ChangePW.value:
+        return HttpResponseRedirect(reverse('change_password'))
+    elif CommandNum == MENUCOMMAND.EditMenu.value :
+        return HttpResponseRedirect(reverse('EditMenu_init'))
+    elif CommandNum == MENUCOMMAND.EditParameters.value :
+        return HttpResponseRedirect(reverse('EditParms'))
+    elif CommandNum == MENUCOMMAND.EditGreetings.value :
+        pass
+    elif CommandNum == MENUCOMMAND.ExitApplication.value :
+        return HttpResponseRedirect(reverse('WICSlogout'))
+    else:
+        pass
+
+    return HttpResponse(retHTTP)
+
+
+@permission_required('SUPERUSER', raise_exception=True)
 def EditMenu(req, menuGroup, menuNum):
 # DOCUMENT THIS!!!   ADD COMMENTS!!!  EXPLAIN IT!!!
     # next few lines (and their uses) is WICS-specific, not generic cMenu
@@ -311,7 +344,7 @@ def EditMenu(req, menuGroup, menuNum):
     return render(req, templt, context=cntext)
 
 
-@login_required
+@permission_required('SUPERUSER', raise_exception=True)
 def MenuCreate(req, menuGroup, menuNum, fromGroup=None, fromMenu=None):
     _userorg = WICSuser.objects.get(user=req.user).org
 
@@ -361,7 +394,7 @@ def MenuCreate(req, menuGroup, menuNum, fromGroup=None, fromMenu=None):
         return HttpResponseRedirect(reverse('EditMenu', kwargs={'menuGroup':menuGroup, 'menuNum':menuNum}))
 
 
-@login_required
+@permission_required('SUPERUSER', raise_exception=True)
 def MenuRemove(req, menuGroup, menuNum):
     _userorg = WICSuser.objects.get(user=req.user).org
 
@@ -375,39 +408,6 @@ def MenuRemove(req, menuGroup, menuNum):
     # redirect to url:EditMenu at end
     #return HttpResponseRedirect(reverse('EditMenu', kwargs={'menuGroup':menuGroup, 'menuNum':menuNum}))
     return HttpResponseRedirect(reverse('EditMenu_init'))
-
-
-def HandleMenuCommand(req,CommandNum,CommandArg):
-    retHTTP = "Command " + menuCommands.objects.get(Command=CommandNum).__str__() + " will be performed with Argument " + CommandArg
-
-    if CommandNum == MENUCOMMAND.LoadMenu.value :
-        retHTTP = LoadMenu(req,int(CommandArg))
-    elif CommandNum == MENUCOMMAND.FormBrowse.value :
-        retHTTP = menucommand_handlers.FormBrowse(req, CommandArg)  # replace this with the url reverse
-    elif CommandNum == MENUCOMMAND.OpenTable.value :
-        retHTTP = menucommand_handlers.ShowTable(req, CommandArg)
-    elif CommandNum == MENUCOMMAND.RunCode.value :
-        fn = getattr(menucommand_handlers, CommandArg)
-        retHTTP = fn(req)
-    elif CommandNum == MENUCOMMAND.RunSQLStatement.value:
-        # retHTTP = reverse('RunSQL')
-        return HttpResponseRedirect(reverse('RunSQL'))
-    elif CommandNum == MENUCOMMAND.ConstructSQLStatement.value:
-        pass
-    elif CommandNum == MENUCOMMAND.ChangePW.value:
-        return HttpResponseRedirect(reverse('change_password'))
-    elif CommandNum == MENUCOMMAND.EditMenu.value :
-        return HttpResponseRedirect(reverse('EditMenu_init'))
-    elif CommandNum == MENUCOMMAND.EditParameters.value :
-        return HttpResponseRedirect(reverse('EditParms'))
-    elif CommandNum == MENUCOMMAND.EditGreetings.value :
-        pass
-    elif CommandNum == MENUCOMMAND.ExitApplication.value :
-        return HttpResponseRedirect(reverse('WICSlogout'))
-    else:
-        pass
-
-    return HttpResponse(retHTTP)
 
 
 from collections import namedtuple
@@ -449,16 +449,17 @@ def fn_cRawSQL(req):
             if cursor.description:
                 colNames = [col[0] for col in cursor.description]
                 #rows = dictfetchall(cursor)
-
                 cntext['colNames'] = colNames
                 cntext['nRecs'] = cursor.rowcount
                 cntext['SQLresults'] = cursor
-                templt = "show_raw_SQL.html"
             else:
-                cntext['colNames'] = 'NO RECORDS RETURNED'
-                cntext['nRecs'] = 0
-                cntext['SQLresults'] = []
-                templt = "show_raw_SQL.html"                
+                cntext['colNames'] = 'NO RECORDS RETURNED; ' + str(cursor.rowcount) + ' records affected'
+                cntext['nRecs'] = cursor.rowcount
+                cntext['SQLresults'] = cursor
+
+            cntext['OrigSQL'] = SForm.cleaned_data['inputSQL']
+
+            templt = "show_raw_SQL.html"                
         else:
             SForm = fm_cRawSQL(req.POST)
 
@@ -502,7 +503,7 @@ def fn_cRawSQL(req):
 
 
 
-@login_required
+@permission_required('SUPERUSER', raise_exception=True)
 def fncParmForm(req):
     _userorg = req.user.WICSuser.org
     # mdlForm = cParmForm

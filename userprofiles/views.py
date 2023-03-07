@@ -1,7 +1,7 @@
 ### later - consider custom User Manager: WICSUser_objects
 
 from django.shortcuts import render
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, permission_required
 from django import forms
 from django.forms import formset_factory
 
@@ -29,7 +29,7 @@ class WICSUfrm(forms.Form):
     last_login = forms.DateTimeField(disabled = True, required=False)   # ,u.user.last_login
 
 
-@login_required
+@permission_required('SUPERUSER', raise_exception=True)
 def fnWICSuserForm(req):
     _userorg = req.user.WICSuser.org
     uFormSet_class = formset_factory(WICSUfrm,max_num=100,extra=0)      # , initial={'menuGroup':menuGroup for org}
