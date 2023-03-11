@@ -300,29 +300,53 @@
 </div>
 
 <script>
-    var $forms = $(".trackformchanges");
+    var $forms = document.getElementById("FmMain").querySelectorAll(":scope input");
     var initialState
-    var $gotoTextBox = $("#gotoID");
+    var $gotoTextBox = document.getElementById("gotoID");
     // record the ID and GPN of current record (it's used often!)
     var thisMtlID = {{frmMain.showPK.value|default_if_none:0}}, thisMtlGPN = "{{frmMain.Material.value}}"
-    var modalCloseCheckResult, modalCloseCheckClosed;
+    var modalCloseCheckResult, modalCloseCheckClosed;   // obsolete?
+
+
+    //-------------------------------
+
+    /*!
+    * Serialize all form data into an object
+    * (c) 2021 Chris Ferdinandi, MIT License, https://gomakethings.com
+    * @param  {FormData} data The FormData object to serialize
+    * @return {String}        The serialized form data
+    */
+    function serialize (elmnts) {
+        let retStr = ''
+        // let obj = {};
+        for (let theelmnt of elmnts) {
+            retStr += theelmnt.name + "='" + theelmnt.value + "';"
+        }
+        return retStr;
+    }
 
     //------------------
 
-    $(document).ready(function() {
-        initialState = $forms.serialize();
+    document.addEventListener("DOMContentLoaded", function() {
+        initialState = serialize($forms);
         // fill in the Count evals
         // I'll clean this up later, I promise!
         for (let i=0; i < document.getElementById("id_countset-TOTAL_FORMS").value; i++) {
-            CQtyID = 'id_countset-' + i + '-CTD_QTY_Expr';
-            EvID = 'EvalExpr' + i;
+            CQtyID = 'id_countset-' + i + '-CTD_QTY_Expr';  {# TODO: use template vars later #}
+            EvID = 'EvalExpr' + i;  {# TODO: use template vars later #}
             showCountExpr(CQtyID, EvID);
-            fbody = Function("function dummyCE" + i + "() { showCountExpr(this.id, '" + EvID + "'); };");
+            fbody = Function("function dummyCE" + i + "() { showCountExpr(this.id, '" + EvID + "'); };");  {# TODO: figure out how to take advantage of this line #}
         };
         });
-    document.body.onbeforeunload = function() {
-        document.getElementById("wait_spinner").style.display = "block";
-        }
+
+    window.addEventListener("beforeunload",  function(event) {
+        if (!confirmLeave()) {
+            event.preventDefault();
+        } else {
+            document.getElementById("wait_spinner").style.display = "block";
+        };
+        });
+
 
     //---------------
 
@@ -340,10 +364,11 @@
     //---------------
 
     function loadMaterialRec() {
-        goID = document.getElementById('gotoID');
+        goID = $gotoTextBox
         if (goID.value != null && goID.value != thisMtlGPN) {
             newRec="{% url 'ReloadMatlForm' 'gotoMatl' %}"
             newRec = newRec.replace("/gotoMatl","/"+goID.value);
+            document.getElementById("wait_spinner").style.display = "block";
             window.location = newRec
         } else {
             goID.value = thisMtlGPN;
@@ -352,18 +377,20 @@
 
     //---------------
 
-    // later, duplicate this for closeform (see document.body.onbeforeunload)
+    //TODO: later, duplicate this for closeform (see document.body.onbeforeunload)
     document.getElementById("close_btn").addEventListener("click",
-        function(evobj){
-            if (confirmLeave()) {
-                window.close()
-            }
-        });
+    function(evobj){
+        if (confirmLeave()) {
+            window.close()
+        }
+    });
 
     //-------------------
 
-    $("#SchedCount").on("click",
-    function() {
+    
+    //-------------------
+
+    document.getElementById("SchedCount").addEventListener("click", function() {
         dVal = (new Date())                         // today
         dVal.setDate(dVal.getDate()+1)              // tomorrow
         dVal = dVal.toISOString().substring(0,10)   // make it a string
@@ -374,8 +401,7 @@
         window.open(newRec,'_blank')
     });
 
-    $("#AddCount").on("click",
-    function() {
+    document.getElementById("AddCount").addEventListener("click", function() {
         dVal = (new Date())                         // today
         dVal = dVal.toISOString().substring(0,10)   // make it a string
         
@@ -389,10 +415,11 @@
 
     //---------------------------
 
-    $("#add_btn").on("click",addNewMatlRec)
+    document.getElementById("add_btn").addEventListener("click", addNewMatlRec)
 
     function addNewMatlRec(event) {
         newRec = "{% url 'NewMatlForm' %}"
+        document.getElementById("wait_spinner").style.display = "block";
         window.location = newRec;
     };
 
@@ -405,7 +432,7 @@
     };
 
     function isFormChanged() {
-        currState = $forms.serialize();
+        currState = serialize($forms);
         return !(initialState === currState);
     };
 
@@ -414,7 +441,9 @@
         function() {
             modalCloseCheckClosed = true;
         });
-        //TODO: only check if the forms I care about have changed - multi-form and serialize by form
+        
+    //TODONE! : only check if the forms I care about have changed - multi-form and serialize by form
+    //DONE: the $forms variable only points to elements of class .trackformchanges
     function confirmLeave(){
         if (isFormChanged()) {
             return confirm("This record has changed\nDo you really want to leave without saving?");
@@ -440,15 +469,6 @@
         document.getElementById(rslt).innerHTML = "= " + EvalExpr(document.getElementById(expr_fld).value);
     };
 
-
-</script>
-<script>
-    function create_empty_user() {
-        var form_idx = $('#id_form-TOTAL_FORMS').val()
-        // check against max-forms before allowing add
-        $('#form_set').append($('#empty_form').html().replace(/__prefix__/g, form_idx).replace("hidden",""))
-        $('#id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1)
-    }
 </script>
 {% endblock %}
 

@@ -8,7 +8,8 @@
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     <link rel="stylesheet" href="{% static 'jquery/jquery-ui.min.css' %}">
     <!-- <script src="external/jquery/jquery.js"></script> -->
-    <script src="/static/jquery/jquery-ui.min.js"></script>
+    {% comment %} <script src="/static/jquery/jquery-ui.min.js"></script> {% endcomment %}
+    <script src="{% static 'jquery/jquery-ui.min.js' %}"></script>
     <link href="{% static 'calvinstyles.css' %}" rel="stylesheet">
     <script>
         function EvalExpr(expr) {
