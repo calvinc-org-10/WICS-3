@@ -17,12 +17,13 @@ from django.urls import path, reverse
 from django.shortcuts import redirect
 from WICS import userinit, \
         procs_SAP, procs_CountSchedule, procs_ActualCounts, procs_Material, \
-        views
+        views, testmodal
 from WICS import adhoc_2023_02_01_001
 from userprofiles import logout
 
 urlpatterns = [
     path('', lambda request: redirect(reverse('login'),permanent=False), name='WICSlogin'),       # this is actually the entry point to WICS
+    path('test00', testmodal.fnTestModal, name='test00'),
     path('inituser', userinit.inituser , name='initWICSuser'),
     path('logout',logout.WICSlogout, name='WICSlogout'),
 

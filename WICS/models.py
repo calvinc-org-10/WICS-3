@@ -1,7 +1,5 @@
 from django.db import models
-# from cMenu.utils import calvindate
-# from django.utils import timezone
-# from cMenu.models import getcParm
+from django.db.models import Value
 
 # Create your models here.
 # I'm quite happy with automaintained pk fields, so I don't specify any
@@ -146,6 +144,30 @@ def LastFoundAt(matl):
             LFAList.append({'BLDG':rec['BLDG'],'LOCATION':rec['LOCATION']})
     
     return {'lastCountDate': lastCountDate, 'lastFoundAt': LFAString, 'lastFoundAt_list': LFAList}
+
+def FoundAt(matl):
+    # get Dict of all dates this material counted
+    FA_qs =  ActualCounts.objects.filter(Material=matl)\
+                .order_by('-CountDate')\
+                .values('CountDate')\
+                .distinct()
+    FADict = {rec['CountDate']: '' for rec in FA_qs}
+
+    # get found locations by date, and tie to each dict entry
+    countrecs = ActualCounts.objects.filter(Material=matl)\
+                .order_by('-CountDate','BLDG','LOCATION')\
+                .values('CountDate','BLDG','LOCATION')\
+                .distinct()
+    for rec in countrecs:
+        LFAString = FADict[rec['CountDate']]
+        if LFAString: LFAString += ', '
+        LFAString += rec['BLDG'] + '_' + rec['LOCATION']
+        FADict[rec['CountDate']] = LFAString
+
+    # convert it back to the type of dictionary produced by the QS (easier for caller to work with)
+    FA_qs = [{'CountDate': k, 'FoundAt': v} for (k,v) in FADict.items()]
+    
+    return FA_qs
 
 
 class SAP_SOHRecs(models.Model):

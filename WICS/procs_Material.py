@@ -15,7 +15,7 @@ from cMenu.models import getcParm
 from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
 from WICS.models import MaterialList, ActualCounts, CountSchedule, SAP_SOHRecs, \
-                        WhsePartTypes, LastFoundAt
+                        WhsePartTypes, LastFoundAt, FoundAt
 from WICS.procs_SAP import fnSAPList
 from typing import Any, Dict
 
@@ -254,6 +254,7 @@ def fnMaterialForm(req, recNum = -1, gotoMatl=None, gotoRec=False, newRec=False)
     # display the form
     cntext = {'frmMain': mtlFm,
             'lastFoundAt': LastFoundAt(currRec),
+            'FoundAt': FoundAt(currRec),
             'gotoForm': gotoForm,
             'countset': countSet,
             'scheduleset': schedSet,

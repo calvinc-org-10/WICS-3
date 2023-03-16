@@ -1,4 +1,5 @@
 {% extends "WICS_common.html" %}
+{% load static %}
 
 {% block tTitle %}{{ menuName }}{% endblock %}
 {% block boddy %}
@@ -7,7 +8,10 @@
         <div class="row max-width=100%">
             <div class="col-1 text-start calvin-smalltext">{{ grpNum }},{{ menuNum }}</div>
             <div class="col-2"></div>
-            <div class="col-6 text-center"><h1>{{ menuName }}</h1></div>
+            <div class="col-6 text-center">
+                <img src={% static 'WICS-Logo.png' %} width="200" height="100">
+                <h1>{{ menuName }}</h1>
+            </div>
             <div class="col-3 text-end">{{ orgname }}<br>{{ uname }}</div>
         </div>
     </div>
