@@ -11,6 +11,7 @@
 <div class="row">
     <div class="col-10 fs-1">
         <u>{{ orgname }}</u>
+        <img src={% static 'WICS-Logo.png' %} width="200" height="100">
     </div>
     <div class="col-2 text-end"> {{ uname }} </div>
 </div>
@@ -138,7 +139,10 @@
         <li class="nav-item">
         <a class="nav-link" data-bs-toggle="pill" href="#CountSchedule">Count Scheduling</a>
         </li>
-    </ul>
+        <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="pill" href="#FoundAt">Found At</a>
+        </li>
+        </ul>
     <!-- Tab panes -->
     <div class="tab-content">
         <div class="tab-pane container-fluid active" id="CountDetail">
@@ -249,6 +253,27 @@
                 </div>
             </div>
         </div>
+        <div class="tab-pane container fade" id="FoundAt">
+            <div class="card">
+                <div class="card-header">
+                    <div class="container"><div class="row">
+                        <div class="col-4">
+                            Count Date - Found At
+                        </div>
+                    </div></div>
+                </div>
+                <div class="card-body no-padding" style="height:210px; overflow: auto;">
+                    <ul>
+                    {% for ff in FoundAt %}
+                        <li>
+                        {{ ff.CountDate }}: 
+                        {{ ff.FoundAt }}
+                        </li>
+                    {% endfor %}
+                    </ul>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- form footer -->
@@ -297,6 +322,8 @@
             </div>
         </div>
     </div>
+</div>
+<div id="modalGeneric" class="modal" >
 </div>
 
 <script>

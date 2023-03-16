@@ -1,0 +1,204 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block tTitle %}Test Modal{% endblock %}
+
+{% block boddy %}
+
+<div class="container text-center mx-auto">
+<div class="row">
+    <div class="col-10 fs-1">
+        <u>{{ orgname }}</u>
+    </div>
+    <div class="col-2 text-end"> 
+        {{ uname }} <br>
+        <img src={% static 'WICS-Logo.png' %} width="200" height="100">
+    </div>
+</div>
+<div class="row"> <!-- status messages -->
+    <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+</div>
+
+<hr>
+
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-3">
+            <button id="btn1" type="button"> {# #}
+                <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                Button 1
+            </button>
+        </div>
+        <div class="col-5">
+            <button id="btn2" type="button">
+                <img src="{% static 'addition-color-outline-icon.svg' %}" width="20" height="20"></img>
+                Button 2
+            </button>
+            <button id="btn3" type="button">
+                <img src="{% static 'database-remove-icon.svg' %}" width="20" height="20"></img>
+                Button 3
+            </button>
+        </div>
+        <div class="col-2">
+        </div>
+        <div class="col">
+            <button id="close_btn" type="button">
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                Close Form
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Somewhat generic Modal -->
+<!-- later, allow btn-default to be chosen -->
+<div id="modal1" class="modal" >
+    <div id="dummydiv"></div>
+
+</div>
+<div id="modalYesNo" class="modal" >
+    <div id="modal_question">
+    </div>
+    <input type="hidden" name="modelextrainfo" id="model_extra_info"></input>
+</div>
+
+<script>
+    var $ModalYesNo = $("#modalYesNo")
+    var $ModalBox = $("#modal1")
+
+    // because Bootstrap (nor jQuery) "modals" aren't really modal, execution must transfer to the modal, then wait until the modal triggers an answering function
+    /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+    
+
+    $(document).ready(function() {
+        });
+    document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
+        }
+
+    //---------------------------
+    // Modal Forms
+    
+    // handle return from Modal
+    $ModalBox.dialog({
+        autoOpen: false,
+        closeOnEscape: false,
+        modal: true,
+        hide: "puff",
+        position: {
+            my: "top center", at: "top center"
+        }
+    });
+    
+    // $("#modalYesNo").dialog({
+    $ModalYesNo.dialog({
+        autoOpen: false,
+        closeOnEscape: false,
+        modal: true,
+        hide: "puff",
+        position: {
+            my: "top center", at: "top center"
+        }
+        /***
+        buttons: {
+            "Yes": function() {
+                yesno_chosen(true);
+                $(this).dialog("close");
+            },
+            "No":  function() {
+                yesno_chosen(false);
+                $(this).dialog("close");
+            }
+        }
+        ***/
+    });
+
+    //------------------------
+
+    function presentYesNo(modalYes_fn, modalNo_fn) {
+        $ModalYesNo.dialog("option","title","Leave Record?");
+        document.getElementById("modal_question").innerHTML = "This record has changed<br>Do you really want to leave without saving?"
+
+        $ModalYesNo.dialog("option","buttons", 
+            { 
+                "Wunn": function() { 
+                    modalYes_fn();
+                    $(this).dialog("close"); },
+                "Th00" : function() {
+                    modalNo_fn();
+                    $(this).dialog("close"); }
+            }
+            )
+        $ModalYesNo.dialog("open");
+    };
+    
+    function fnIgnore() {}  // does nothing
+
+    function closeform() {
+        window.close()
+    }
+
+    //---------------------------
+
+    // close this form if no changes here, or user abandons changes
+    // later, duplicate this for closeform (see document.body.onbeforeunload)
+    document.getElementById("close_btn").addEventListener("click",
+        function(evobj){
+            presentYesNo(closeform, fnIgnore)
+        });
+
+    //---------------------------
+
+    function Dlg1(dummyarg1, dummyarg2) {
+        document.getElementById("modal1").innerHTML = "Only native JS works!\nButton names can be raw or string"
+
+        $ModalBox.dialog("option", "buttons", 
+             {
+                "Yes": function () {
+                    $(this).dialog("close");
+                },
+                "No": B1_2,
+                "1-3": B1_3,
+            })
+        $ModalBox.dialog("option", {
+            title: 'Dialog 1',
+        });
+        $ModalBox.dialog("open");
+    };
+    document.getElementById("btn1").addEventListener("click",
+        function(evobj) {
+            Dlg1(1,2);
+        });
+    function B1_1 () { 
+        $ModalBox.dialog("close"); }
+    function B1_2 () {
+        $ModalBox.dialog("close"); }
+    function B1_3 () {
+        document.getElementById("modal1").innerHTML = "Button 3"
+        }
+    function B1_4 () {
+        $ModalBox.dialog("close"); }
+
+    //---------------------------
+
+    document.getElementById("btn2").addEventListener("click",
+        function(evobj) {
+
+        });
+
+    //---------------------------
+
+    document.getElementById("btn3").addEventListener("click",
+        function(evobj) {
+            $ModalBox.dialog("option", {
+                title: 'Dialog 3',
+                body: 'I hope it shows this text',
+            });
+            // $('#modal1').find('.jui_dlg_txt').first().text('This is the text for dialog 3');    // .text ??
+            $ModalBox.dialog("open");
+        });
+
+</script>
+
+{% endblock %}

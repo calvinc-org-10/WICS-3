@@ -1,3 +1,16 @@
+Goals for 2023 Mar 10-13 Material Form rework
+(this will be a template/test to propagate to all code)
+- Tie close event to confirm dialog  -- DONE
+- Move modals to Bootstrap
+- No jquery -- DONE
+
+2023 Mar 15
+Can't get Bootstrap modals to work.  But guess what? Bootstrap is dependent on jQuery!  So there's no point in killing my jQuery code, plus (after some trial/error) jQuery UI modals DO work
+Note that the best (only?) way of getting text into a jQuery modal is through document.findbyElementId().innerHTML.  Without setting the text this way, jQuery modals act wierd/won't work
+Plastered the WICS Logo/favicon in login screen, menu screen and Material Form, and, of course, WICS_common
+
+=================================================
+
 2022 Dec 10-12
 Material Form:
   changed presentation of GoTo Material dropdown so that it looks like a real dropdown (it's actually a <input type="list"> with a "dropdown" graphic and a few strategic event handlers)

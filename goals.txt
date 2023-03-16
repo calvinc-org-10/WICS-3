@@ -1,6 +1,0 @@
-Tie close event to confirm dialog
-
-Move modals to Bootstrap
-
-No jquery
-
