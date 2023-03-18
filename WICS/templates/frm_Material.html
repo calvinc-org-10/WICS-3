@@ -314,27 +314,6 @@ button:focus {
     </div>
 </form>
 
-<!-- Modal to check for dismissal of dirty record -->
-    <div class="modal-sm fade" id="modalCloseCheck" role="dialog">
-        <div class="modal-dialog">
-
-            <!-- Modal content-->
-            <div class="modal-content">
-                <div class="modal-header">
-                <button type="button" class="close" data-dismiss="modal">&times;</button>
-                <h4 class="modal-title">Record Changed!</h4>
-            </div>
-            <div class="modal-body">
-                This record has changed<br>
-                Do you really want to leave without saving?
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-default" onclick="modalCloseCheckResult = false;" data-dismiss="modal">No</button>
-                <button type="button" class="btn" onclick="modalCloseCheckResult = true;" data-dismiss="modal">Yes, abandon changes</button>
-            </div>
-        </div>
-    </div>
-</div>
 <div id="modalGeneric" class="modal" >
 </div>
 
@@ -459,8 +438,6 @@ button:focus {
         return !(initialState === currState);
     };
 
-    //TODONE! : only check if the forms I care about have changed - multi-form and serialize by form
-    //DONE: the $forms variable only points to elements of class .trackformchanges
     function confirmLeave(LeaveProc){
         if (isFormChanged()) {
             $("#modalGeneric").dialog("option","title","Leave Record?");

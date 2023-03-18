@@ -3,15 +3,18 @@
 
 
 {% block tTitle %}Counting Agenda/Worksheet{% endblock %}
+{# TODO: Find out why Desc and Last Found lines wrap incorrectly in print #}
+{% comment %}
 {% block tHeader %}
 <style>
     @page {
-        size: landscape;
-        margin: 1.0;
+        // size: 11in 8.5in ;
+        margin: 0;
         padding: 0;
     }
 </style>
 {% endblock %}
+{% endcomment %}
 {% block boddy %}
 <!-- menu head -->
 <div class="container text-center mx-auto">
@@ -60,7 +63,7 @@
         {% endif %}
 
         <div class="row g-0">
-            <div class="col-5">
+            <div class="col-3">
             {% if itm.NewMat3char or itm.NewCounter %}
                 <span class="bg-secondary fw-bold fs-5 text-white" style="width:10">
                     __ {{ itm.Material.Material|slice:"0:3" }} __
@@ -70,7 +73,7 @@
             {{ itm.MaterialBarCode|safe }}
             {# {{ itm.Material.Material }} | #}
             </div>
-            <div class="col-7">
+            <div class="col-9">
                 <table class="table-bordered table-sm">
                     <colgroup>
                         {% for dummyval in zoneList %}
@@ -99,12 +102,12 @@
             </div>
         </div>
         <div class="row g-0">
-            <div class="col-11">
+            {# <div class="col-11"> #}
                 {{ CountDate|date:'Y-m-d' }} | 
                 {{ itm.Material.PartType.WhsePartType }} | Prio: <b>{{ itm.Priority }}</b> |
                 Sched Counter: {{ itm.Counter }} |
                 {{ itm.Material.Description }}
-            </div>
+            {# </div> #}
         </div>
         <div class="row g-0">
             <div class="col-11">

@@ -62,7 +62,12 @@
 <div class="container">
     <div class="row mx-auto max-width=100%">
         <div class="col-2">
-            <button id="add_btn" type="button">Add Schedule Entry</button>
+            <button 
+                id="add_btn" 
+                type="button">
+                <img src="{% static 'addition-color-outline-icon.svg' %}" width="20" height="20"></img>
+                Add Schedule Entry
+            </button>
         </div>
         <div class="col-8">
         </div>
@@ -80,6 +85,8 @@
 
 <script>
 
+    //---------------------------
+
     $(".edit").on("click",loadCountEntryRec)
 
     function loadCountEntryRec(event) {
@@ -91,6 +98,34 @@
         window.open(newRec,'_blank');
 
     };
+
+    //----------------------------
+
+    $(".remv").on("click",remvCountEntryRec)
+
+    //TODO: fix me!! Implement record deletes
+    function remvCountEntryRec(event) {
+        R = parseInt(this.value)
+
+        fn_postclosecheck = doRemove
+        document.getElementById("modal_title").innerHTML = "Remove Record?"
+        document.getElementById("modal_question").innerHTML = "Are you sure you want to remove count record ".concat(R).concat("?")
+        $("#modalRemvCheck").find( "form" ).find("[name='RecNum']").val(R)
+
+        $('#modalRemvCheck').modal();
+    };
+    function doRemove(RecNum) {
+        alert("The delete option will be done later...")
+    };
+
+    //----------------------------
+
+    $("#add_btn").on("click",addNewCountEntryRec)
+
+    function addNewCountEntryRec(event) {
+        newRec = "{% url 'CountScheduleForm' %}"
+        window.open(newRec,'_blank')
+        };
 
 </script>
 

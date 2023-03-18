@@ -15,12 +15,18 @@ class Organizations(models.Model):
         # return super().__str__()
 
 
-class orgObjects(models.Manager):
-    def __init__(self, org_in) -> None:
-        super().__init__()
-        self.org = org_in
-    def get_queryset(self):
-        return super().get_queryset().filter(org=self.org)
+# orgObjects abandoned - not easy at all!!!
+# TODO: mebbe later implement as a fn passing in modl and org and returning qs
+# class orgObjects(models.Manager):
+#     def __init__(self, org_in) -> None:
+#         super().__init__()
+#         self.org = org_in
+#     def get_queryset(self):
+#         try:
+#             QS = super().get_queryset().filter(org=self.org)
+#         except:
+#             QS = super().get_queryset()
+#         return QS
 
 
 class WhsePartTypes(models.Model):
@@ -29,7 +35,6 @@ class WhsePartTypes(models.Model):
     PartTypePriority = models.SmallIntegerField()
     InactivePartType = models.BooleanField(blank=True, default=False)
     objects = models.Manager()
-    orgobjects = orgObjects(org)
 
     class Meta:
         ordering = ['org','WhsePartType']
@@ -56,7 +61,6 @@ class MaterialList(models.Model):
     TypicalPalletQty = models.IntegerField(null=True, blank=True)
     Notes = models.CharField(max_length=250, blank=True)
     objects = models.Manager()
-    orgobjects = orgObjects(org)
 
     class Meta:
         ordering = ['org','Material']
@@ -86,7 +90,6 @@ class CountSchedule(models.Model):
     CMPrintFlag = models.BooleanField(blank=True, default=False)
     Notes = models.CharField(max_length=250, blank=True)
     objects = models.Manager()
-    orgobjects = orgObjects(org)
 
     class Meta:
         ordering = ['org','CountDate', 'Material']
@@ -117,7 +120,6 @@ class ActualCounts(models.Model):
     FLAG_MovementDuringCount = models.BooleanField(blank=True, default=False)
     Notes = models.CharField(max_length = 250, blank=True)
     objects = models.Manager()
-    orgobjects = orgObjects(org)
 
     class Meta:
         ordering = ['org', 'CountDate', 'Material']

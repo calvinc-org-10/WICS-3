@@ -231,211 +231,233 @@ button:focus {
         </div>
     </div>
 
+<div id="modalGeneric" class="modal" >
+</div>
+    
 
-    <script>
-        // var $form = $('.trackformchanges');
-        var $forms = document.getElementById("CEForm").querySelectorAll(":scope input");
-        var thisRecNum = $('#RecPK').val();
-        var ctdtID = $('#{{frmMain.CountDate.id_for_label}}');
-        var orig_ctdt = ctdtID.val()
-        var mtlnmID = $('#{{frmMain.Material.id_for_label}}');
-        var orig_matl = mtlnmID.val()
-        var initialState;
-        var modalCloseCheckResult, modalCloseCheckClosed;
-        // JAVASCRIPT DATES SUCK!!!!!!
+<script>
+    // var $form = $('.trackformchanges');
+    var $forms = document.getElementById("CEForm").querySelectorAll(":scope input");
+    var thisRecNum = $('#RecPK').val();
+    var ctdtID = $('#{{frmMain.CountDate.id_for_label}}');
+    var orig_ctdt = ctdtID.val()
+    var mtlnmID = $('#{{frmMain.Material.id_for_label}}');
+    var orig_matl = mtlnmID.val()
+    var initialState;
 
 
-        // expand this one day - this could be useful - Fix it first!!!
-        function dtstr(dt = Date(), fmt = "YYYY-MM-DD HH:NN:SS")
-        {
-            dt = (dt == undefined) ? Date() : dt;   // how do I move dt to localtime??? - easy - by not introducing syntax errors!
-            if (typeof(dt) == 'string') { dt = new Date(dt) }
-            d_str = fmt
-            d_str = d_str.replaceAll('YYYY',("0000"+dt.getFullYear()).slice(-4))
-            d_str = d_str.replaceAll('MM',("00"+(dt.getMonth()+1)).slice(-2))
-            d_str = d_str.replaceAll('DD',("00"+dt.getDate()).slice(-2))
-            d_str = d_str.replaceAll('HH',("00"+dt.getHours()).slice(-2))
-            d_str = d_str.replaceAll('NN',("00"+dt.getMinutes()).slice(-2))
-            d_str = d_str.replaceAll('SS',("00"+dt.getSeconds()).slice(-2))
-            // if new_dt = Date(d_str) is invalid, replace with dt.toString()
-            return d_str
+    // JAVASCRIPT DATES SUCK!!!!!!
+    // expand this one day - this could be useful - Fix it first!!!
+    function dtstr(dt = Date(), fmt = "YYYY-MM-DD HH:NN:SS")
+    {
+        dt = (dt == undefined) ? Date() : dt;   // how do I move dt to localtime??? - easy - by not introducing syntax errors!
+        if (typeof(dt) == 'string') { dt = new Date(dt) }
+        d_str = fmt
+        d_str = d_str.replaceAll('YYYY',("0000"+dt.getFullYear()).slice(-4))
+        d_str = d_str.replaceAll('MM',("00"+(dt.getMonth()+1)).slice(-2))
+        d_str = d_str.replaceAll('DD',("00"+dt.getDate()).slice(-2))
+        d_str = d_str.replaceAll('HH',("00"+dt.getHours()).slice(-2))
+        d_str = d_str.replaceAll('NN',("00"+dt.getMinutes()).slice(-2))
+        d_str = d_str.replaceAll('SS',("00"+dt.getSeconds()).slice(-2))
+        // if new_dt = Date(d_str) is invalid, replace with dt.toString()
+        return d_str
+    }
+
+    document.body.onload = function() {
+
+        sCE();  // show calculated value of CTD_QTY
+
+        // turn off controls that need the Date and Material first
+        $(".need-Matl-Dt").prop("disabled", !isValid_Date_Material());
+
+        initialState = serialize($forms);
+
         }
 
-        document.body.onload = function() {
-
-            sCE();  // show calculated value of CTD_QTY
-
-            // if this is an existing record, disable CountDate and Material; allowing those to change is just too much work
-            // nope, I can do that now
-            if (thisRecNum > 0) {
-                // ctdtID.prop("readonly", true);
-                // mtlnmID.prop("readonly", true);
-            }
-
-            // turn off controls that need the Date and Material first
-            $(".need-Matl-Dt").prop("disabled", !isValid_Date_Material());
-
-            initialState = serialize($forms);
-
-            }
-
-        document.body.onbeforeunload = function() {
-            document.getElementById("wait_spinner").style.display = "block";
-            }
-
-        document.getElementById("{{frmMain.CTD_QTY_Expr.id_for_label}}").addEventListener("onfocus",
-            function(){ SkipCountIfLocationOnly(); });
-
-        // later, duplicate this for closeform (see document.body.onbeforeunload)
-        document.getElementById("close_btn").addEventListener("click",
-            function(evobj){
-                if (confirmLeave()) {
-                    window.close()
-                }
-            });
-
-        // I don't need to check for CtDt or Material exists since button is disabled if these are missing
-        $("#SchedCount").on("click",
-            function() {
-                if (!isValid_Date()) {return;}
-                else {
-                    dVal = (new Date(ctdtID.val())).toISOString().substring(0,10)
-                }
-
-                R = 0   // not needed, since R=0 is hardcoded in the url below.  But this is good for documentation
-                newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
-                newRec = newRec.replace("/passedMatlNum","/"+mtlnmID.val());
-                newRec = newRec.replace("/passedCountDate","/"+dVal);
-                window.open(newRec,'_blank')
-            });
-
-        function processGoToReq(goDir) {
-            if (confirmLeave()) {
-                loadCountEntryRec(goDir);
-            }
-        };
-
-        // I'd like to use Bootstrap modals for this, but they're not really modal; they don't halt execution until dismissal
-        /*
-        document.getElementById('modalCloseCheck').addEventListener('hidden.bs.modal',
-            function() {
-               modalCloseCheckClosed = true;
-            });
-        */
-        function confirmLeave(){
-            if (isFormChanged()) {
-                return confirm("This record has changed\nDo you really want to leave without saving?\n");
-            } else {
-                return true;
-            }
-        };
-        function isFormChanged() {
-            return !(initialState === serialize($forms));
-        };
-
-        function sCE(){ showCountExpr('{{frmMain.CTD_QTY_Expr.id_for_label}}', 'EvalExpr'); };
-
-// move to common???
-        function showCountExpr(expr_fld, rslt) {
-            document.getElementById(rslt).innerHTML = "= " + EvalExpr(document.getElementById(expr_fld).value);
-        };
-
-        function isValid_Date_Material() {
-            return isValid_Date() && isValid_Material();
-        }
-        function isValid_Date() {
-            let dVal;
-
-            if (ctdtID.val().trim()=="") {
-                return false;
-            }
-
-            try {
-                dVal = new Date(ctdtID.val())
-            }
-            catch {
-                return false;
-            }
-            return true;
-        }
-        function isValid_Material() {
-            if (mtlnmID.val().trim()=="") {
-                 return false;
-            }
-
-            let foundit = false;  i = 0;
-            while (!foundit && (i < $("#Material-list").children().length)) {
-                foundit = foundit || ($("#Material-list").children()[i].value==mtlnmID.val());
-                i++;
-            }
-
-            return foundit;
+    document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
         }
 
-        function loadExtraInfo() {
-            let dVal;
+    document.getElementById("{{frmMain.CTD_QTY_Expr.id_for_label}}").addEventListener("onfocus",
+        function(){ SkipCountIfLocationOnly(); });
 
-            if (!isValid_Date()) {
-                alert(ctdtID.val() + " is not a valid date");
-                ctdtID.focus();
-                return;
-            }
+    // later, duplicate this for closeform (see document.body.onbeforeunload)
+    document.getElementById("close_btn").addEventListener("click",
+        function(evobj){
+            confirmLeave(YesCloseIt);
+        });
+
+    // I don't need to check for CtDt or Material exists since button is disabled if these are missing
+    $("#SchedCount").on("click",
+        function() {
+            if (!isValid_Date()) {return;}
             else {
                 dVal = (new Date(ctdtID.val())).toISOString().substring(0,10)
             }
-            // if (typeof(dVal) == 'string') { dVal = new Date(dVal) };
-            // dVal =  dtstr(dt = dVal, fmt = "YYYY-MM-DD")
-            ctdtID.val(dVal)
 
-            if (!isValid_Material()) {
-                if (mtlnmID.val() != "") { alert(mtlnmID.val() + " is not a valid Material number"); }
-                mtlnmID.focus();
-                return;
-            }
+            R = 0   // not needed, since R=0 is hardcoded in the url below.  But this is good for documentation
+            newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
+            newRec = newRec.replace("/passedMatlNum","/"+mtlnmID.val());
+            newRec = newRec.replace("/passedCountDate","/"+dVal);
+            window.open(newRec,'_blank')
+        });
 
-            newRec = "{% url 'CountEntryForm' 9999 'passedCountDate' 'matl' %}";
-            R = Number.parseInt( document.getElementById('{{frmMain.id.id_for_label}}').value );
-            if ( isNaN(R) ) { R = 0 };
-            newRec = newRec.replace("/9999","/"+R);
-            newRec = newRec.replace("passedCountDate",dVal);
-            mNum="None"; if (mtlnmID.val() != "") {mNum = mtlnmID.val()};
-            newRec = newRec.replace("/matl","/"+mNum);
-            window.location = newRec;
-        };
-        function loadCountEntryRec(goDir) {
-            R = Number.parseInt( document.getElementById('{{frmMain.id.id_for_label}}').value );
-            if ( isNaN(R) ) { R = 0 };
-            newRec = "{% url 'CountEntryFormGo' 0 'gotoCommand' %}"
-            newRec = newRec.replace("/0","/"+R);
-            newRec = newRec.replace("/gotoCommand","/"+goDir);
-            window.location = newRec;
-        };
+    function processGoToReq(goDir) {
+        confirmLeave(()=>loadCountEntryRec(goDir));
+    };
 
-        function SkipCountIfLocationOnly() {
-            if ($("#{{frmMain.LocationOnly.id_for_label}}").val()) {
-                $("#{{frmMain.CTD_QTY_Expr.id_for_label}}").attr('tabindex','-1');
-            } else {
-                $("#{{frmMain.CTD_QTY_Expr.id_for_label}}").removeAttr('tabindex');
-            }
-        };
+    function sCE(){ showCountExpr('{{frmMain.CTD_QTY_Expr.id_for_label}}', 'EvalExpr'); };
 
-        function SubmMainFm() {
-            if ($("#{{ frmMain.BLDG.id_for_label }}").val()) {
-                $("#CEForm").submit()
-            } else {
-                alert("Please enter a BLDG");
-                $("#{{ frmMain.BLDG.id_for_label }}").focus();
-            }
+// TODO: move to common???
+    function showCountExpr(expr_fld, rslt) {
+        document.getElementById(rslt).innerHTML = "= " + EvalExpr(document.getElementById(expr_fld).value);
+    };
+
+    function isValid_Date_Material() {
+        return isValid_Date() && isValid_Material();
+    }
+    function isValid_Date() {
+        let dVal;
+
+        if (ctdtID.val().trim()=="") {
+            return false;
         }
 
-    </script>
-    <script>
-        function create_empty_user() {
-            var form_idx = $('#id_form-TOTAL_FORMS').val()
-            // check against max-forms before allowing add
-            $('#form_set').append($('#empty_form').html().replace(/__prefix__/g, form_idx).replace("hidden",""))
-            $('#id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1)
+        try {
+            dVal = new Date(ctdtID.val())
         }
-    </script>
+        catch {
+            return false;
+        }
+        return true;
+    }
+    function isValid_Material() {
+        if (mtlnmID.val().trim()=="") {
+                return false;
+        }
+
+        let foundit = false;  i = 0;
+        while (!foundit && (i < $("#Material-list").children().length)) {
+            foundit = foundit || ($("#Material-list").children()[i].value==mtlnmID.val());
+            i++;
+        }
+
+        return foundit;
+    }
+
+    function loadExtraInfo() {
+        let dVal;
+
+        if (!isValid_Date()) {
+            alertBox("Invalid Date", ctdtID.val() + " is not a valid date");
+            ctdtID.focus();
+            return;
+        }
+        else {
+            dVal = (new Date(ctdtID.val())).toISOString().substring(0,10)
+        }
+        // if (typeof(dVal) == 'string') { dVal = new Date(dVal) };
+        // dVal =  dtstr(dt = dVal, fmt = "YYYY-MM-DD")
+        ctdtID.val(dVal)
+
+        if (!isValid_Material()) {
+            if (mtlnmID.val() != "") { alertBox("Invalid Material", mtlnmID.val() + " is not a valid Material number"); }
+            mtlnmID.focus();
+            return;
+        }
+
+        newRec = "{% url 'CountEntryForm' 9999 'passedCountDate' 'matl' %}";
+        R = Number.parseInt( document.getElementById('{{frmMain.id.id_for_label}}').value );
+        if ( isNaN(R) ) { R = 0 };
+        newRec = newRec.replace("/9999","/"+R);
+        newRec = newRec.replace("passedCountDate",dVal);
+        mNum="None"; if (mtlnmID.val() != "") {mNum = mtlnmID.val()};
+        newRec = newRec.replace("/matl","/"+mNum);
+        window.location = newRec;
+    };
+    function loadCountEntryRec(goDir) {
+        R = Number.parseInt( document.getElementById('{{frmMain.id.id_for_label}}').value );
+        if ( isNaN(R) ) { R = 0 };
+        newRec = "{% url 'CountEntryFormGo' 0 'gotoCommand' %}"
+        newRec = newRec.replace("/0","/"+R);
+        newRec = newRec.replace("/gotoCommand","/"+goDir);
+        window.location = newRec;
+    };
+
+    function SkipCountIfLocationOnly() {
+        if ($("#{{frmMain.LocationOnly.id_for_label}}").val()) {
+            $("#{{frmMain.CTD_QTY_Expr.id_for_label}}").attr('tabindex','-1');
+        } else {
+            $("#{{frmMain.CTD_QTY_Expr.id_for_label}}").removeAttr('tabindex');
+        }
+    };
+
+    function SubmMainFm() {
+        if ($("#{{ frmMain.BLDG.id_for_label }}").val()) {
+            $("#CEForm").submit()
+        } else {
+            alertBox("Enter BLDG", "Please enter a BLDG");
+            $("#{{ frmMain.BLDG.id_for_label }}").focus();
+        }
+    }
+
+//******************
+
+    function alertBox(titl, msg) {
+        $("#modalGeneric").dialog("option","title",titl);
+        document.getElementById("modalGeneric").innerHTML = msg
+
+        $("#modalGeneric").dialog("option","buttons", 
+            { 
+                "OK" : function() {
+                    $(this).dialog("close"); }
+            } );
+        $("#modalGeneric").dialog("open");
+    }
+
+    function isFormChanged() {
+        currState = serialize($forms);
+        return !(initialState === currState);
+    };
+
+    function confirmLeave(LeaveProc){
+        if (isFormChanged()) {
+            $("#modalGeneric").dialog("option","title","Leave Record?");
+            document.getElementById("modalGeneric").innerHTML = "This record has changed<br>Do you really want to leave without saving?"
+    
+            $("#modalGeneric").dialog("option","buttons", 
+                { 
+                    "Yes": function() { 
+                        LeaveProc();
+                        $(this).dialog("close"); },
+                    "No" : function() {
+                        $(this).dialog("close"); }
+                } );
+            $("#modalGeneric").dialog("open");
+        } else {
+            LeaveProc();
+        }
+    };
+
+    // handle Modal
+    $("#modalGeneric").dialog({
+        autoOpen: false,
+        closeOnEscape: false,
+        modal: true,
+        hide: "puff",
+        position: {
+            my: "top center", at: "top center"
+        }
+    });
+
+    function YesCloseIt() {
+        window.close()
+    }
+
+    function DoNothing() {
+        // what do you _think_ this does??
+    }
+
+</script>
 {% endblock %}
 

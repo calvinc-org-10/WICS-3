@@ -113,7 +113,7 @@ def fnMaterialForm(req, recNum = -1, gotoMatl=None, gotoRec=False, newRec=False)
         elif recNum <= 0:
             currRec = MaterialList.objects.filter(org=_userorg).first()
         else:
-            currRec = MaterialList.objects.filter(org=_userorg).get(pk=recNum)   # later, handle record not found
+            currRec = MaterialList.objects.get(org=_userorg, pk=recNum)   # later, handle record not found
         # endif
     #endif
 
