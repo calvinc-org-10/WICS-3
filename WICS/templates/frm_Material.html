@@ -3,13 +3,25 @@
 {% load evaluate_arithmetic %}
 {% load static %}
 
+{% block tHeader %}
+{{ block.super }}
+<style>
+button:focus {
+    border-color:#9ecaed;   <!-- convert to rgba -->
+    box-shadow: 0 0 5px rgba(0, 0, 255, 1);
+    -webkit-box-shadow: 0 0 5px rgba(0, 0, 255, 1); 
+    -moz-box-shadow: 0 0 5px rgba(0, 0, 255, 1);
+    border:1px solid rgba(0,0,255, 0.8); 
+}
+</style>
+{% endblock %}
 
 {% block tTitle %}Materials{% endblock %}
 
 {% block boddy %}
 <div class="container text-center mx-auto">
 <div class="row">
-    <div class="col-10 fs-1">
+    <div class="col-10 fs-2">
         <u>{{ orgname }}</u>
         <img src={% static 'WICS-Logo.png' %} width="200" height="100">
     </div>
@@ -332,26 +344,7 @@
     var $gotoTextBox = document.getElementById("gotoID");
     // record the ID and GPN of current record (it's used often!)
     var thisMtlID = {{frmMain.showPK.value|default_if_none:0}}, thisMtlGPN = "{{frmMain.Material.value}}"
-    var modalCloseCheckResult, modalCloseCheckClosed;   // obsolete?
-
-
-    //-------------------------------
-
-    /*!
-    * Serialize all form data into an object
-    * (c) 2021 Chris Ferdinandi, MIT License, https://gomakethings.com
-    * @param  {FormData} data The FormData object to serialize
-    * @return {String}        The serialized form data
-    */
-    function serialize (elmnts) {
-        let retStr = ''
-        // let obj = {};
-        for (let theelmnt of elmnts) {
-            retStr += theelmnt.name + "='" + theelmnt.value + "';"
-        }
-        return retStr;
-    }
-
+    
     //------------------
 
     document.addEventListener("DOMContentLoaded", function() {
@@ -367,13 +360,20 @@
         });
 
     window.addEventListener("beforeunload",  function(event) {
-        if (!confirmLeave()) {
+        if (isFormChanged()) {
             event.preventDefault();
+            confirmLeave(YesCloseIt);
         } else {
             document.getElementById("wait_spinner").style.display = "block";
         };
         });
 
+
+    //---------------
+
+    function YesCloseIt() {
+        window.close()
+    }
 
     //---------------
 
@@ -405,12 +405,10 @@
     //---------------
 
     //TODO: later, duplicate this for closeform (see document.body.onbeforeunload)
-    document.getElementById("close_btn").addEventListener("click",
-    function(evobj){
-        if (confirmLeave()) {
-            window.close()
-        }
-    });
+    document.getElementById("close_btn").addEventListener("click", 
+        function(evobj){
+            confirmLeave(YesCloseIt);
+        });
 
     //-------------------
 
@@ -453,9 +451,7 @@
     //-----------------
 
     function processGoToReq() {
-        if (confirmLeave()) {
-            loadMaterialRec();
-        }
+        confirmLeave(loadMaterialRec);
     };
 
     function isFormChanged() {
@@ -463,30 +459,39 @@
         return !(initialState === currState);
     };
 
-    // I'd like to use Bootstrap modals for this, but they're not really modal; they don't halt execution until dismissal
-    document.getElementById('modalCloseCheck').addEventListener('hidden.bs.modal',
-        function() {
-            modalCloseCheckClosed = true;
-        });
-        
     //TODONE! : only check if the forms I care about have changed - multi-form and serialize by form
     //DONE: the $forms variable only points to elements of class .trackformchanges
-    function confirmLeave(){
+    function confirmLeave(LeaveProc){
         if (isFormChanged()) {
-            return confirm("This record has changed\nDo you really want to leave without saving?");
-            // modalCloseCheckResult = false;
-            // modalCloseCheckClosed = false;
-            // $('#modalCloseCheck').modal();
-            // while (!modalCloseCheckClosed) {
-            //     // do nothing!
-            //     } ;
-            // alert(modalCloseCheckResult);
-            // return modalCloseCheckResult;
+            $("#modalGeneric").dialog("option","title","Leave Record?");
+            document.getElementById("modalGeneric").innerHTML = "This record has changed<br>Do you really want to leave without saving?"
+    
+            $("#modalGeneric").dialog("option","buttons", 
+                { 
+                    "Yes": function() { 
+                        LeaveProc();
+                        $(this).dialog("close"); },
+                    "No" : function() {
+                        $(this).dialog("close"); }
+                } );
+            $("#modalGeneric").dialog("open");
         } else {
-            return true;
+            LeaveProc();
         }
     };
 
+    // handle Modal
+    $("#modalGeneric").dialog({
+        autoOpen: false,
+        closeOnEscape: false,
+        modal: true,
+        hide: "puff",
+        position: {
+            my: "top center", at: "top center"
+        }
+    });
+        
+    
     // document.getElementById("{{frmMain.CTD_QTY_Expr.id_for_label}}").addEventListener("onchange",
     function sCE(n){
         showCountExpr('id_countset-' + n + '-CTD_QTY_Expr', 'EvalExpr'+str(n));

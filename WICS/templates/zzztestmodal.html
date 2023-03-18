@@ -54,8 +54,7 @@
 <!-- Somewhat generic Modal -->
 <!-- later, allow btn-default to be chosen -->
 <div id="modal1" class="modal" >
-    <div id="dummydiv"></div>
-
+    <div id="dummydiv"> Will fixed text work?</div>
 </div>
 <div id="modalYesNo" class="modal" >
     <div id="modal_question">
@@ -81,7 +80,8 @@
     // Modal Forms
     
     // handle return from Modal
-    $ModalBox.dialog({
+    // $ModalBox.dialog({
+    $("#modal1").dialog({
         autoOpen: false,
         closeOnEscape: false,
         modal: true,
@@ -151,7 +151,7 @@
     //---------------------------
 
     function Dlg1(dummyarg1, dummyarg2) {
-        document.getElementById("modal1").innerHTML = "Only native JS works!\nButton names can be raw or string"
+        // document.getElementById("modal1").innerHTML = "Only native JS works!\nButton names can be raw or string"
 
         $ModalBox.dialog("option", "buttons", 
              {
@@ -193,7 +193,7 @@
         function(evobj) {
             $ModalBox.dialog("option", {
                 title: 'Dialog 3',
-                body: 'I hope it shows this text',
+                // body: 'I hope it shows this text',
             });
             // $('#modal1').find('.jui_dlg_txt').first().text('This is the text for dialog 3');    // .text ??
             $ModalBox.dialog("open");

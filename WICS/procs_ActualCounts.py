@@ -291,7 +291,8 @@ def fnUploadActCountSprsht(req):
         UplResults = []
         nRows = 0
         rowNum=1
-        for row in ws.iter_rows(min_row=rowNum+1, values_only=True):
+        MAX_COUNT_ROWS = 5000
+        for row in ws.iter_rows(min_row=rowNum+1, max_row=MAX_COUNT_ROWS, values_only=True):
             rowNum += 1
             try:
                 MatObj = MaterialList.objects.get(org=_userorg, Material=row[SAPcolmnMap['Material']])
@@ -357,11 +358,14 @@ def fnUploadActCountSprsht(req):
                 if row[SAPcolmnMap['Material']]:
                     UplResults.append({'error':row[SAPcolmnMap['Material']]+' does not exist in MaterialList', 'rowNum':rowNum})
 
+        if rowNum >= MAX_COUNT_ROWS:
+            UplResults.insert(0,{'error':f'Data in spreadsheet rows {MAX_COUNT_ROWS+1} and beyond are being ignored.'})
+
         # close and kill temp files
         wb.close()
         os.remove(fName)
 
-        cntext = {'UplResults':UplResults, 'nRowsAdded':nRows,
+        cntext = {'UplResults':UplResults, 'nRowsRead':rowNum, 'nRowsAdded':nRows,
                 'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
                 }
         templt = 'frm_uploadCountEntry_Success.html'

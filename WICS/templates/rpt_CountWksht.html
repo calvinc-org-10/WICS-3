@@ -27,7 +27,11 @@
             </h2>
             SAP Date: {{ SAP_Updated_at }}
         </div>
-        <div class="col-2 text-end"> {{ uname }} </div>
+        <div class="col-2 text-end"> 
+            {{ uname }}
+            <br>
+            <img src={% static 'WICS-Logo.png' %} width="150" height="70">
+        </div>
     </div>
     <div class="row"> <!-- status messages -->
         <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>

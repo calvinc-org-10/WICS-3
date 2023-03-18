@@ -21,16 +21,6 @@
 
     <link href="{% static 'calvinstyles.css' %}" rel="stylesheet">
     <link rel="icon" type="image/x-icon" href="{% static 'WICS-favicon.png' %}">
-    <script>
-        function EvalExpr(expr) {
-            try {
-                ev = eval(expr)   // yes, I know it's dangerous.  I'll do better when I can
-            } catch {
-                ev = "????"
-            }
-            return ev;
-        }
-    </script>
     <title>{% block tTitle %}{% endblock %}</title>
     {% block tHeader %}{% endblock %}
 </head>
@@ -38,4 +28,34 @@
 {% block boddy %}
 {% endblock %}
 </body>
+
+<script>
+
+    /*!
+    * Serialize all form data into an object
+    * (c) 2021 Chris Ferdinandi, MIT License, https://gomakethings.com
+    * @param  {FormData} data The FormData object to serialize
+    * @return {String}        The serialized form data
+    */
+    function serialize(elmnts) {
+        let retStr = ''
+        // let obj = {};
+        for (let theelmnt of elmnts) {
+            retStr += theelmnt.name + "='" + theelmnt.value + "';"
+        }
+        return retStr;
+    }
+
+//-------------------------------
+
+    function EvalExpr(expr) {
+        try {
+            ev = eval(expr)   // yes, I know it's dangerous.  I'll do better when I can
+        } catch {
+            ev = "????"
+        }
+        return ev;
+    }
+</script>
+
 </html>
