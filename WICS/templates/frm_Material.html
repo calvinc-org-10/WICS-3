@@ -96,7 +96,8 @@ button:focus {
     <div class="container-fluid">
         <div class="row">
             <div class="col-7">
-                Material: {% render_field frmMain.Material size="15" %} Description: {% render_field frmMain.Description size="50" %}
+                Material: {% render_field frmMain.Material size="15" %} 
+                Description: {% render_field frmMain.Description size="50" %}
                 <input type="hidden" name="OrigMaterial" value="{{ frmMain.Material.value }}"></input>
             </div>
             <div class="col-5">
@@ -132,7 +133,7 @@ button:focus {
                     Last Found At {{ lastFoundAt.lastFoundAt }} on {{ lastFoundAt.lastCountDate }}
                 </div>
                 <div class="col-2 text-end">
-                    <button id="SchedCount" type="button">Schedule Count</button>
+                    <button id="SchedCount" type="button" {% if userReadOnly %}disabled{%endif%}>Schedule Count</button>
                 </div>
             </div>
         </div>
@@ -164,7 +165,7 @@ button:focus {
                     {% if countset.errors %}{{ countset.errors|default:'' }}<br>{% endif %}
                     <div class="container">
                     <div class="row">
-                        <div class="col-2"><button type="button" id="AddCount">Add Count</button></div>
+                        <div class="col-2"><button type="button" id="AddCount" {% if userReadOnly %}disabled{%endif%}>Add Count</button></div>
                     </div>
                     <div class="row">
                         <div class="col-1">Count Date</div>
@@ -293,13 +294,13 @@ button:focus {
     <div class="container">
         <div class="row mx-auto max-width=100%">
             <div class="col-3">
-                <button id="save_btn" type="submit">
+                <button id="save_btn" type="submit" {% if userReadOnly %}disabled{%endif%}>
                     <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
                     Save changes
                 </button>
             </div>
             <div class="col-7">
-                <button id="add_btn" type="button">
+                <button id="add_btn" type="button" {% if userReadOnly %}disabled{%endif%}>
                     <img src="{% static 'addition-color-outline-icon.svg' %}" width="20" height="20"></img>
                     Add New Material
                 </button>   
@@ -323,6 +324,8 @@ button:focus {
     var $gotoTextBox = document.getElementById("gotoID");
     // record the ID and GPN of current record (it's used often!)
     var thisMtlID = {{frmMain.showPK.value|default_if_none:0}}, thisMtlGPN = "{{frmMain.Material.value}}"
+    var CloseItFlag = false
+
     
     //------------------
 
@@ -336,14 +339,19 @@ button:focus {
             showCountExpr(CQtyID, EvID);
             fbody = Function("function dummyCE" + i + "() { showCountExpr(this.id, '" + EvID + "'); };");  {# TODO: figure out how to take advantage of this line #}
         };
+        CloseItFlag = false || {{ userReadOnly }};
         });
 
     window.addEventListener("beforeunload",  function(event) {
-        if (isFormChanged()) {
-            event.preventDefault();
-            confirmLeave(YesCloseIt);
-        } else {
+        if (CloseItFlag) {
             document.getElementById("wait_spinner").style.display = "block";
+        } else {
+            if (isFormChanged()) {
+                event.preventDefault();
+                confirmLeave(YesCloseIt);
+            } else {
+                document.getElementById("wait_spinner").style.display = "block";
+            }
         };
         });
 
@@ -351,7 +359,8 @@ button:focus {
     //---------------
 
     function YesCloseIt() {
-        window.close()
+        CloseItFlag = true; 
+        window.close(); 
     }
 
     //---------------
@@ -359,10 +368,11 @@ button:focus {
     const fmMain = document.getElementById('FmMain');
     
     function setPOSTAction(event) {
-        newRec = "{% url 'MatlForm' %}"
+        newRec = "{% url 'MatlForm' %}";
         // newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
         // newRec = newRec.replace("/passedCountDate","/"+dVal);
-        fmMain.action = newRec
+        fmMain.action = newRec;
+        CloseItFlag = true;
         }
 
     fmMain.addEventListener('submit', setPOSTAction);
@@ -375,7 +385,7 @@ button:focus {
             newRec="{% url 'ReloadMatlForm' 'gotoMatl' %}"
             newRec = newRec.replace("/gotoMatl","/"+goID.value);
             document.getElementById("wait_spinner").style.display = "block";
-            window.location = newRec
+            window.location = newRec;
         } else {
             goID.value = thisMtlGPN;
         }

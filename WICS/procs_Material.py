@@ -253,6 +253,7 @@ def fnMaterialForm(req, recNum = -1, gotoMatl=None, gotoRec=False, newRec=False)
 
     # display the form
     cntext = {'frmMain': mtlFm,
+            'userReadOnly': req.user.has_perm('WICS.Material_onlyview') and not req.user.has_perm('WICS.SuperUser'),
             'lastFoundAt': LastFoundAt(currRec),
             'FoundAt': FoundAt(currRec),
             'gotoForm': gotoForm,

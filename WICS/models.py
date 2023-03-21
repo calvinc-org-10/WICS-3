@@ -27,7 +27,11 @@ class Organizations(models.Model):
 #         except:
 #             QS = super().get_queryset()
 #         return QS
-
+def org_queryset(modl: models.Model, org: Organizations) -> models.QuerySet:
+    if hasattr(modl, 'org'):
+        return modl.objects.filter(org=org)
+    else:
+        return modl.objects.none()
 
 class WhsePartTypes(models.Model):
     org = models.ForeignKey(Organizations, on_delete=models.CASCADE, blank=True, editable=False)
@@ -201,3 +205,20 @@ class Location_WorksheetZone(models.Model):
     location = models.CharField(max_length=50,blank=False)
     zone = models.ForeignKey('WorksheetZones', on_delete=models.RESTRICT)
 
+
+
+class WICSPermissions(models.Model):
+            
+    class Meta:
+        
+        managed = False  # No database table creation or deletion  \
+                         # operations will be performed for this model. 
+                
+        default_permissions = () # disable "add", "change", "delete"
+                                 # and "view" default permissions
+
+        permissions = [ 
+            ('Material_onlyview', 'For restricting Material Form to view only'),  
+        ]
+
+        
