@@ -258,19 +258,19 @@ def fnUploadActCountSprsht(req):
 
     if req.method == 'POST':
         # save the file so we can open it as an excel file
-        SAPFile = req.FILES['CEFile']
+        CountSprshtFile = req.FILES['CEFile']
         svdir = getcParm('SAP-FILELOC')
         fName = svdir+"tmpCE"+str(uuid.uuid4())+".xlsx"
         with open(fName, "wb") as destination:
-            for chunk in SAPFile.chunks():
+            for chunk in CountSprshtFile.chunks():
                 destination.write(chunk)
 
         wb = load_workbook(filename=fName, read_only=True)
         ws = wb['Counts']
 
-        SAPcolmnNames = ws[1]
-        SAPcolmnMap = {'Material': None,'CountDate':None, 'Counter':None, 'BLDG':None}
-        SAP_SSName_TableName_map = {
+        CountSprshtcolmnNames = ws[1]
+        CountSprshtcolmnMap = {'Material': None,'CountDate':None, 'Counter':None, 'BLDG':None}
+        CountSprsht_SSName_TableName_map = {
                 'CountDate': 'CountDate',
                 'Counter': 'Counter',
                 'BLDG': 'BLDG',
@@ -282,10 +282,13 @@ def fnUploadActCountSprsht(req):
                 'TypicalPalletQty': 'TypicalPalletQty',
                 'Notes': 'Notes',
                 }
-        for col in SAPcolmnNames:
-            if col.value in SAP_SSName_TableName_map:
-                SAPcolmnMap[SAP_SSName_TableName_map[col.value]] = col.column - 1
-        if (SAPcolmnMap['Material'] == None) or (SAPcolmnMap['CountDate'] == None) or (SAPcolmnMap['Counter'] == None) or (SAPcolmnMap['BLDG'] == None):
+        for col in CountSprshtcolmnNames:
+            if col.value in CountSprsht_SSName_TableName_map:
+                CountSprshtcolmnMap[CountSprsht_SSName_TableName_map[col.value]] = col.column - 1
+        if (CountSprshtcolmnMap['Material'] == None) \
+          or (CountSprshtcolmnMap['CountDate'] == None) \
+          or (CountSprshtcolmnMap['Counter'] == None) \
+          or (CountSprshtcolmnMap['BLDG'] == None):
             raise Exception('SAP Spreadsheet has bad header row.  See Calvin to fix this.')
 
         UplResults = []
@@ -295,7 +298,7 @@ def fnUploadActCountSprsht(req):
         for row in ws.iter_rows(min_row=rowNum+1, max_row=MAX_COUNT_ROWS, values_only=True):
             rowNum += 1
             try:
-                MatObj = MaterialList.objects.get(org=_userorg, Material=row[SAPcolmnMap['Material']])
+                MatObj = MaterialList.objects.get(org=_userorg, Material=row[CountSprshtcolmnMap['Material']])
             except:
                 MatObj = None
 
@@ -309,7 +312,7 @@ def fnUploadActCountSprsht(req):
                         }
                 MatChanged = False
                 SRec = ActualCounts(org = _userorg)
-                for fldName, colNum in SAPcolmnMap.items():
+                for fldName, colNum in CountSprshtcolmnMap.items():
                     V = row[colNum]
                     if V!=None: 
                         if   fldName == 'CountDate': 
@@ -350,13 +353,13 @@ def fnUploadActCountSprsht(req):
                     SRec.save()
                     if MatChanged: MatObj.save()
                     qs = type(SRec).objects.filter(pk=SRec.pk).values().first()
-                    res = {'error': False, 'rowNum':rowNum, 'TypicalQty':MatChanged, 'MaterialNum': row[SAPcolmnMap['Material']] }
+                    res = {'error': False, 'rowNum':rowNum, 'TypicalQty':MatChanged, 'MaterialNum': row[CountSprshtcolmnMap['Material']] }
                     res.update(qs)
                     UplResults.append(res)
                     nRows += 1
             else:
-                if row[SAPcolmnMap['Material']]:
-                    UplResults.append({'error':row[SAPcolmnMap['Material']]+' does not exist in MaterialList', 'rowNum':rowNum})
+                if row[CountSprshtcolmnMap['Material']]:
+                    UplResults.append({'error':row[CountSprshtcolmnMap['Material']]+' does not exist in MaterialList', 'rowNum':rowNum})
 
         if rowNum >= MAX_COUNT_ROWS:
             UplResults.insert(0,{'error':f'Data in spreadsheet rows {MAX_COUNT_ROWS+1} and beyond are being ignored.'})
@@ -427,8 +430,8 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
             outputline['type'] = 'Summary'
             outputline['SAPNum'] = []
             for SAProw in SAP_SOH['SAPTable'].filter(Material=lastrow['Material']): 
-                outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount))
-                SAPTot += SAProw.Amount
+                outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount, SAProw.BaseUnitofMeasure))
+                SAPTot += SAProw.Amount*SAProw.mult
             outputline['TypicalContainerQty'] = lastrow['TypicalContainerQty']
             outputline['TypicalPalletQty'] = lastrow['TypicalPalletQty']
             outputline['Material'] = lastrow['Material']

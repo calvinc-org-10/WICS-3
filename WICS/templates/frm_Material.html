@@ -125,7 +125,7 @@ button:focus {
                 <div class="col-10 text-start">
                     SAP Date: {{ SAPSet.SAPDate }}
                     {% if SAPSet.SAPTable %}
-                        {% for s in SAPSet.SAPTable %}({{ s.Material }}, {{ s.StorageLocation }}, {{ s.Amount }}){% endfor %}
+                        {% for s in SAPSet.SAPTable %}({{ s.Material }}, {{ s.StorageLocation }}, {{ s.Amount }}, {{s.BaseUnitofMeasure}}){% endfor %}
                     {% else %}
                         <b> No SAP Quantity</b>
                     {% endif %}

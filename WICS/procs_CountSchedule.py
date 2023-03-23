@@ -332,7 +332,7 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
                     zoneList.append(lz['zone'])
             rec.Zones = zoneList
             for SAProw in SAP_SOH['SAPTable'].filter(Material=rec.Material): 
-                rec.SAPQty += SAProw.Amount
+                rec.SAPQty += SAProw.Amount*SAProw.mult
 
         return qs
 
