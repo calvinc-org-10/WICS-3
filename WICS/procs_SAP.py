@@ -3,13 +3,13 @@ import os, uuid
 # from dateutil import parser
 from django import forms
 from django.contrib.auth.decorators import login_required
-from django.db.models import Max
+from django.db.models import Max, OuterRef, Subquery
 from django.shortcuts import render
 from openpyxl import load_workbook
 from cMenu.models import getcParm
 from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
-from WICS.models import SAP_SOHRecs
+from WICS.models import SAP_SOHRecs, UnitsOfMeasure
 from WICS.models import WhsePartTypes, MaterialList, tmpMaterialListUpdate
 
 ExcelWorkbook_fileext = ".XLSX"
@@ -164,7 +164,10 @@ def fnSAPList(org, for_date = calvindate().today(), matl = None):
             STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate, Material=matl).order_by('Material')
         else:   # it better be an iterable!
             STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate, Material__in=matl).order_by('Material')
-    
+    # UOM = UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure'))
+    STable = STable.annotate(mult=Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')))
+    # STb = STable.annotate(mult=Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure'))))    # nope - can only get a single field
+
     # yea, building SList is sorta wasteful, but a lot of existing code depends on it
     # won't be changing it until a total revamp of WICS
     SList['SAPDate'] = SAPDate

@@ -195,6 +195,12 @@ class SAP_SOHRecs(models.Model):
         get_latest_by = 'uploaded_at'
         ordering = ['uploaded_at', 'org', 'Material']
 
+class UnitsOfMeasure(models.Model):
+    UOM = models.CharField(max_length=50, unique=True)
+    UOMText = models.CharField(max_length=100, blank=True, default='')
+    DimensionText = models.CharField(max_length=100, blank=True, default='')
+    Multiplier1 = models.FloatField(default=1.0)
+
 
 class WorksheetZones(models.Model):
     zone = models.IntegerField(primary_key=True)
@@ -208,15 +214,11 @@ class Location_WorksheetZone(models.Model):
 
 
 class WICSPermissions(models.Model):
-            
     class Meta:
-        
         managed = False  # No database table creation or deletion  \
                          # operations will be performed for this model. 
-                
         default_permissions = () # disable "add", "change", "delete"
                                  # and "view" default permissions
-
         permissions = [ 
             ('Material_onlyview', 'For restricting Material Form to view only'),  
         ]

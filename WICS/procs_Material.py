@@ -289,8 +289,8 @@ class MaterialByPartType(LoginRequiredMixin, ListView):
         # it's more efficient to pull this all now and store it for the upcoming qs request
         SAP = fnSAPList(self._userorg)
         self.SAPDate = SAP['SAPDate']
-        rawsums = SAP['SAPTable'].values('Material').annotate(TotalAmount=Sum('Amount',default=0))
-        for x in rawsums: self.SAPSums[x['Material']] = x['TotalAmount']
+        rawsums = SAP['SAPTable'].values('Material','mult').annotate(TotalAmount=Sum('Amount',default=0))
+        for x in rawsums: self.SAPSums[x['Material']] = x['TotalAmount']*x['mult']
         
         return super().setup(req, *args, **kwargs)
 
