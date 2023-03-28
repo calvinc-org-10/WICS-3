@@ -180,6 +180,7 @@ button:focus {
                 </div>
                 <div class="card-body no-padding" style="height:210px; overflow: auto;">
                     {% for ff in countset %}
+                    {% ifchanged ff.CountDate.value %}{% if not forloop.first %}<hr>{% endif %}{% endifchanged %}
                     <div class="row">
                         {{ ff.id }}
                         <div class="col-1">{% render_field ff.CountDate size="10" %}</div>

@@ -8,10 +8,8 @@
 {% block tTitle %}Material Locations{% endblock %}
 
 {% block boddy %}
-<div class="container text-center mx-auto">
+<div class="container-fluid text-center mx-auto">
     <div class="row">
-        <div class="col-10">
-        </div>
         <div class="col-5 text-end">
             <h3><u>{{ orgname }}</u></h3>
             <h4>Material Locations as of {% now "DATE_FORMAT" %}</h4>
@@ -24,21 +22,21 @@
     </div>
 </div>
 <!-- header row -->
-<div class="row">
-    <div class="col-1">
+<div id="mainReport" class="container-fluid mx-auto calvin-smalltext">
+    <div class="row">
+        <div class="col-1">
+        </div>
+        <div class="col-3">
+            Material Number 
+        </div>
+        <div class="col-3">
+        </div>
+        <div class="col">
+            Last Count Date |
+            Last Found At
+        </div>
     </div>
-    <div class="col-3">
-        Material Number 
-    </div>
-    <div class="col-3">
-    </div>
-    <div class="col">
-        Last Count Date |
-        Last Found At
-    </div>
-</div>
-<hr>
-<div id="mainReport" class="container calvin-smalltext">
+    <hr>
     {% for itm in MatlList %}
     {% if not itm.DoNotShow %}
         <div class="row">

@@ -1,4 +1,5 @@
 # import dateutil.utils as dateutils
+from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
@@ -7,6 +8,7 @@ from WICS.models import MaterialList
 from WICS.procs_CountSchedule import fnCountScheduleRecordExists
 
 
+@login_required
 def fnCountEntryView(req, 
             recNum = 0, MatlNum = None, reqDate = calvindate().today(),
             gotoCommand = None
@@ -202,6 +204,7 @@ def fnCountEntryView(req,
     return render(req, templt, cntext)
 
 
+@login_required
 def fnCountScheduleRecView(req, 
             recNum = 0, MatlNum = None, reqDate = calvindate().today(),
             gotoCommand = None

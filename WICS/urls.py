@@ -71,6 +71,8 @@ urlpatterns = [
             procs_Material.fnMaterialForm, {'gotoRec':False, 'newRec':True}, name='NewMatlForm'),       #this MUST occur before name='ReloadMatlForm'
     path('MaterialForm/<str:gotoMatl>',
             procs_Material.fnMaterialForm, {'gotoRec':True}, name='ReloadMatlForm'),
+    path('MaterialForm/recnum/<int:recNum>',
+            procs_Material.fnMaterialForm, name='MatlFormRecNum'),
 
     path('MatlByPartType',procs_Material.MaterialByPartType.as_view(), name='MatlByPartType'),
 

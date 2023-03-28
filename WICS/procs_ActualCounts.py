@@ -1,4 +1,4 @@
-# import datetime
+import datetime
 import os, uuid
 from django import forms
 from django.contrib.auth.decorators import login_required
@@ -256,6 +256,46 @@ def fnCountEntryForm(req, recNum = 0,
 def fnUploadActCountSprsht(req):
     _userorg = WICSuser.objects.get(user=req.user).org
 
+    def validatefld(fld, val):
+        if   fld == 'CountDate': 
+            if isinstance(val,(calvindate, datetime.date, datetime.datetime)):
+                retval = True
+            else:
+                retval = (isDate(val) != False)
+        elif fld == 'Material': 
+            retval = True
+        elif fld == 'Counter': 
+            retval = True
+        elif fld == 'BLDG': 
+            retval = True
+        elif fld == 'LOCATION': 
+            retval = True
+        elif fld == 'LocationOnly': 
+            if isinstance(val,str):
+                retval = str.isnumeric()
+            elif isinstance(val,(float,int)):
+                retval = True
+            else:                
+                retval = False
+        elif fld == 'CTD_QTY_Expr': 
+            retval = True
+        elif fld == 'Notes': 
+            retval = True
+        elif fld == 'TypicalContainerQty' \
+        or fld == 'TypicalPalletQty':
+            if val == '' or val == None: 
+                retval = True   # this will be converted to 0
+            elif isinstance(val,str):
+                retval = str.isnumeric()
+            elif isinstance(val,(float,int)):
+                retval = True
+            else:                
+                retval = False
+        else:
+            retval = True
+        
+        return retval
+
     if req.method == 'POST':
         # save the file so we can open it as an excel file
         CountSprshtFile = req.FILES['CEFile']
@@ -315,32 +355,36 @@ def fnUploadActCountSprsht(req):
                 for fldName, colNum in CountSprshtcolmnMap.items():
                     V = row[colNum]
                     if V!=None: 
-                        if   fldName == 'CountDate': 
-                            setattr(SRec, fldName, V)
-                            requiredFields['CountDate'] = True
-                        elif fldName == 'Material': 
-                            setattr(SRec, fldName, MatObj)
-                            requiredFields['Material'] = True
-                        elif fldName == 'Counter': 
-                            setattr(SRec, fldName, V)
-                            requiredFields['Counter'] = True
-                        elif fldName == 'BLDG': 
-                            setattr(SRec, fldName, V)
-                            requiredFields['BLDG'] = True
-                        elif fldName == 'LOCATION': setattr(SRec, fldName, V)
-                        elif fldName == 'LocationOnly': 
-                            setattr(SRec, fldName, makebool(V))
-                            requiredFields['Both LocationOnly and CTD_QTY'] = True
-                        elif fldName == 'CTD_QTY_Expr': 
-                            setattr(SRec, fldName, V)
-                            requiredFields['Both LocationOnly and CTD_QTY'] = True
-                        elif fldName == 'Notes': setattr(SRec, fldName, V)
-                        elif fldName == 'TypicalContainerQty' \
-                        or fldName == 'TypicalPalletQty':
-                            if V == '' or V == None: V = 0
-                            if V != 0 and V != getattr(MatObj,fldName,0): 
-                                setattr(MatObj, fldName, V)
-                                MatChanged = True
+                        if validatefld(fldName, V):
+                            if   fldName == 'CountDate': 
+                                setattr(SRec, fldName, calvindate(V).as_datetime())   #calvindate
+                                requiredFields['CountDate'] = True
+                            elif fldName == 'Material': 
+                                setattr(SRec, fldName, MatObj)
+                                requiredFields['Material'] = True
+                            elif fldName == 'Counter': 
+                                setattr(SRec, fldName, V)
+                                requiredFields['Counter'] = True
+                            elif fldName == 'BLDG': 
+                                setattr(SRec, fldName, V)
+                                requiredFields['BLDG'] = True
+                            elif fldName == 'LOCATION': setattr(SRec, fldName, V)
+                            elif fldName == 'LocationOnly': 
+                                setattr(SRec, fldName, makebool(V))
+                                requiredFields['Both LocationOnly and CTD_QTY'] = True
+                            elif fldName == 'CTD_QTY_Expr': 
+                                setattr(SRec, fldName, V)
+                                requiredFields['Both LocationOnly and CTD_QTY'] = True
+                            elif fldName == 'Notes': setattr(SRec, fldName, V)
+                            elif fldName == 'TypicalContainerQty' \
+                            or fldName == 'TypicalPalletQty':
+                                if V == '' or V == None: V = 0
+                                if V != 0 and V != getattr(MatObj,fldName,0): 
+                                    setattr(MatObj, fldName, V)
+                                    MatChanged = True
+                        else:
+                            UplResults.append({'error':str(V)+' is invalid for '+fldName, 'rowNum':rowNum})
+                            
 
                 # are all required fields present?
                 AllRequiredPresent = True

@@ -1,5 +1,6 @@
 manage.py
 django_support/settings.py
+django_support/settings - orig.py
 django_support/urls.py
 django_support/__pycache__/
 WICS/__pycache__/
