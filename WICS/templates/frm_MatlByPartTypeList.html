@@ -109,7 +109,7 @@
         function() {
             dVal = (new Date()).toISOString().substring(0,10)
 
-            newRec = "{% url 0 'CountScheduleForm' 'passedCountDate' 'passedMatlNum' %}"
+            newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
             newRec = newRec.replace("/passedMatlNum","/"+this.value);
             newRec = newRec.replace("/passedCountDate","/"+dVal);
             window.open(newRec,'_blank')
