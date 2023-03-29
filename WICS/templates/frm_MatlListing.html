@@ -2,21 +2,19 @@
 {% load widget_tweaks %}
 {% load static %}
 
-{# I gotta clean this template up too... #}
 
-
-{% block tTitle %}Material By Part Type{% endblock %}
+{% block tTitle %}{{rptName}}{% endblock %}
 
 {% block boddy %}
 <div class="container text-center mx-auto">
     <div class="row">
-        <div class="col-5 text-end">
+        <div class="col-7 text-end">
             <u>{{ orgname }}</u>
              <h3><u>{{ orgname }}</u></h3>
-            <h4>Material By Part Type</h4>
+            <h4>{{rptName}}</h4>
             SAP Date = {{ SAPDate }}
        </div>
-        <div class="col-5 text-start">
+        <div class="col-3 text-start">
             <img src={% static 'WICS-Logo.png' %} width="200" height="100">
         </div>
         <div class="col-2 text-end"> {{ uname }} </div>
@@ -40,6 +38,7 @@
         Last Count Date |
         Last Found At |
         SAP Qty |
+        SAP Value |
         Notes
     </div>
 </div>
@@ -47,20 +46,28 @@
 <div id="mainReport" class="container" style="height:350px; overflow-y:auto; overflow-x:hidden;">
     <ul>
     {% for itm in MatlList %}
-        {% if itm.enumerate_in_group == 1 %}
-            <h3><u>{{ itm.PartType }}</u></h3>
+        {% if groupBy == 'PartType' %}
+            {% ifchanged itm.PartType %}
+                <h3><u>{{ itm.PartType }}</u></h3>
+            {% endifchanged %} 
         {% endif %}
         <div class="row">
             <div class="col-9">
             {{ itm.id }} |
             {{ itm.Material }} | 
-            {{ itm.LFADate }} |
+            {% if itm.LFADate|date:"Y-m-d" == '0001-01-01' %}
+            {# A date of 0001-01-01 is secret code for no date #}
+                                |
+            {% else %}
+                {{ itm.LFADate }} | 
+            {% endif %}
             {{ itm.LFALocation }} |
             {% if itm.SAPQty %}
                 SAPQty = {{ itm.SAPQty }} |
             {% else %}
                 <b>No SAP Qty</b> |
             {% endif %}
+            {{ itm.SAPValue }} | 
             {{ itm.Notes }}
             </div>
             <div class="col-2"><button id="SchedCt{{ itm.id }}" class="SchedCt" value="{{ itm.Material }}" type="button">Schedule Count</button></div>
