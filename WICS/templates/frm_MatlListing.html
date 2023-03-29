@@ -69,6 +69,8 @@
             {% endif %}
             {{ itm.SAPValue }} | 
             {{ itm.Notes }}
+            <br>
+            <span class="calvin-smalltext">{{ itm.Description }}</span>
             </div>
             <div class="col-2"><button id="SchedCt{{ itm.id }}" class="SchedCt" value="{{ itm.Material }}" type="button">Schedule Count</button></div>
         </div>
