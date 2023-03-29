@@ -56,9 +56,15 @@ def FormBrowse(req, formname, recNum = -1):
         url = 'MatlByPartType'
         theView = resolve(reverse(url)).func
         theForm = theView(req)
-    elif formname.lower() == 'frmPrintAgendas'.lower(): pass
+    elif formname.lower() == 'rptMaterialByLastCount'.lower():
+        url = 'MatlByLastCountDate'
+        theView = resolve(reverse(url)).func
+        theForm = theView(req)
+    elif formname.lower() == 'rptMaterialByDESCValue'.lower():
+        url = 'MatlByDESCValue'
+        theView = resolve(reverse(url)).func
+        theForm = theView(req)
     elif formname.lower() == 'frmRandCountScheduler'.lower(): pass
-    elif formname.lower() == 'frmSchedule AddPicks'.lower(): pass
     elif formname.lower() == 'matllistupdt'.lower(): 
         url = 'UpdateMatlListfromSAP'
         theView = resolve(reverse(url)).func

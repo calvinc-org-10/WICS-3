@@ -15,9 +15,8 @@ Including another URLconf
 """
 from django.urls import path, reverse
 from django.shortcuts import redirect
-from WICS import userinit, \
-        procs_SAP, procs_CountSchedule, procs_ActualCounts, procs_Material, \
-        views   #, testmodal
+from WICS import userinit
+from WICS import procs_ActualCounts, procs_CountSchedule, procs_Material, procs_SAP, views
 from WICS import adhoc_2023_02_01_001
 from userprofiles import logout
 
@@ -74,7 +73,14 @@ urlpatterns = [
     path('MaterialForm/recnum/<int:recNum>',
             procs_Material.fnMaterialForm, name='MatlFormRecNum'),
 
-    path('MatlByPartType',procs_Material.MaterialByPartType.as_view(), name='MatlByPartType'),
+    path('MatlByPartType',
+            procs_Material.MaterialByPartType.as_view(), name='MatlByPartType'),
+
+    path('MatlByLastCountDate',
+            procs_Material.MaterialByLastCountDate.as_view(), name='MatlByLastCountDate'),
+
+    path('MatlByDESCValue',
+            procs_Material.MaterialByDESCValue.as_view(), name='MatlByDESCValue'),
 
     path('MaterialLocations',
             procs_Material.MaterialLocationsList.as_view(),name='MaterialLocations'),
@@ -103,26 +109,7 @@ urlpatterns = [
 ]
 
 oldpatterns = [
-    path('CountEntryForm',
-            procs_ActualCounts.fnCountEntryForm, name='CountEntryForm'),
-    path('CountEntryForm/<int:recNum>',
-            procs_ActualCounts.fnCountEntryForm, name='CountEntryForm'),
-    path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>',
-            procs_ActualCounts.fnCountEntryForm, name='CountEntryForm'),
-    path('CountEntryForm/<int:recNum>/<str:passedCountDate>/<str:loadMatlInfo>/<str:gotoCommand>',
-            procs_ActualCounts.fnCountEntryForm, name='CountEntryFormGoto'),
 
-    path('CountScheduleForm',
-            procs_CountSchedule.fnCountScheduleRecordForm,name='CountScheduleForm'),
-    path('CountScheduleForm/Go/<int:recNum>',
-            procs_CountSchedule.fnCountScheduleRecordForm, {'gotoCommand':'gotoRec'},
-            name='CountScheduleForm'),
-    path('CountScheduleForm/Go/<str:gotoCommand>',
-            procs_CountSchedule.fnCountScheduleRecordForm,
-            name='CountScheduleFormGoto'),
-    path('CountScheduleForm/<str:loadCountDate>/<str:loadMatlNum>',
-            procs_CountSchedule.fnCountScheduleRecordForm, {'gotoCommand':'None'},
-            name='CountScheduleForm'),
 ]
 newpatterns = [
 
