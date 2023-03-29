@@ -24,7 +24,7 @@
 <!--
 <div class="row">
     <div class="col-1"></div>
-    <div class="col-3"></div> 
+    <div class="col-3"></div>
     <div class="col-3"></div>
     <div class="col-1"></div>
     <div class="col-3"></div>
@@ -34,7 +34,7 @@
     <div class="col-1"></div>
     <div class="col-9">
         ID |
-        Material Num | 
+        Material Num |
         Last Count Date |
         Last Found At |
         SAP Qty |
@@ -49,17 +49,17 @@
         {% if groupBy == 'PartType' %}
             {% ifchanged itm.PartType %}
                 <h3><u>{{ itm.PartType }}</u></h3>
-            {% endifchanged %} 
+            {% endifchanged %}
         {% endif %}
         <div class="row">
             <div class="col-9">
             {{ itm.id }} |
-            {{ itm.Material }} | 
+            {{ itm.Material }} |
             {% if itm.LFADate|date:"Y-m-d" == '0001-01-01' %}
             {# A date of 0001-01-01 is secret code for no date #}
                                 |
             {% else %}
-                {{ itm.LFADate }} | 
+                {{ itm.LFADate }} |
             {% endif %}
             {{ itm.LFALocation }} |
             {% if itm.SAPQty %}
@@ -67,7 +67,7 @@
             {% else %}
                 <b>No SAP Qty</b> |
             {% endif %}
-            {{ itm.SAPValue }} | 
+            {{ itm.SAPValue|floatformat:"2g" }} {{ itm.SAPCurrency }} |
             {{ itm.Notes }}
             <br>
             <span class="calvin-smalltext">{{ itm.Description }}</span>
@@ -88,9 +88,9 @@
             <button id="swap_prt_disp_btn" type="button" onclick="swap_prt_disp();">Print Version</button>
         </div>
         <div class="col-2">
-            <button 
-                id="close_btn" 
-                type="button" 
+            <button
+                id="close_btn"
+                type="button"
                 onclick="window.close();">
                 <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
                 Close Form

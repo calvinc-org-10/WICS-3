@@ -32,17 +32,17 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
     context_object_name = 'MatlList'
     template_name = 'rpt_PartLocations.html'
     SAPSums = {}
-    
+
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
         self._userorg = WICSuser.objects.get(user=self._user).org
         # get last count date (incl LocationOnly) for each Material (prefetch_related?)
         qs = MaterialList.objects.filter(org=self._userorg).order_by('Material').annotate(LFADate=Value(0), LFALocation=Value(''), SAPList=Value(0), DoNotShow=Value(False))   # figure out how to pass in self.ordering
-        
+
         # it's more efficient to pull this all now and store it for the upcoming qs request
         SAP = fnSAPList(self._userorg)
         self.SAPDate = SAP['SAPDate']
-        self.SAPTable = SAP['SAPTable']        
+        self.SAPTable = SAP['SAPTable']
 
         self.queryset = qs
         return super().setup(req, *args, **kwargs)
@@ -164,12 +164,12 @@ def fnMaterialForm(req, recNum = -1, gotoMatl=None, gotoRec=False, newRec=False)
         countSubFm_class = inlineformset_factory(MaterialList,ActualCounts,
                     fields=CountSubFormFields,
                     extra=0,can_delete=False)
-        countSet = countSubFm_class(req.POST, instance=currRec, prefix=prefixvals['counts'], initial=initialvals['counts'], 
+        countSet = countSubFm_class(req.POST, instance=currRec, prefix=prefixvals['counts'], initial=initialvals['counts'],
                     queryset=ActualCounts.objects.order_by('-CountDate'))
         SchedSubFm_class = inlineformset_factory(MaterialList,CountSchedule,
                     fields=ScheduleSubFormFields,
                     extra=0,can_delete=False)
-        schedSet = SchedSubFm_class(req.POST, instance=currRec, prefix=prefixvals['schedule'], initial=initialvals['schedule'], 
+        schedSet = SchedSubFm_class(req.POST, instance=currRec, prefix=prefixvals['schedule'], initial=initialvals['schedule'],
                     queryset=CountSchedule.objects.order_by('-CountDate'))
 
         if mtlFm.is_valid() and countSet.is_valid() and schedSet.is_valid():
@@ -203,13 +203,13 @@ def fnMaterialForm(req, recNum = -1, gotoMatl=None, gotoRec=False, newRec=False)
         CountSubFm_class = inlineformset_factory(MaterialList,ActualCounts,
                     fields=CountSubFormFields,
                     extra=0,can_delete=False)
-        countSet = CountSubFm_class(instance=currRec, prefix=prefixvals['counts'], initial=initialvals['counts'], 
+        countSet = CountSubFm_class(instance=currRec, prefix=prefixvals['counts'], initial=initialvals['counts'],
                     queryset=ActualCounts.objects.order_by('-CountDate'))
 
         SchedSubFm_class = inlineformset_factory(MaterialList,CountSchedule,
                     fields=ScheduleSubFormFields,
                     extra=0,can_delete=False)
-        schedSet = SchedSubFm_class(instance=currRec, prefix=prefixvals['schedule'], initial=initialvals['schedule'], 
+        schedSet = SchedSubFm_class(instance=currRec, prefix=prefixvals['schedule'], initial=initialvals['schedule'],
                     queryset=CountSchedule.objects.order_by('-CountDate'))
     # endif
 
@@ -284,23 +284,24 @@ class MaterialByPartType(LoginRequiredMixin, ListView):
     template_name = 'frm_MatlListing.html' # 'frm_MatlByPartTypeList.html'
 
     SAPSums = {}  # {{}}
-    
+
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
         self._userorg = WICSuser.objects.get(user=self._user).org
-        self.queryset = org_queryset(MaterialList,self._userorg).order_by(*self.ordering).annotate(LFADate=Value(0), LFALocation=Value(''), SAPQty=Value(0), SAPValue=Value(0))   # figure out how to pass in self.ordering
+        self.queryset = org_queryset(MaterialList,self._userorg).order_by(*self.ordering).annotate(LFADate=Value(0), LFALocation=Value(''), SAPQty=Value(0), SAPValue=Value(0), SAPCurrency=Value(''))
         self.groupBy = 'PartType'
 
         # it's more efficient to pull this all now and store it for the upcoming qs request
         SAP = fnSAPList(self._userorg)
         self.SAPDate = SAP['SAPDate']
-        rawsums = SAP['SAPTable'].values('Material','mult').annotate(TotalAmount=Sum('Amount',default=0), TotalValue=Sum('ValueUnrestricted',default=0))
-        for x in rawsums: 
+        rawsums = SAP['SAPTable'].values('Material','mult','Currency').annotate(TotalAmount=Sum('Amount',default=0), TotalValue=Sum('ValueUnrestricted',default=0))
+        for x in rawsums:
             self.SAPSums[x['Material']] = {
                 'Qty': x['TotalAmount']*x['mult'],
                 'Value': x['TotalValue'],
+                'Currency': x['Currency'],
                 }
-        
+
         return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
@@ -310,9 +311,10 @@ class MaterialByPartType(LoginRequiredMixin, ListView):
             rec.LFADate = L['lastCountDate']
             rec.LFALocation = L['lastFoundAt']
             rec.SAPQty = 0
-            if rec.Material in self.SAPSums: 
+            if rec.Material in self.SAPSums:
                 rec.SAPQty = self.SAPSums[rec.Material]['Qty']
                 rec.SAPValue = self.SAPSums[rec.Material]['Value']
+                rec.SAPCurrency = self.SAPSums[rec.Material]['Currency']
 
         return qs
 
@@ -334,23 +336,24 @@ class MaterialByLastCountDate(LoginRequiredMixin, ListView):
     template_name = 'frm_MatlListing.html' # 'frm_MatlByPartTypeList.html'
 
     SAPSums = {}  # {{}}
-    
+
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
         self._userorg = WICSuser.objects.get(user=self._user).org
-        self.queryset = org_queryset(MaterialList,self._userorg).order_by(*self.ordering).annotate(LFADate=Value(0), LFALocation=Value(''), SAPQty=Value(0), SAPValue=Value(0), HasSAPQty=Value(False))   # figure out how to pass in self.ordering
+        self.queryset = org_queryset(MaterialList,self._userorg).order_by(*self.ordering).annotate(LFADate=Value(0), LFALocation=Value(''), SAPQty=Value(0), SAPValue=Value(0), SAPCurrency=Value(''), HasSAPQty=Value(False))
         self.groupBy = ''
 
         # it's more efficient to pull this all now and store it for the upcoming qs request
         SAP = fnSAPList(self._userorg)
         self.SAPDate = SAP['SAPDate']
-        rawsums = SAP['SAPTable'].values('Material','mult').annotate(TotalAmount=Sum('Amount',default=0), TotalValue=Sum('ValueUnrestricted',default=0))
-        for x in rawsums: 
+        rawsums = SAP['SAPTable'].values('Material','mult','Currency').annotate(TotalAmount=Sum('Amount',default=0), TotalValue=Sum('ValueUnrestricted',default=0))
+        for x in rawsums:
             self.SAPSums[x['Material']] = {
                 'Qty': x['TotalAmount']*x['mult'],
                 'Value': x['TotalValue'],
+                'Currency': x['Currency'],
                 }
-        
+
         return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
@@ -363,15 +366,16 @@ class MaterialByLastCountDate(LoginRequiredMixin, ListView):
                 rec.LFADate = datetime.date(MINYEAR,1,1)
             rec.LFALocation = L['lastFoundAt']
             rec.SAPQty = 0
-            if rec.Material in self.SAPSums: 
+            if rec.Material in self.SAPSums:
                 rec.SAPQty = self.SAPSums[rec.Material]['Qty']
                 rec.SAPValue = self.SAPSums[rec.Material]['Value']
+                rec.SAPCurrency = self.SAPSums[rec.Material]['Currency']
                 rec.HasSAPQty = True
 
         q_list = list(qs)
         # already sorted by Material
         # .order_by('-HasSAPQty', 'LFADate', 'Material')
-        q_list.sort(key=attrgetter('LFADate')) 
+        q_list.sort(key=attrgetter('LFADate'))
         q_list.sort(key=attrgetter('HasSAPQty'),reverse=True)
         return q_list
 
@@ -393,23 +397,24 @@ class MaterialByDESCValue(LoginRequiredMixin, ListView):
     template_name = 'frm_MatlListing.html' # 'frm_MatlByPartTypeList.html'
 
     SAPSums = {}  # {{}}
-    
+
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
         self._userorg = WICSuser.objects.get(user=self._user).org
-        self.queryset = org_queryset(MaterialList,self._userorg).order_by(*self.ordering).annotate(LFADate=Value(0), LFALocation=Value(''), SAPQty=Value(0), SAPValue=Value(0))   # figure out how to pass in self.ordering
+        self.queryset = org_queryset(MaterialList,self._userorg).order_by(*self.ordering).annotate(LFADate=Value(0), LFALocation=Value(''), SAPQty=Value(0), SAPValue=Value(0), SAPCurrency=Value(''))
         self.groupBy = ''
 
         # it's more efficient to pull this all now and store it for the upcoming qs request
         SAP = fnSAPList(self._userorg)
         self.SAPDate = SAP['SAPDate']
-        rawsums = SAP['SAPTable'].values('Material','mult').annotate(TotalAmount=Sum('Amount',default=0), TotalValue=Sum('ValueUnrestricted',default=0))
-        for x in rawsums: 
+        rawsums = SAP['SAPTable'].values('Material','mult','Currency').annotate(TotalAmount=Sum('Amount',default=0), TotalValue=Sum('ValueUnrestricted',default=0))
+        for x in rawsums:
             self.SAPSums[x['Material']] = {
                 'Qty': x['TotalAmount']*x['mult'],
                 'Value': x['TotalValue'],
+                'Currency': x['Currency'],
                 }
-        
+
         return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
@@ -419,9 +424,10 @@ class MaterialByDESCValue(LoginRequiredMixin, ListView):
             rec.LFADate = L['lastCountDate']
             rec.LFALocation = L['lastFoundAt']
             rec.SAPQty = 0
-            if rec.Material in self.SAPSums: 
+            if rec.Material in self.SAPSums:
                 rec.SAPQty = self.SAPSums[rec.Material]['Qty']
                 rec.SAPValue = self.SAPSums[rec.Material]['Value']
+                rec.SAPCurrency = self.SAPSums[rec.Material]['Currency']
 
         q_list = list(qs)
         # already sorted by Material
@@ -551,7 +557,7 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
             PtTypFm = PartTypesForm(initial=initvals['main'], prefix=prefixes['main'])
 
         # Material subform
-        MaterialSubFm_class = forms.inlineformset_factory(WhsePartTypes,MaterialList, 
+        MaterialSubFm_class = forms.inlineformset_factory(WhsePartTypes,MaterialList,
                     fields=MatlSubFm_fldlist,
                     extra=0,can_delete=False)
         # MaterialSubFm_class.PartType.queryset=WhsePartTypes.objects.filter(org=_userorg).order_by('WhsePartType').all() - rendered manually
