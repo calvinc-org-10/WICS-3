@@ -276,20 +276,17 @@ def fnMaterialForm(req, recNum = -1, gotoMatl=None, gotoRec=False, newRec=False)
 #####################################################################
 #####################################################################
 
-class MaterialByPartType(LoginRequiredMixin, ListView):
+class MaterialListCommonView(LoginRequiredMixin, ListView):
     #login_url = reverse('WICSlogin')
-    ordering = ['PartType__PartTypePriority', 'PartType__WhsePartType', 'Material']
     context_object_name = 'MatlList'
-    rptName = 'Material By Part Type'
-    template_name = 'frm_MatlListing.html' # 'frm_MatlByPartTypeList.html'
+    template_name = 'frm_MatlListing.html'
 
-    SAPSums = {}  # {{}}
+    SAPSums = {}
 
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
         self._userorg = WICSuser.objects.get(user=self._user).org
-        self.queryset = org_queryset(MaterialList,self._userorg).order_by(*self.ordering).annotate(LFADate=Value(0), LFALocation=Value(''), SAPQty=Value(0), SAPValue=Value(0), SAPCurrency=Value(''))
-        self.groupBy = 'PartType'
+        self.queryset = org_queryset(MaterialList,self._userorg).order_by(*self.ordering).annotate(LFADate=Value(0), LFALocation=Value(''), SAPQty=Value(0), HasSAPQty=Value(False), SAPValue=Value(0), SAPCurrency=Value(''))
 
         # it's more efficient to pull this all now and store it for the upcoming qs request
         SAP = fnSAPList(self._userorg)
@@ -304,58 +301,7 @@ class MaterialByPartType(LoginRequiredMixin, ListView):
 
         return super().setup(req, *args, **kwargs)
 
-    def get_queryset(self) -> QuerySet[Any]:
-        qs = super().get_queryset()
-        for rec in qs:
-            L = LastFoundAt(rec)
-            rec.LFADate = L['lastCountDate']
-            rec.LFALocation = L['lastFoundAt']
-            rec.SAPQty = 0
-            if rec.Material in self.SAPSums:
-                rec.SAPQty = self.SAPSums[rec.Material]['Qty']
-                rec.SAPValue = self.SAPSums[rec.Material]['Value']
-                rec.SAPCurrency = self.SAPSums[rec.Material]['Currency']
-
-        return qs
-
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        cntext = super().get_context_data(**kwargs)
-        cntext['SAPDate'] = self.SAPDate
-        cntext['rptName'] = self.rptName
-        cntext['groupBy'] = self.groupBy
-        cntext.update({'orgname': self._userorg.orgname,  'uname':self._user.get_full_name()})
-        return cntext
-
-#####################################################################
-
-class MaterialByLastCountDate(LoginRequiredMixin, ListView):
-    #login_url = reverse('WICSlogin')
-    ordering = ['Material']   # ordering is actually based on a field to be added, and is changed in get_queryset
-    context_object_name = 'MatlList'
-    rptName = 'Material By Last Count Date'
-    template_name = 'frm_MatlListing.html' # 'frm_MatlByPartTypeList.html'
-
-    SAPSums = {}  # {{}}
-
-    def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
-        self._user = req.user
-        self._userorg = WICSuser.objects.get(user=self._user).org
-        self.queryset = org_queryset(MaterialList,self._userorg).order_by(*self.ordering).annotate(LFADate=Value(0), LFALocation=Value(''), SAPQty=Value(0), SAPValue=Value(0), SAPCurrency=Value(''), HasSAPQty=Value(False))
-        self.groupBy = ''
-
-        # it's more efficient to pull this all now and store it for the upcoming qs request
-        SAP = fnSAPList(self._userorg)
-        self.SAPDate = SAP['SAPDate']
-        rawsums = SAP['SAPTable'].values('Material','mult','Currency').annotate(TotalAmount=Sum('Amount',default=0), TotalValue=Sum('ValueUnrestricted',default=0))
-        for x in rawsums:
-            self.SAPSums[x['Material']] = {
-                'Qty': x['TotalAmount']*x['mult'],
-                'Value': x['TotalValue'],
-                'Currency': x['Currency'],
-                }
-
-        return super().setup(req, *args, **kwargs)
-
+    # this sdhould get called (super) and added to for the child classes
     def get_queryset(self) -> QuerySet[Any]:
         qs = super().get_queryset()
         for rec in qs:
@@ -372,12 +318,7 @@ class MaterialByLastCountDate(LoginRequiredMixin, ListView):
                 rec.SAPCurrency = self.SAPSums[rec.Material]['Currency']
                 rec.HasSAPQty = True
 
-        q_list = list(qs)
-        # already sorted by Material
-        # .order_by('-HasSAPQty', 'LFADate', 'Material')
-        q_list.sort(key=attrgetter('LFADate'))
-        q_list.sort(key=attrgetter('HasSAPQty'),reverse=True)
-        return q_list
+        return qs
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         cntext = super().get_context_data(**kwargs)
@@ -389,59 +330,55 @@ class MaterialByLastCountDate(LoginRequiredMixin, ListView):
 
 #####################################################################
 
-class MaterialByDESCValue(LoginRequiredMixin, ListView):
-    #login_url = reverse('WICSlogin')
-    ordering = ['Material']   # ordering is actually based on a field to be added, and is changed in get_queryset
-    context_object_name = 'MatlList'
-    rptName = 'Material By Descending Value'
-    template_name = 'frm_MatlListing.html' # 'frm_MatlByPartTypeList.html'
-
-    SAPSums = {}  # {{}}
+class MaterialByPartType(MaterialListCommonView):
+    ordering = ['PartType__PartTypePriority', 'PartType__WhsePartType', 'Material']
+    rptName = 'Material By Part Type'
 
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
-        self._user = req.user
-        self._userorg = WICSuser.objects.get(user=self._user).org
-        self.queryset = org_queryset(MaterialList,self._userorg).order_by(*self.ordering).annotate(LFADate=Value(0), LFALocation=Value(''), SAPQty=Value(0), SAPValue=Value(0), SAPCurrency=Value(''))
+        self.groupBy = 'PartType'
+        return super().setup(req, *args, **kwargs)
+
+    def get_queryset(self) -> QuerySet[Any]:
+        return super().get_queryset()
+
+#####################################################################
+
+class MaterialByLastCountDate(MaterialListCommonView):
+    ordering = ['Material']   # ordering is actually based on a field to be added, and is changed in get_queryset
+    rptName = 'Material By Last Count Date'
+
+    def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self.groupBy = ''
-
-        # it's more efficient to pull this all now and store it for the upcoming qs request
-        SAP = fnSAPList(self._userorg)
-        self.SAPDate = SAP['SAPDate']
-        rawsums = SAP['SAPTable'].values('Material','mult','Currency').annotate(TotalAmount=Sum('Amount',default=0), TotalValue=Sum('ValueUnrestricted',default=0))
-        for x in rawsums:
-            self.SAPSums[x['Material']] = {
-                'Qty': x['TotalAmount']*x['mult'],
-                'Value': x['TotalValue'],
-                'Currency': x['Currency'],
-                }
-
         return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
         qs = super().get_queryset()
-        for rec in qs:
-            L = LastFoundAt(rec)
-            rec.LFADate = L['lastCountDate']
-            rec.LFALocation = L['lastFoundAt']
-            rec.SAPQty = 0
-            if rec.Material in self.SAPSums:
-                rec.SAPQty = self.SAPSums[rec.Material]['Qty']
-                rec.SAPValue = self.SAPSums[rec.Material]['Value']
-                rec.SAPCurrency = self.SAPSums[rec.Material]['Currency']
+
+        q_list = list(qs)
+        # already sorted by Material
+        # .order_by('-HasSAPQty', 'LFADate', 'Material')
+        q_list.sort(key=attrgetter('LFADate'))
+        q_list.sort(key=attrgetter('HasSAPQty'),reverse=True)
+        return q_list
+
+#####################################################################
+
+class MaterialByDESCValue(MaterialListCommonView):
+    ordering = ['Material']   # ordering is actually based on a field to be added, and is changed in get_queryset
+    rptName = 'Material By Descending Value'
+
+    def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
+        self.groupBy = ''
+        return super().setup(req, *args, **kwargs)
+
+    def get_queryset(self) -> QuerySet[Any]:
+        qs = super().get_queryset()
 
         q_list = list(qs)
         # already sorted by Material
         # qs.order_by('-SAPValue', 'Material')
         q_list.sort(key=attrgetter('SAPValue'),reverse=True)
         return q_list
-
-    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        cntext = super().get_context_data(**kwargs)
-        cntext['SAPDate'] = self.SAPDate
-        cntext['rptName'] = self.rptName
-        cntext['groupBy'] = self.groupBy
-        cntext.update({'orgname': self._userorg.orgname,  'uname':self._user.get_full_name()})
-        return cntext
 
 
 #####################################################################
