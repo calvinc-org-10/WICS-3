@@ -278,7 +278,11 @@ def fnUploadActCountSprsht(req):
             else:                
                 retval = False
         elif fld == 'CTD_QTY_Expr': 
-            retval = True
+            try:
+                v = eval(val)
+            except (SyntaxError, NameError, TypeError, ZeroDivisionError):
+                v = "-- INVALID --"
+            retval = (v!="-- INVALID --")
         elif fld == 'Notes': 
             retval = True
         elif fld == 'TypicalContainerQty' \
