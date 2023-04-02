@@ -20,7 +20,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-kenU1KFdBIe4zVF0s0G1M5b4hcpxyD9F7jL+jjXkk+Q2h455rYXK/7HAuoJl+0I4" crossorigin="anonymous"></script>
 
     <link href="{% static 'calvinstyles.css' %}" rel="stylesheet">
-    <script src="{% static 'calvinprocs.js' %}"></script>
     <link rel="icon" type="image/x-icon" href="{% static 'WICS-favicon.png' %}">
     <title>{% block tTitle %}{% endblock %}</title>
     {% block tHeader %}{% endblock %}
@@ -29,4 +28,34 @@
 {% block boddy %}
 {% endblock %}
 </body>
+
+<script>
+
+    /*!
+    * Serialize all form data into an object
+    * (c) 2021 Chris Ferdinandi, MIT License, https://gomakethings.com
+    * @param  {FormData} data The FormData object to serialize
+    * @return {String}        The serialized form data
+    */
+    function serialize(elmnts) {
+        let retStr = ''
+        // let obj = {};
+        for (let theelmnt of elmnts) {
+            retStr += theelmnt.name + "='" + theelmnt.value + "';"
+        }
+        return retStr;
+    }
+
+//-------------------------------
+
+    function EvalExpr(expr) {
+        try {
+            ev = eval(expr)   // yes, I know it's dangerous.  I'll do better when I can
+        } catch {
+            ev = "????"
+        }
+        return ev;
+    }
+</script>
+
 </html>
