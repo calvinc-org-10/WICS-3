@@ -13,6 +13,7 @@ from django.shortcuts import render
 #from cMenu.models import getcParm
 from cMenu.utils import isDate, WrapInQuotes
 from userprofiles.models import WICSuser
+from mathematical_expressions_parser.eval import evaluate
 from WICS.models import ActualCounts, SAP_SOHRecs
 
 
@@ -82,7 +83,7 @@ def adhoc001(req):
             outputline['CTD_QTY_Expr'] = rawrow.ac_CTD_QTY_Expr
             if Eval_CTDQTY:
                 try:
-                    outputline['CTD_QTY_Eval'] = eval(rawrow.ac_CTD_QTY_Expr)   # yes, I know the risks - Ill write my own parser later ...
+                    outputline['CTD_QTY_Eval'] = evaluate(rawrow.ac_CTD_QTY_Expr)   # yes, I know the risks - Ill write my own parser later ...
                     # do next line at caller
                     # lastrow['TotalCounted'] += outputline['CTD_QTY_Eval']
                 except:

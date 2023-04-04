@@ -11,6 +11,7 @@ from django.views.generic import ListView
 from typing import *
 from cMenu.models import getcParm
 from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate
+from mathematical_expressions_parser.eval import evaluate
 from openpyxl import load_workbook
 from userprofiles.models import WICSuser
 from WICS.forms import CountEntryForm, RelatedMaterialInfo, RelatedScheduleInfo
@@ -279,7 +280,7 @@ def fnUploadActCountSprsht(req):
                 retval = False
         elif fld == 'CTD_QTY_Expr': 
             try:
-                v = eval(val)
+                v = evaluate(val)
             except (SyntaxError, NameError, TypeError, ZeroDivisionError):
                 v = "-- INVALID --"
             retval = (v!="-- INVALID --")
@@ -528,7 +529,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
             outputline['CTD_QTY_Expr'] = rawrow.ac_CTD_QTY_Expr
             if Eval_CTDQTY:
                 try:
-                    outputline['CTD_QTY_Eval'] = eval(rawrow.ac_CTD_QTY_Expr)   # yes, I know the risks - Ill write my own parser later ...
+                    outputline['CTD_QTY_Eval'] = evaluate(rawrow.ac_CTD_QTY_Expr)   # yes, I know the risks - Ill write my own parser later ...
                     # do next line at caller
                     # lastrow['TotalCounted'] += outputline['CTD_QTY_Eval']
                 except:

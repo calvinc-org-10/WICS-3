@@ -36,7 +36,7 @@ _FUNCTIONS = {
 }
 
 
-class Parser:
+class MathParser:
     """
     class Parser
     """

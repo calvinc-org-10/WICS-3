@@ -15,6 +15,7 @@ from django.shortcuts import render
 from django.views.generic import ListView
 from cMenu.models import getcParm
 from cMenu.utils import calvindate
+from mathematical_expressions_parser.eval import evaluate
 from userprofiles.models import WICSuser
 from WICS.models import org_queryset, MaterialList, ActualCounts, CountSchedule, SAP_SOHRecs, \
                         WhsePartTypes, LastFoundAt, FoundAt
@@ -220,7 +221,7 @@ def fnMaterialForm(req, recNum = -1, gotoMatl=None, gotoRec=False, newRec=False)
     initdata = []
     for r in raw_countdata:
         try:
-            r.QtyEval = eval(r.CTD_QTY_Expr)    # later, use ast.literal_eval, or write a parser
+            r.QtyEval = evaluate(r.CTD_QTY_Expr)
         # except (ValueError, SyntaxError):
         except:
             r.QtyEval = 0

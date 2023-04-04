@@ -2,14 +2,14 @@
 Taken from https://github.com/blakeohare/Mathematical-Expressions-Parser
 """
 # import math
-from math_parser import Parser
+from mathematical_expressions_parser.math_parser import MathParser
 
 def evaluate(expression, in_vars = None):
     """
     I'll do a docstring one day
     """
     try:
-        pars = Parser(expression, in_vars)
+        pars = MathParser(expression, in_vars)
         value = pars.getValue()
     except Exception as ex:
         raise ex
