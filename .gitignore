@@ -8,11 +8,9 @@ cMenu/__pycache__/
 userprofiles/__pycache__/
 
 # very experimental code, not yet ready for the world
-WICS/notreadyforprimetime.not yet py
+# NONE!!
 # to be phased out and eventually deleted
-WICS/procs_CountSchedule orig.py
-WICS/procs_ActualCounts orig.py
-WICS/testre.py
+# NONE!!
 
 .vscode/
 .pylintrc
