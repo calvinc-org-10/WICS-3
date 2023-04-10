@@ -12,6 +12,18 @@
 {% if form.errors %}
     <h1>You are not an authorized user.</h1>
     <br><br>
+    <div class="container">
+        <div class="row mx-auto max-width=100%">
+            <div class="col-4"></div>
+            <div class="col-6"></div>
+            <div class="col">
+                <button id="close_btn" type="button" onclick="open(location, '_self').close();">
+                    <!-- <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img> -->
+                    Login
+                </button>
+            </div>
+        </div>
+    </div>
 {% else %}
     <!-- Header -->
     <!-- END Header -->
@@ -20,7 +32,7 @@
         <div class="col-6 border-right border-dark">
             <div id="header">
                 <img src={% static 'WICS-Logo.png' %} width="200" height="100">
-                <h1>WICS2 Login</h1>
+                <br><span class=h1>WICS</span> version {{ sysver }}
             </div>
             <div class="container">
             <form method="post" id="login-form"> 
@@ -49,21 +61,9 @@
         </div>
     </div>
     </div>
-  <br class="clear">
-{% endif %}
+    <br class="clear">
     <!-- footer -->
     <br>
-    <div class="container">
-        <div class="row mx-auto max-width=100%">
-            <div class="col-4"></div>
-            <div class="col-6"></div>
-            <div class="col">
-                <button id="close_btn" type="button" onclick="open(location, '_self').close();">
-                    <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
-                    Close
-                </button>
-            </div>
-        </div>
-    </div>
+{% endif %}
 </div>
 {% endblock %}
