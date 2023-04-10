@@ -1,11 +1,13 @@
 # later, this will be tied to a user, who will have to log in (see _djangouser, below)
 import random
 from django.contrib.auth import views as auth_views
-from userprofiles.models import WICSuser
 from django.shortcuts import HttpResponse, render, redirect
 from django.urls import reverse
-from cMenu.models import cGreetings, getcParm
 from typing import *
+from userprofiles.models import WICSuser
+from cMenu.models import cGreetings, getcParm
+from sysver import sysver
+from django_support.settings import sysver_key
 
 
 # start the WICS journey!
@@ -19,15 +21,10 @@ class WICSLoginView(auth_views.LoginView):
         # Greeting = 'Greeting will go here'        # this line needed, comment next line until cGreetings exists and is filled
         Greeting = random.choice(grts)['Greeting']
 
-        # Get News for WICS users
-        #fildir = getcParm('MISC-FILELOC')
-        #fName = fildir+"WICSNews.html"
-        #News = ''
-        #with open(fName,"r") as infile: 
-        #    News = infile.read()
-        News = ''
-
-        cntext.update({'Greeting':Greeting,'News':News})
+        cntext.update({
+            'Greeting':Greeting,
+            'sysver':sysver[sysver_key],
+            })
 
         return cntext
 
