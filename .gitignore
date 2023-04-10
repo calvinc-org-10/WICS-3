@@ -17,6 +17,7 @@ WICS/testre.py
 .vscode/
 .pylintrc
 .gitignore
+settings.py.dev.copy
 
 
 # Byte-compiled / optimized / DLL files
