@@ -21,17 +21,8 @@ class WICSLoginView(auth_views.LoginView):
         # Greeting = 'Greeting will go here'        # this line needed, comment next line until cGreetings exists and is filled
         Greeting = random.choice(grts)['Greeting']
 
-        # Get News for WICS users
-        #fildir = getcParm('MISC-FILELOC')
-        #fName = fildir+"WICSNews.html"
-        #News = ''
-        #with open(fName,"r") as infile: 
-        #    News = infile.read()
-        News = ''
-
         cntext.update({
             'Greeting':Greeting,
-            'News':News,
             'sysver':sysver[sysver_key],
             })
 
