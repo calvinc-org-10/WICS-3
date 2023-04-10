@@ -13,8 +13,6 @@ https://docs.djangoproject.com/en/4.1/ref/settings/
 from pathlib import Path
 
 
-sysver_key = 'DEV'
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -115,26 +113,13 @@ DATABASES = {
     # the new test, MySQL on PythonAnywhere
     'prod': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'calvinc460$default',
-        'USER': 'calvinc460',
-        'PASSWORD': 'tMJxBC!D4zRpU_2',
-        'HOST': 'calvinc460.mysql.pythonanywhere-services.com',
     },
     # the development db, MariaDB on Calvin's home machine
     'dev-home': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'WICS',
-        'USER': 'calvinc460',
-        'PASSWORD': 'pw202rtN0tTree',
-        'HOST': 'localhost',
     },
     'sshtunnel_db': {
         'ENGINE': 'django.db.backends.mysql',
-        'HOST': 'localhost',
-        'PORT': ssh_tunnel.local_bind_port,
-        'NAME': 'calvinc460$default',
-        'USER': 'calvinc460',
-        'PASSWORD': 'tMJxBC!D4zRpU_2',
     },
 }
 DATABASES['default']=DATABASES['dev-home']

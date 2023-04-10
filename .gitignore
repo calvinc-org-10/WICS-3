@@ -19,7 +19,6 @@ WICS/testre.py
 .gitignore
 settings.py.dev.copy
 
-
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
