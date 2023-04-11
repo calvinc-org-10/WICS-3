@@ -88,13 +88,20 @@ button:focus {
                     onchange="loadExtraInfo();"
                     value="{{matlchoiceForm.gotoItem.Material}}"
                     required
-                    style="width:18em;">
+                    style="width:12em;">
                 </input>
                 <span class="bi-caret-down-square"
                     style="position:relative;top:+0px;font-size:20px;left:-30px;"
                     tabindex = "-1"
                     onclick="$('#{{frmMain.Material.id_for_label}}').focus();">
                 </span>
+                {% if not matlchoiceForm.gotoItem.Material %}
+                    <!-- Material has no value yet -->
+                {% elif noSchedInfo %}
+                    <b><span class="text-danger">NOT</span></b> SCHEDULED
+                {% else %}
+                    <b><span class="text-danger">SCHEDULED</span></b>
+                {% endif %}
                 <datalist id="Material-list">
                     {% for itm in matlchoiceForm.choicelist %}
                         <option value="{{itm.Material}}">
@@ -108,7 +115,7 @@ button:focus {
         </div>
         <div class="row g-0">
             <div class="col-5">Ctd Qty:
-                {% render_field frmMain.CTD_QTY_Expr class="need-Matl-Dt" size="45" onchange="sCE();" autocomplete="off" %}
+                {% render_field frmMain.CTD_QTY_Expr class="need-Matl-Dt" size="35" onchange="sCE();" autocomplete="off" %}
                 <span class="container-md" id="EvalExpr">????</span>
             </div>
             <div class="col-2">Building: 
@@ -171,7 +178,7 @@ button:focus {
             </div>
         {% endif %}
         <hr>
-        <u>Schedule Info</u>
+        <u><b>Schedule Info</b></u>
         <br>
         {% if noSchedInfo %}
             <div class="col-8">  <h3>MATERIAL NOT SCHEDULED FOR COUNT ON THIS DATE</h3>  </div>
@@ -272,10 +279,10 @@ button:focus {
 
     document.body.onload = function() {
 
-        sCE();  // show calculated value of CTD_QTY
-
         // turn off controls that need the Date and Material first
         $(".need-Matl-Dt").prop("disabled", !isValid_Date_Material());
+
+        sCE();  // show calculated value of CTD_QTY
 
         initialState = serialize($forms);
 
@@ -315,8 +322,9 @@ button:focus {
 
     function sCE(){ 
         const EvalExprID = 'EvalExpr';
-
-        if ($("#{{frmMain.LocationOnly.id_for_label}}").val()) {
+        if (document.getElementById("{{frmMain.LocationOnly.id_for_label}}").disabled) {
+            document.getElementById(EvalExprID).innerHTML = "";
+        } else if (document.getElementById("{{frmMain.LocationOnly.id_for_label}}").checked) {
             document.getElementById(EvalExprID).innerHTML = "<b>LOCATION ONLY</b>";
         } else {
             showCountExpr('{{frmMain.CTD_QTY_Expr.id_for_label}}', EvalExprID); 
