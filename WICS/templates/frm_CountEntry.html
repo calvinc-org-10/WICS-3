@@ -158,7 +158,14 @@ button:focus {
             <div class="Container" style="height:70px; overflow-y:auto; overflow-x:clip">
             {% for ctRec in todayscounts %}
                 <div class="row g-0">
-                    <div class="col">{{ ctRec }} / {{ ctRec.CTD_QTY_Expr }} = {{ ctRec.CTD_QTY_Expr|eval_arith }}</div>
+                    <div class="col">
+                        {{ ctRec }} / 
+                        {% if ctRec.LocationOnly %}
+                            <b>LOCATION ONLY</b>
+                        {% else %}
+                            {{ ctRec.CTD_QTY_Expr }} = {{ ctRec.CTD_QTY_Expr|eval_arith }}
+                        {% endif %}
+                    </div>
                 </div>
             {% endfor %}
             </div>
@@ -306,7 +313,15 @@ button:focus {
         confirmLeave(()=>loadCountEntryRec(goDir));
     };
 
-    function sCE(){ showCountExpr('{{frmMain.CTD_QTY_Expr.id_for_label}}', 'EvalExpr'); };
+    function sCE(){ 
+        const EvalExprID = 'EvalExpr';
+
+        if ($("#{{frmMain.LocationOnly.id_for_label}}").val()) {
+            document.getElementById(EvalExprID).innerHTML = "<b>LOCATION ONLY</b>";
+        } else {
+            showCountExpr('{{frmMain.CTD_QTY_Expr.id_for_label}}', EvalExprID); 
+        }
+    };
 
 // TODO: move to common???
     function showCountExpr(expr_fld, rslt) {
@@ -390,6 +405,7 @@ button:focus {
         } else {
             $("#{{frmMain.CTD_QTY_Expr.id_for_label}}").removeAttr('tabindex');
         }
+        sCE();
     };
 
     function SubmMainFm() {
