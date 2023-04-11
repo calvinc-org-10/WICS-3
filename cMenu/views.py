@@ -14,6 +14,8 @@ from cMenu.utils import WrapInQuotes
 from cMenu import menucommand_handlers
 from cMenu.menucommand_handlers import MENUCOMMAND
 from cMenu.models import menuCommands, menuItems, menuGroups, cParameters
+from sysver import sysver
+from django_support.settings import sysver_key
 
 # imports below are WICS-specific
 from userprofiles.models import WICSuser
@@ -54,6 +56,7 @@ def LoadMenu(req, menuGroup, menuNum):
         'grpNum': menuGroup,
         'menuNum': menuNum,
         'menuName':mnuName , 'menuContents':fullMenuHTML,
+        'sysver': sysver[sysver_key],
         'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
         }
     templt = "cMenu.html"
