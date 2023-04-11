@@ -186,18 +186,21 @@ button:focus {
                         <div class="col-1">{% render_field ff.CountDate size="10" %}</div>
                         <div class="col-1">{% render_field ff.Counter size="10" %}</div>
                         <div class="col-4 text-start">
-                            {{ ff.LocationOnly }} 
                             {% with sCE_parm=forloop.counter0  %}
-                                {# django AND widget_tweaks both screw up the dynamic onchange building, so I'm doing it myself! #}
-                                <input type="text"
-                                        name="{{ff.prefix}}-{{ff.CTD_QTY_Expr.name}}"
-                                        {% if ff.CTD_QTY_Expr.value != None %} value="{{ ff.CTD_QTY_Expr.value|stringformat:'s' }}"{% endif %}
-                                        maxlength="500" size="35" id="{{ ff.CTD_QTY_Expr.id_for_label }}"
-                                        onchange="showCountExpr(this.id, 'EvalExpr{{ sCE_parm }}');">
-                                {% comment %}
-                                {{ ff.CTD_QTY_Expr }}
-                                {% endcomment %}
-                                <span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
+                            {# django AND widget_tweaks both screw up the dynamic onchange building, so I'm doing it myself! #}
+                            <input type="checkbox" 
+                                    id="{{ ff.LocationOnly.id_for_label }}"
+                                    name="{{ff.prefix}}-{{ff.LocationOnly.name}}"
+                                    onchange="sCE({{ sCE_parm }});" 
+                                    {% if ff.LocationOnly.value %} checked{% endif %}
+                                    > 
+                            <input type="text"
+                                    id="{{ ff.CTD_QTY_Expr.id_for_label }}"
+                                    name="{{ff.prefix}}-{{ff.CTD_QTY_Expr.name}}"
+                                    {% if ff.CTD_QTY_Expr.value != None %} value="{{ ff.CTD_QTY_Expr.value|stringformat:'s' }}"{% endif %}
+                                    maxlength="500" size="35" 
+                                    onchange="sCE({{ sCE_parm }});">
+                            <span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
                             {% endwith %}
                         </div>
                         <div class="col-1">{% render_field ff.BLDG size="10" %}</div>
@@ -331,16 +334,19 @@ button:focus {
     //------------------
 
     document.addEventListener("DOMContentLoaded", function() {
+        const EvalExprID = 'EvalExpr';
+
         initialState = serialize($forms);
         // fill in the Count evals
         // I'll clean this up later, I promise!
         for (let i=0; i < document.getElementById("id_countset-TOTAL_FORMS").value; i++) {
             CQtyID = 'id_countset-' + i + '-CTD_QTY_Expr';  {# TODO: use template vars later #}
-            EvID = 'EvalExpr' + i;  {# TODO: use template vars later #}
-            showCountExpr(CQtyID, EvID);
-            fbody = Function("function dummyCE" + i + "() { showCountExpr(this.id, '" + EvID + "'); };");  {# TODO: figure out how to take advantage of this line #}
+            EvID = EvalExprID + i;  {# TODO: use template vars later #}
+            // showCountExpr(CQtyID, EvID);
+            sCE(i)
+            // fbody = Function("function dummyCE" + i + "() { showCountExpr(this.id, '" + EvID + "'); };");  {# TODO: figure out how to take advantage of this line - OR - if it's needed #}
         };
-        CloseItFlag = false || {{ userReadOnly }};
+        CloseItFlag = false || {{ userReadOnly|lower }};
         });
 
     window.addEventListener("beforeunload",  function(event) {
@@ -482,7 +488,14 @@ button:focus {
     
     // document.getElementById("{{frmMain.CTD_QTY_Expr.id_for_label}}").addEventListener("onchange",
     function sCE(n){
-        showCountExpr('id_countset-' + n + '-CTD_QTY_Expr', 'EvalExpr'+str(n));
+        const EvalExprID = 'EvalExpr';
+        const CTDQTY_Exp = 'id_countset-' + n + '-CTD_QTY_Expr';
+
+        if (document.getElementById("id_countset-" + n + "-LocationOnly").checked) {
+            document.getElementById(EvalExprID+n).innerHTML = "<b>LOC ONLY</b>";
+        } else {
+            showCountExpr(CTDQTY_Exp, EvalExprID+n);
+       }
     };
 // move to common???
     function showCountExpr(expr_fld, rslt) {

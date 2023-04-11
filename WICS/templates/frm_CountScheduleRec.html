@@ -1,6 +1,5 @@
 {% extends "WICS_common.html" %}
 {% load widget_tweaks %}
-{% load evaluate_arithmetic %}
 {% load static %}
 
 
@@ -207,10 +206,6 @@ button:focus {
         };
 
 // TODO: move to common???
-    function showCountExpr(expr_fld, rslt) {
-        document.getElementById(rslt).innerHTML = "= " + EvalExpr(document.getElementById(expr_fld).value);
-    };
-
     function isValid_Date_Material() {
         return isValid_Date() && isValid_Material();
     }
