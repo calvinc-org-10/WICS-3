@@ -1,5 +1,5 @@
 from django.db import models
-from django.db.models import Value
+# from django.db.models import Value
 
 # Create your models here.
 # I'm quite happy with automaintained pk fields, so I don't specify any
@@ -15,18 +15,6 @@ class Organizations(models.Model):
         # return super().__str__()
 
 
-# orgObjects abandoned - not easy at all!!!
-# TODO: mebbe later implement as a fn passing in modl and org and returning qs
-# class orgObjects(models.Manager):
-#     def __init__(self, org_in) -> None:
-#         super().__init__()
-#         self.org = org_in
-#     def get_queryset(self):
-#         try:
-#             QS = super().get_queryset().filter(org=self.org)
-#         except:
-#             QS = super().get_queryset()
-#         return QS
 def org_queryset(modl: models.Model, org: Organizations) -> models.QuerySet:
     if hasattr(modl, 'org'):
         return modl.objects.filter(org=org)
