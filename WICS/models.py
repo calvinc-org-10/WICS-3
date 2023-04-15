@@ -55,8 +55,9 @@ class MaterialList(models.Model):
     class Meta:
         ordering = ['org','Material']
         constraints = [
-                models.UniqueConstraint('org', 'Material', name='MatlListUNQ_org_Material'),
+                models.UniqueConstraint(fields=['org', 'Material'],name="wics_materiallist_realpk"),
             ]
+        
 
     def __str__(self) -> str:
         return self.Material.__str__()
@@ -79,12 +80,11 @@ class CountSchedule(models.Model):
     ReasonScheduled = models.CharField(max_length=250, blank=True)
     CMPrintFlag = models.BooleanField(blank=True, default=False)
     Notes = models.CharField(max_length=250, blank=True)
-    objects = models.Manager()
 
     class Meta:
         ordering = ['org','CountDate', 'Material']
         constraints = [
-                models.UniqueConstraint('org', 'CountDate', 'Material', name='CSchdUNQ_org_CDate_Material'),
+                models.UniqueConstraint(fields=['org', 'CountDate', 'Material'], name="wics_countschedule_realpk"),
             ]
         
     def __str__(self) -> str:
@@ -107,10 +107,14 @@ class ActualCounts(models.Model):
     FLAG_PossiblyNotRecieved = models.BooleanField(blank=True, default=False)
     FLAG_MovementDuringCount = models.BooleanField(blank=True, default=False)
     Notes = models.CharField(max_length = 250, blank=True)
-    objects = models.Manager()
 
     class Meta:
         ordering = ['org', 'CountDate', 'Material']
+        indexes = [
+            models.Index(fields=['org','CountDate','Material']),
+            models.Index(fields=['org','Material']),
+            models.Index(fields=['org','BLDG','LOCATION']),
+        ]
 
     def __str__(self) -> str:
         return str(self.pk) + ": " + str(self.CountDate) + " / " + str(self.Material) + " / " + str(self.Counter) + " / " + str(self.BLDG) + "_" + str(self.LOCATION)
@@ -178,6 +182,9 @@ class SAP_SOHRecs(models.Model):
     class Meta:
         get_latest_by = 'uploaded_at'
         ordering = ['uploaded_at', 'org', 'Material']
+        indexes = [
+            models.Index(fields=['uploaded_at', 'org', 'Material']),
+        ]
 
 class UnitsOfMeasure(models.Model):
     UOM = models.CharField(max_length=50, unique=True)
@@ -379,7 +386,7 @@ class VIEW_LastFoundAtList(models.Model):
 
    
 class VIEW_MaterialLocationListWithSAP(models.Model):
-    id = models.IntegerField()
+    id = models.IntegerField(primary_key=True)
     org_id = models.IntegerField()
     Material = models.CharField(max_length=100, blank=True, default='')
     Description = models.CharField(max_length=250, blank=True, default='')
