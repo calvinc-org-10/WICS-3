@@ -107,6 +107,7 @@ class ActualCounts(models.Model):
     FLAG_PossiblyNotRecieved = models.BooleanField(blank=True, default=False)
     FLAG_MovementDuringCount = models.BooleanField(blank=True, default=False)
     Notes = models.CharField(max_length = 250, blank=True)
+    objects = models.Manager()      # pylint complains without this line present - why??
 
     class Meta:
         ordering = ['org', 'CountDate', 'Material']
@@ -385,7 +386,43 @@ class VIEW_LastFoundAtList(models.Model):
         managed = False
 
    
-class VIEW_MaterialLocationListWithSAP(models.Model):
+class VIEW_LastSAP(models.Model):
+    id = models.IntegerField(primary_key=True)
+    uploaded_at = models.DateField
+    Material = models.CharField(max_length=100)
+    Material_id = models.IntegerField()
+    Plant = models.CharField(max_length=20)
+    StorageLocation = models.CharField(max_length=20)
+    BaseUnitofMeasure = models.CharField(max_length=20)
+    Amount = models.FloatField()
+    Currency = models.CharField(max_length=20)
+    ValueUnrestricted = models.FloatField(blank=True)
+    UOM = models.CharField(max_length=50)
+    UOMText = models.CharField(max_length=100)
+    DimensionText = models.CharField(max_length=100)
+    mult = models.FloatField()
+    SpecialStock = models.CharField(max_length=20)
+    Batch = models.CharField(max_length=20)
+    Description = models.CharField(max_length=250, blank=True, default='')
+    SAPMaterialType = models.CharField(max_length=100, blank=True, default='')
+    SAPMaterialGroup = models.CharField(max_length=100, blank=True, default='')
+    Price = models.FloatField(null=True, blank=True)
+    PriceUnit = models.PositiveIntegerField(null=True, blank=True)
+    TypicalContainerQty = models.IntegerField(null=True, blank=True)
+    TypicalPalletQty = models.IntegerField(null=True, blank=True)
+    Notes = models.CharField(max_length=250, blank=True, default='')
+    PartType_id = models.IntegerField()
+    PartType = models.CharField(max_length=50)
+    PartTypePriority = models.SmallIntegerField()
+    org_id = models.IntegerField()
+    OrgName = models.CharField(max_length=250)
+
+    class Meta:
+        db_table = 'VIEW_LastSAP'
+        managed = False
+
+ 
+class VIEW_MaterialLocationListWithLastSAP(models.Model):
     id = models.IntegerField(primary_key=True)
     org_id = models.IntegerField()
     Material = models.CharField(max_length=100, blank=True, default='')
@@ -420,6 +457,7 @@ class VIEW_MaterialLocationListWithSAP(models.Model):
     DoNotShow = models.BooleanField()
 
     class Meta:
-        db_table = 'VIEW_MaterialLocationListWithSAP'
+        db_table = 'VIEW_MaterialLocationListWithLastSAP'
         managed = False
+
 
