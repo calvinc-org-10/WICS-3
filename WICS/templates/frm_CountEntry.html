@@ -74,8 +74,9 @@ button:focus {
         </div>
         <!-- main part of form -->
         <!-- put initial focus on Material and/or init CountDate to today(local), skip CycCtID -->
-        <div class="container-fluid m-1">
-        <div class="row g-0">
+        <!-- div class="container-fluid m-1" -->
+        <div class="container m-1">
+            <div class="row g-0">
             <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" class="bg-danger fw-bold" tabindex="-1" size="8" onchange="loadExtraInfo();" required=True %}</div>
             <div class="col-2">CycCt ID: {% render_field frmMain.CycCtID tabindex="-1" size="8" %}</div>
             <div class="col-4">Material:
@@ -258,6 +259,13 @@ button:focus {
     var mtlnmID = $('#{{frmMain.Material.id_for_label}}');
     var orig_matl = mtlnmID.val()
     var initialState;
+    // set up MatlMap for verifying if an entered Material # is valid
+    var MatlMap = new Map(
+    [
+    {% for itm in matlchoiceForm.choicelist %}
+        ['{{itm.Material}}', {{itm.id}}],
+    {% endfor %}
+    ]    )
 
 
     // JAVASCRIPT DATES SUCK!!!!!!
@@ -357,15 +365,10 @@ button:focus {
     function isValid_Material() {
         if (mtlnmID.val().trim()=="") {
                 return false;
+        } else {
+            return MatlMap.has(mtlnmID.val());
         }
 
-        let foundit = false;  i = 0;
-        while (!foundit && (i < $("#Material-list").children().length)) {
-            foundit = foundit || ($("#Material-list").children()[i].value==mtlnmID.val());
-            i++;
-        }
-
-        return foundit;
     }
 
     function loadExtraInfo() {
@@ -387,14 +390,15 @@ button:focus {
             if (mtlnmID.val() != "") { alertBox("Invalid Material", mtlnmID.val() + " is not a valid Material number"); }
             mtlnmID.focus();
             return;
-        }
+        } 
+        // later, build an else clause to yank MatlMap.get(mtlnmID.val()) (the Material_id)
 
         newRec = "{% url 'CountEntryForm' 9999 'passedCountDate' 'matl' %}";
         R = Number.parseInt( document.getElementById('{{frmMain.id.id_for_label}}').value );
         if ( isNaN(R) ) { R = 0 };
         newRec = newRec.replace("/9999","/"+R);
         newRec = newRec.replace("passedCountDate",dVal);
-        mNum="None"; if (mtlnmID.val() != "") {mNum = mtlnmID.val()};
+        mNum="None"; if (mtlnmID.val() != "") {mNum = MatlMap.get(mtlnmID.val())};
         newRec = newRec.replace("/matl","/"+mNum);
         window.location = newRec;
     };

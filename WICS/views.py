@@ -10,13 +10,13 @@ from WICS.procs_CountSchedule import fnCountScheduleRecordExists
 
 @login_required
 def fnCountEntryView(req, 
-            recNum = 0, MatlNum = None, reqDate = calvindate().today(),
+            recNum = 0, MatlNum = 0, reqDate = calvindate().today(),
             gotoCommand = None
             ):
     _userorg = WICSuser.objects.get(user=req.user).org
 
     # the string 'None' is not the same as the value None
-    if MatlNum=='None': MatlNum=None
+    #if MatlNum=='None': MatlNum=None
     if gotoCommand=='None': gotoCommand=None
 
     FormMain = CountEntryForm
@@ -85,7 +85,7 @@ def fnCountEntryView(req,
             # prep new record to present
             currRec = modelMain(org=_userorg, CountDate=reqDate,Counter=req.user.get_short_name())
             recNum=0
-            MatlNum = None
+            MatlNum = 0
             matlRec = getattr(currRec,'Material', '')
             # MaterialID = getattr(matlRec, 'pk', None)
 
@@ -128,7 +128,7 @@ def fnCountEntryView(req,
 
         if gotoCommand == 'ChgKey':
             currRec.CountDate = reqDate
-            matlRec = modelSubs[0].objects.get(org=_userorg, Material=MatlNum)
+            matlRec = modelSubs[0].objects.get(org=_userorg, pk=MatlNum)
             currRec.Material = matlRec
 
         # at this point, currRec and matlRec s/b correct
@@ -156,9 +156,9 @@ def fnCountEntryView(req,
             schedinfo = modelSubs[1].objects.filter(org=_userorg, CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
         else:
             schedinfo = modelSubs[1].objects.none()
-    elif (MatlNum!=None) and (gotoCommand==None):
+    elif (MatlNum!=0) and (gotoCommand==None):
         # review and clean up this block!
-        if MatlNum != None:
+        if MatlNum != 0:
             # fill in MatlInfo and CountSchedInfo
             if recNum > 0: getDate = currRec.CountDate 
             else: getDate = reqDate
@@ -183,8 +183,9 @@ def fnCountEntryView(req,
     if matlRec:
         matlchoiceForm['gotoItem'] = matlRec        # the template pulls Material from this record
     else:
-        if MatlNum==None: MatlNum = ''
-        matlchoiceForm['gotoItem'] = {'Material':MatlNum}
+        if MatlNum==None: MatlNum = 0
+        ## matlchoiceForm['gotoItem'] = {'Material':MatlNum}
+        matlchoiceForm['gotoItem'] = {'Material':''}
     matlchoiceForm['choicelist'] = MaterialList.objects.filter(org=_userorg).values('id','Material')
 
     # display the form
@@ -197,7 +198,6 @@ def fnCountEntryView(req,
             'changes_saved': changes_saved,
             'changed_data': chgd_dat,
             'recNum': recNum,
-            'matlnum_changed': MatlNum,
             'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
             }
     templt = 'frm_CountEntry.html'
@@ -206,13 +206,13 @@ def fnCountEntryView(req,
 
 @login_required
 def fnCountScheduleRecView(req, 
-            recNum = 0, MatlNum = None, reqDate = calvindate().today(),
+            recNum = 0, MatlNum = 0, reqDate = calvindate().today(),
             gotoCommand = None
             ):
     _userorg = WICSuser.objects.get(user=req.user).org
 
     # the string 'None' is not the same as the value None
-    if MatlNum=='None': MatlNum=None
+    if MatlNum=='None': MatlNum=0
     if gotoCommand=='None': gotoCommand=None
 
     FormMain = CountScheduleRecordForm
@@ -272,7 +272,7 @@ def fnCountScheduleRecView(req,
             # prep new record to present
             currRec = modelMain(org=_userorg, CountDate=reqDate)
             recNum=0
-            MatlNum = None
+            MatlNum = 0
             matlRec = getattr(currRec,'Material', '')
 
             if currRec: 
@@ -318,12 +318,12 @@ def fnCountScheduleRecView(req,
             if exstSchdRec:
                 # if its not THIS record, reject
                 if (currRec and currRec.id != exstSchdRec):
-                    msgDupSched = 'A count for ' + str(MatlNum) + ' is already scheduled for ' + str(reqDate)
+                    msgDupSched = 'A count for ' + str(matlRec.Material) + ' is already scheduled for ' + str(reqDate)
                     matlRec = incomingMatlRec
                     MatlNum = getattr(matlRec,'Material',None)
             else:
                 currRec.CountDate = reqDate
-                matlRec = modelSubs[0].objects.get(org=_userorg, Material=MatlNum)
+                matlRec = modelSubs[0].objects.get(org=_userorg, pk=MatlNum)
                 currRec.Material = matlRec
 
         # at this point, currRec and matlRec s/b correct
@@ -343,7 +343,7 @@ def fnCountScheduleRecView(req,
         matlchoiceForm['gotoItem'] = matlRec        # the template pulls Material from this record
     else:
         if MatlNum==None: MatlNum = ''
-        matlchoiceForm['gotoItem'] = {'Material':MatlNum}
+        matlchoiceForm['gotoItem'] = {'Material':''}
     matlchoiceForm['choicelist'] = MaterialList.objects.filter(org=_userorg).values('id','Material')
 
     # display the form

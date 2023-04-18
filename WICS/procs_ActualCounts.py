@@ -15,13 +15,13 @@ from mathematical_expressions_parser.eval import evaluate
 from openpyxl import load_workbook
 from userprofiles.models import WICSuser
 from WICS.forms import CountEntryForm, RelatedMaterialInfo, RelatedScheduleInfo
-from WICS.models import ActualCounts, MaterialList, CountSchedule, WhsePartTypes
+from WICS.models import ActualCounts, MaterialList, CountSchedule, WhsePartTypes, org_queryset
 from WICS.procs_SAP import fnSAPList
 
 
 
 @login_required
-def fnCountEntryForm(req, recNum = 0, 
+def OBSOLETE_fnCountEntryForm(req, recNum = 0, 
     loadMatlInfo = None, 
     loadCountDate=str(calvindate().today()), 
     gotoCommand=None
@@ -48,24 +48,27 @@ def fnCountEntryForm(req, recNum = 0,
     initialvals['matl'] = {}
     initialvals['schedule'] = {'CountDate':calvindate(loadCountDate).as_datetime()}
 
+    MatlList = org_queryset(MaterialList, _userorg) # this is used often, plus part of it needs to be passed to the template
+
     # recover currRec and matlSubFm from POST data
     if req.method == 'POST':
         try:
             recNum = int(req.POST['RecPK'])
         except:
             recNum = 0
-        loadMatlInfo = MaterialList.objects.get(org=_userorg, pk=req.POST['MatlPK']).Material
+        loadMatlInfo = MatlList.get(pk=req.POST['MatlPK']).Material
 
     # if a record number was passed in, retrieve it
     # # later, handle record not found (i.e. - invalid recNum passed in)
     if recNum <= 0:
         currRec = ActualCounts.objects.filter(org=_userorg).none()
         if loadMatlInfo:
-            matlRec = MaterialList.objects.get(org=_userorg, Material=loadMatlInfo)
+            matlRec = MatlList.get(Material=loadMatlInfo)
         else:
-            matlRec = MaterialList.objects.none()
+            matlRec = MatlList.none()
     else:
-        currRec = ActualCounts.objects.filter(org=_userorg).get(pk=recNum)
+        # currRec = ActualCounts.objects.filter(org=_userorg).get(pk=recNum)
+        currRec = org_queryset(ActualCounts, org=_userorg).get(pk=recNum)
         matlRec = currRec.Material
     # endif
     MaterialID = getattr(matlRec, 'pk', None)
@@ -120,7 +123,7 @@ def fnCountEntryForm(req, recNum = 0,
 
     # if this is a gotoCommand, get the correct record
     if gotoCommand=="First" or (gotoCommand=="Prev" and recNum <=0):
-        currRec = ActualCounts.objects.filter(org=_userorg).order_by('id').first()
+        currRec = org_queryset(ActualCounts, org=_userorg).order_by('id').first()
         if currRec: 
             recNum = currRec.id
             loadMatlInfo = currRec.Material.Material
@@ -128,7 +131,7 @@ def fnCountEntryForm(req, recNum = 0,
             MaterialID = matlRec.id
         else: recNum = 0
     elif gotoCommand=="Prev":
-        currRec = ActualCounts.objects.filter(org=_userorg,pk__lt=recNum).order_by('id').last()
+        currRec = org_queryset(ActualCounts, org=_userorg).filter(pk__lt=recNum).order_by('id').last()
         if currRec: 
             recNum = currRec.id
             loadMatlInfo = currRec.Material.Material
@@ -136,7 +139,7 @@ def fnCountEntryForm(req, recNum = 0,
             MaterialID = matlRec.id
         else: recNum = 0
     elif gotoCommand=="Next":
-        currRec = ActualCounts.objects.filter(org=_userorg,pk__gt=recNum).order_by('id').first()
+        currRec = org_queryset(ActualCounts, org=_userorg).filter(pk__gt=recNum).order_by('id').first()
         if currRec: 
             recNum = currRec.id
             loadMatlInfo = currRec.Material.Material
@@ -144,7 +147,7 @@ def fnCountEntryForm(req, recNum = 0,
             MaterialID = matlRec.id
         else: recNum = 0
     elif gotoCommand=="Last":
-        currRec = ActualCounts.objects.filter(org=_userorg).order_by('id').last()
+        currRec = org_queryset(ActualCounts, org=_userorg).order_by('id').last()
         if currRec: 
             recNum = currRec.id
             loadMatlInfo = currRec.Material.Material
@@ -198,8 +201,8 @@ def fnCountEntryForm(req, recNum = 0,
     # schedFm
     if currRec:
         getDate = currRec.CountDate
-        if CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlRec).exists():
-            schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
+        if org_queryset(CountSchedule, org=_userorg).filter(CountDate=getDate, Material=matlRec).exists():
+            schedinfo = org_queryset(CountSchedule, org=_userorg).filter(CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
         else:
             schedinfo = CountSchedule.objects.none()
     elif (loadMatlInfo!=None) and (gotoCommand==None):
@@ -208,16 +211,16 @@ def fnCountEntryForm(req, recNum = 0,
             # fill in MatlInfo and CountSchedInfo
             if recNum > 0: getDate = currRec.CountDate 
             else: getDate = loadCountDate
-            if CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlRec).exists():
-                schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
+            if org_queryset(CountSchedule, org=_userorg).filter(CountDate=getDate, Material=matlRec).exists():
+                schedinfo = org_queryset(CountSchedule, org=_userorg).filter(CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
             else:
                 schedinfo = CountSchedule.objects.none()
         elif recNum > 0:
             # ??????????? shouldn't this already be handled?  Think about it...
             # fill in MatlInfo and CountSchedInfo
             getDate = currRec.CountDate
-            if CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlRec).exists():
-                schedinfo = CountSchedule.objects.filter(org=_userorg, CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
+            if org_queryset(CountSchedule, org=_userorg).filter(CountDate=getDate, Material=matlRec).exists():
+                schedinfo = org_queryset(CountSchedule, org=_userorg).filter(CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
             else:
                 schedinfo = CountSchedule.objects.none()
     else: schedinfo = CountSchedule.objects.none()
@@ -231,7 +234,7 @@ def fnCountEntryForm(req, recNum = 0,
     else:
         if loadMatlInfo==None: loadMatlInfo = ''
         matlchoiceForm['gotoItem'] = {'Material':loadMatlInfo}
-    matlchoiceForm['choicelist'] = MaterialList.objects.filter(org=_userorg).values('id','Material')
+    matlchoiceForm['choicelist'] = MatlList.values('id','Material')
 
     # display the form
     cntext = {'frmMain': mainFm,

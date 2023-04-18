@@ -279,6 +279,7 @@ def fnMaterialForm(req, recNum = -1, gotoMatl=None, gotoRec=False, newRec=False)
 
 class MaterialListCommonView(LoginRequiredMixin, ListView):
     #login_url = reverse('WICSlogin')
+    ordering = []
     context_object_name = 'MatlList'
     template_name = 'frm_MatlListing.html'
 

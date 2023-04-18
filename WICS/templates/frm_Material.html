@@ -329,8 +329,15 @@ button:focus {
     // record the ID and GPN of current record (it's used often!)
     var thisMtlID = {{frmMain.showPK.value|default_if_none:0}}, thisMtlGPN = "{{frmMain.Material.value}}"
     var CloseItFlag = false
+    // set up MatlMap for verifying if an entered Material # is valid
+    var MatlMap = new Map(
+    [
+    {% for itm in gotoForm.choicelist %}
+        ['{{itm.Material}}', {{itm.id}}],
+    {% endfor %}
+    ]    )
 
-    
+
     //------------------
 
     document.addEventListener("DOMContentLoaded", function() {
@@ -389,8 +396,8 @@ button:focus {
     function loadMaterialRec() {
         goID = $gotoTextBox
         if (goID.value != null && goID.value != thisMtlGPN) {
-            newRec="{% url 'ReloadMatlForm' 'gotoMatl' %}"
-            newRec = newRec.replace("/gotoMatl","/"+goID.value);
+            newRec="{% url 'MatlFormRecNum' 0 %}"
+            newRec = newRec.replace("/0","/"+MatlMap.get(goID.value));
             document.getElementById("wait_spinner").style.display = "block";
             window.location = newRec;
         } else {
@@ -446,7 +453,33 @@ button:focus {
 
     //-----------------
 
+    function isValid_Material() {
+        if ($gotoTextBox.value.trim()=="") {
+                return false;
+        } else {
+            return MatlMap.has($gotoTextBox.value);
+        }
+
+    }
+
+    //------------------
+
     function processGoToReq() {
+        if (!isValid_Material()) {
+            if ($gotoTextBox.value != "") { 
+                $("#modalGeneric").dialog("option","title","Invalid Material");
+                document.getElementById("modalGeneric").innerHTML = $gotoTextBox.value + " is not a valid Material number"
+        
+                $("#modalGeneric").dialog("option","buttons", 
+                    { 
+                        "OK" : function() {
+                            $(this).dialog("close"); }
+                    } );
+                $("#modalGeneric").dialog("open");
+                }
+            $gotoTextBox.focus();
+            return;
+        } 
         confirmLeave(loadMaterialRec);
     };
 
@@ -486,7 +519,6 @@ button:focus {
     });
         
     
-    // document.getElementById("{{frmMain.CTD_QTY_Expr.id_for_label}}").addEventListener("onchange",
     function sCE(n){
         const EvalExprID = 'EvalExpr';
         const CTDQTY_Exp = 'id_countset-' + n + '-CTD_QTY_Expr';
