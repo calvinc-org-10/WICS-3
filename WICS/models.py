@@ -107,7 +107,6 @@ class ActualCounts(models.Model):
     FLAG_PossiblyNotRecieved = models.BooleanField(blank=True, default=False)
     FLAG_MovementDuringCount = models.BooleanField(blank=True, default=False)
     Notes = models.CharField(max_length = 250, blank=True)
-    objects = models.Manager()      # pylint complains without this line present - why??
 
     class Meta:
         ordering = ['org', 'CountDate', 'Material']

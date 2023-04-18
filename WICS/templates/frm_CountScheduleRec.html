@@ -165,6 +165,14 @@ button:focus {
     var orig_matl = mtlnmID.val()
     var initialState;
     var thisRecNum = $("#thisRecNum").val();
+    // set up MatlMap for verifying if an entered Material # is valid
+    var MatlMap = new Map(
+    [
+    {% for itm in matlchoiceForm.choicelist %}
+        ['{{itm.Material}}', {{itm.id}}],
+    {% endfor %}
+    ]    )
+
 
     // JAVASCRIPT DATES SUCK!!!!!!
     // expand this one day - this could be useful - Fix it first!!!
@@ -227,15 +235,10 @@ button:focus {
     function isValid_Material() {
         if (mtlnmID.val().trim()=="") {
                 return false;
+        } else {
+            return MatlMap.has(mtlnmID.val());
         }
 
-        let foundit = false;  i = 0;
-        while (!foundit && (i < $("#Material-list").children().length)) {
-            foundit = foundit || ($("#Material-list").children()[i].value==mtlnmID.val());
-            i++;
-        }
-
-        return foundit;
     }
 
     function loadExtraInfo() {
@@ -255,7 +258,7 @@ button:focus {
 
         if (!isValid_Material()) {
             if (mtlnmID.val() != "") { alertBox("Invalid Material", mtlnmID.val() + " is not a valid Material number"); }
-            else { alertBox("No Material Chosen", "Please choose a valid Material number")}
+            // else { alertBox("No Material Chosen", "Please choose a valid Material number")}
             mtlnmID.focus();
             return;
         }
@@ -265,7 +268,7 @@ button:focus {
         if ( isNaN(R) ) { R = 0 };
         newRec = newRec.replace("/9999","/"+R);
         newRec = newRec.replace("passedCountDate",dVal)
-        mNum="None"; if (mtlnmID.val() != "") {mNum = mtlnmID.val()}
+        mNum="None"; if (mtlnmID.val() != "") {mNum = MatlMap.get(mtlnmID.val())}
         newRec = newRec.replace("/passedMatlNum","/"+mNum)
         window.location = newRec;
     };

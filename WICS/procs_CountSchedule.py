@@ -14,7 +14,7 @@ from barcode import Code128
 from userprofiles.models import WICSuser
 from WICS.forms import CountScheduleRecordForm, RelatedMaterialInfo
 from WICS.models import MaterialList, CountSchedule, \
-                        WhsePartTypes, LastFoundAt, WorksheetZones, Location_WorksheetZone
+                        WhsePartTypes, LastFoundAt, WorksheetZones, Location_WorksheetZone, org_queryset
 from WICS.procs_SAP import fnSAPList
 from typing import *
 # below: skip Sat, Sun using dateutil, dateutil.rrule, dateutil.rruleset
@@ -25,7 +25,7 @@ from WICS.procs_misc import HolidayList
 
 
 @login_required
-def fnCountScheduleRecordForm(req, recNum = 0, 
+def OBSOLETE_fnCountScheduleRecordForm(req, recNum = 0, 
     loadMatlNum = None, 
     loadCountDate=str(calvindate().nextWorkdayAfter(extraNonWorkdayList=HolidayList())), 
     gotoCommand=None
@@ -244,12 +244,19 @@ def fnCountScheduleRecordExists(org, CtDate, Matl):
     """
     if isinstance(Matl,MaterialList):
         MatObj = Matl 
-    else:
+    elif isinstance(Matl,str):
         try:
-            MatObj = MaterialList.objects.get(org=org, Material=Matl)
+            MatObj = org_queryset(MaterialList, org=org).get(Material=Matl)
         except:
             MatObj = MaterialList.objects.none()
-
+    elif isinstance(Matl,int):
+        try:
+            MatObj = org_queryset(MaterialList, org=org).get(pk=Matl)
+        except:
+            MatObj = MaterialList.objects.none()
+    else:
+        MatObj = MaterialList.objects.none()
+        
     try:
         rec = CountSchedule.objects.get(org=org, CountDate=CtDate, Material=MatObj)
     except:

@@ -1,3 +1,9 @@
+2023-04-17 stuff I broke that I need to fix ASAP
+frm_CountEntry.html: slowdown in part # verification now at form load.
+  try this: load Map on server (have fnCountEntryForm pass Matl list in the context, build Map in template)
+            load options from map in document.body unload (mebbe, mebbe not - think on this)
+            rest of code should be ok with minor changes
+
 Goals for 2023 Mar 10-13 Material Form rework
 (this will be a template/test to propagate to all code)
 - Tie close event to confirm dialog  -- DONE
