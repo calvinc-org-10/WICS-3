@@ -319,7 +319,7 @@ button:focus {
 
             R = 0   // not needed, since R=0 is hardcoded in the url below.  But this is good for documentation
             newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
-            newRec = newRec.replace("/passedMatlNum","/"+mtlnmID.val());
+            newRec = newRec.replace("/passedMatlNum","/"+MatlMap.get(mtlnmID.val()));
             newRec = newRec.replace("/passedCountDate","/"+dVal);
             window.open(newRec,'_blank')
         });

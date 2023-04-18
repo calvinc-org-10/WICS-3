@@ -487,6 +487,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
             outputline['TypicalContainerQty'] = lastrow['TypicalContainerQty']
             outputline['TypicalPalletQty'] = lastrow['TypicalPalletQty']
             outputline['Material'] = lastrow['Material']
+            outputline['Material_id'] = lastrow['Material_id']
             outputline['PartType'] = lastrow['PartType']
             outputline['CountTotal'] = lastrow['TotalCounted']
             outputline['SAPTotal'] = SAPTot
@@ -505,6 +506,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
         def CreateLastrow(rawrow):
             lastrow = dict()
             lastrow['Material'] = rawrow.Matl_PartNum
+            lastrow['Material_id'] = rawrow.matl_id
             lastrow['PartType'] = rawrow.PartType
             lastrow['TotalCounted'] = 0
             lastrow['CMFlag'] = rawrow.cs_CMPrintFlag
@@ -521,6 +523,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
             outputline['type'] = 'Detail'
             outputline['CycCtID'] = rawrow.ac_CycCtID
             outputline['Material'] = rawrow.Matl_PartNum
+            outputline['Material_id'] = rawrow.matl_id
             outputline['SchedCounter'] = rawrow.cs_Counter
             outputline['ActCounter'] = rawrow.ac_Counter
             outputline['BLDG'] = rawrow.ac_BLDG
@@ -546,9 +549,9 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
             return outputline
         
         outputrows = []
-        lastrow = {'Material': None}
+        lastrow = {'Material_id': None}
         for rawrow in raw_qs:
-            if rawrow.Matl_PartNum != lastrow['Material']:     # new Matl
+            if rawrow.matl_id != lastrow['Material_id']:     # new Matl
                 if outputrows:
                     outputrows.append(SummaryLine(lastrow))
                 # no else -  if outputrows is empty, this is the first row, so keep going
@@ -579,6 +582,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
         ", ac.LocationOnly as ac_LocationOnly, ac.CTD_QTY_Expr as ac_CTD_QTY_Expr, ac.BLDG as ac_BLDG" \
         ", ac.LOCATION as ac_LOCATION, ac.PKGID_Desc as ac_PKGID_Desc, ac.TAGQTY as ac_TAGQTY" \
         ", ac.FLAG_PossiblyNotRecieved, ac.FLAG_MovementDuringCount, ac.Notes as ac_Notes" \
+        ", mtl.id as matl_id" \
         ", mtl.Material as Matl_PartNum, (SELECT WhsePartType FROM WICS_whseparttypes WHERE id=mtl.PartType_id) as PartType" \
         ", mtl.Description, mtl.TypicalContainerQty, mtl.TypicalPalletQty, mtl.Notes as mtl_Notes"
     org_condition = '(ac.org_id = ' + str(_userorg.pk) + ' OR cs.org_id = ' + str(_userorg.pk) + ') '

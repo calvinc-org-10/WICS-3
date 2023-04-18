@@ -424,7 +424,7 @@ button:focus {
         dVal = dVal.toISOString().substring(0,10)   // make it a string
         
         newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
-        newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
+        newRec = newRec.replace("/passedMatlNum","/"+thisMtlID);
         newRec = newRec.replace("/passedCountDate","/"+dVal);
         window.open(newRec,'_blank')
     });
@@ -436,7 +436,7 @@ button:focus {
         newRec = "{% url 'CountEntryForm' 0 'passedCountDate' 'matl' %}"
         newRec = newRec.replace("passedCountDate",dVal)
         mtlnmID = $('#{{frmMain.Material.id_for_label}}');
-        mNum="None"; if (mtlnmID.val() != "") {mNum = mtlnmID.val()}
+        mNum="None"; if (mtlnmID.val() != "") {mNum = thisMtlID}
         newRec = newRec.replace("/matl","/"+mNum)
         window.open(newRec,'_blank')
     });
