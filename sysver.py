@@ -1,4 +1,4 @@
 sysver = {
-    'DEV': 'DEV2.7', 
-    'PROD':'2.7',
+    'DEV': 'DEV2.71', 
+    'PROD':'2.71',
     } 
