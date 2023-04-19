@@ -57,6 +57,9 @@ class MaterialList(models.Model):
         constraints = [
                 models.UniqueConstraint(fields=['org', 'Material'],name="wics_materiallist_realpk"),
             ]
+        indexes = [
+            models.Index(fields=['PartType']),
+        ]
         
 
     def __str__(self) -> str:
@@ -86,6 +89,12 @@ class CountSchedule(models.Model):
         constraints = [
                 models.UniqueConstraint(fields=['org', 'CountDate', 'Material'], name="wics_countschedule_realpk"),
             ]
+        indexes = [
+            models.Index(fields=['org','CountDate','Material']),
+            models.Index(fields=['org','Material']),
+            models.Index(fields=['org','CountDate']),
+        ]
+
         
     def __str__(self) -> str:
         return str(self.pk) + ": " + str(self.CountDate) + " / " + str(self.Material) + " / " + str(self.Counter)
