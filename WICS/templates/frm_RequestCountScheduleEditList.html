@@ -81,8 +81,13 @@ button:focus {
             {% render_field itm.RequestFilled %}
         </div>
     </div>
+    {% if itm.instance.hascounts %}
     <div class="row g-0 text-start">
-        <div class="col"><b>Schedule Notes:</b>  {% render_field itm.Notes size="100" %}</div>
+        <div class="col"><b>COUNTS HAVE BEEN RECORDED FOR THIS DAY AND MATERIAL</b></div>
+    </div>
+    {% endif %}
+    <div class="row g-0 text-start">
+        <div class="col"><b>Schedule Notes:</b>  {% render_field itm.Notes size="80" %}</div>
     </div>
     <hr>
     {% endfor %}
