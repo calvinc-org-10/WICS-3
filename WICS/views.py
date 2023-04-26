@@ -1,9 +1,10 @@
 # import dateutil.utils as dateutils
 from django.contrib.auth.decorators import login_required
+from django.forms import modelformset_factory
 from django.shortcuts import render
 from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
-from WICS.forms import CountEntryForm, CountScheduleRecordForm, RelatedMaterialInfo, RelatedScheduleInfo
+from WICS.forms import CountEntryForm, CountScheduleRecordForm, RequestCountScheduleRecordForm, RelatedMaterialInfo, RelatedScheduleInfo
 from WICS.models import MaterialList
 from WICS.procs_CountSchedule import fnCountScheduleRecordExists
 
@@ -358,5 +359,228 @@ def fnCountScheduleRecView(req,
             'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
             }
     templt = 'frm_CountScheduleRec.html'
+    return render(req, templt, cntext)
+
+
+@login_required
+def fnRequestCountScheduleRecView(req, 
+            recNum = 0, MatlNum = 0, reqDate = calvindate().today(),
+            gotoCommand = None
+            ):
+    requser = WICSuser.objects.get(user=req.user)
+    _userorg = requser.org
+
+    # the string 'None' is not the same as the value None
+    if MatlNum=='None': MatlNum=0
+    if gotoCommand=='None': gotoCommand=None
+
+    FormMain = RequestCountScheduleRecordForm
+    FormSubs = [S for S in [RelatedMaterialInfo]]
+
+    modelMain = FormMain.Meta.model
+    modelSubs = [S.Meta.model for S in FormSubs]
+
+    prefixvals = {
+        'main': 'counts',
+        'matl': 'matl',
+    }
+    initialvals = {
+        'main': {'CountDate': calvindate(reqDate).as_datetime(),'Requestor':req.user.get_short_name()},
+        'matl': {},
+    }
+
+    changes_saved = {
+        'main': False,
+        'matl': False,
+        }
+    chgd_dat = {
+        'main':None, 
+        'matl': None, 
+        }
+
+    msgDupSched = ''
+
+    if req.method == 'POST':
+        R = req.POST[prefixvals['main']+'-id']
+        recNum = int(R) if R.isnumeric() else 0
+        try:
+            currRec = modelMain.objects.get(pk=recNum)
+        except:
+            currRec = modelMain(org=_userorg)
+        matlRec = modelSubs[0].objects.get(org=_userorg, Material=req.POST[prefixvals['main']+'-Material'])
+
+        # process main form
+        if currRec: mainFm = FormMain(req.POST, instance=currRec,  prefix=prefixvals['main'])   # do I need to pass in intial?
+        else: mainFm = FormMain(req.POST, initial=initialvals['main'],  prefix=prefixvals['main']) 
+        matlSubFm = FormSubs[0](_userorg, matlRec.pk, req.POST, instance=matlRec, prefix=prefixvals['matl'])
+
+        s = modelMain.objects.none()
+
+        # if mainFm.is_valid() and matlSubFm.is_valid() and schedFm.is_valid():
+        if mainFm.is_valid() and matlSubFm.is_valid():
+            if mainFm.has_changed():
+                s = mainFm.save(requser)
+                chgd_dat['main'] = mainFm.changed_data
+                changes_saved['main'] = s.id
+            # material info subform
+            if matlSubFm.has_changed():
+                matlSubFm.save()
+                chgd_dat['matl'] = matlSubFm.changed_data
+                changes_saved['matl'] = True
+
+            # prep new record to present
+            currRec = modelMain(org=_userorg, CountDate=reqDate, Requestor=req.user.get_short_name())
+            recNum=0
+            MatlNum = 0
+            matlRec = getattr(currRec,'Material', '')
+
+            if currRec: 
+                mainFm = FormMain(instance=currRec, prefix=prefixvals['main'])
+            else:       
+                mainFm = FormMain(initial=initialvals['main'],  prefix=prefixvals['main'])
+            if matlRec:
+                matlSubFm = FormSubs[0](_userorg, matlRec.pk, instance=matlRec, prefix=prefixvals['matl'])
+            else:
+                matlSubFm = FormSubs[0](_userorg, None, initial=initialvals['matl'], prefix=prefixvals['matl'])
+
+    else:
+        currRec = modelMain(org=_userorg, CountDate=reqDate, Requestor=req.user.get_short_name())
+        matlRec = modelSubs[0].objects.none()
+        # TODO: later, do try..except blocks
+        if gotoCommand == 'First':
+            # TODO: add protection against no records
+            recNum = modelMain.objects.filter(org=_userorg).order_by('id').first().pk
+        elif gotoCommand == 'Last':
+            # TODO: add protection against no records
+            recNum = modelMain.objects.filter(org=_userorg).order_by('id').last().pk
+        elif gotoCommand == 'Prev':
+            try:
+                recNum = modelMain.objects.filter(org=_userorg,pk__lt=recNum).order_by('id').last().pk
+            except: # assume it's because we're already at first record.  don't go anywhere
+                pass
+        elif gotoCommand == 'Next':
+            try:
+                recNum = modelMain.objects.filter(org=_userorg,pk__gt=recNum).order_by('id').first().pk
+            except:
+                pass
+        else:
+            pass
+        
+        incomingMatlRec = matlRec   # in case it's trying to be changed to an existing scheduled count
+        if recNum:
+            currRec = modelMain.objects.get(pk=recNum)
+            matlRec = currRec.Material  # subject to change
+
+        if gotoCommand == 'ChgKey':
+            #finally, if this is a new rec, and a rec already exists for this CountDate and Material, the Material must be rejected
+            exstSchdRec = getattr(fnCountScheduleRecordExists(_userorg,reqDate,MatlNum),'id', False)
+            if exstSchdRec:
+                # if its not THIS record, reject
+                if (currRec and currRec.id != exstSchdRec):
+                    msgDupSched = 'A count for ' + str(matlRec.Material) + ' is already scheduled for ' + str(reqDate)
+                    matlRec = incomingMatlRec
+                    MatlNum = getattr(matlRec,'Material',None)
+            else:
+                currRec.CountDate = reqDate
+                matlRec = modelSubs[0].objects.get(org=_userorg, pk=MatlNum)
+                currRec.Material = matlRec
+
+        # at this point, currRec and matlRec s/b correct
+
+        if currRec: 
+            mainFm = FormMain(instance=currRec, prefix=prefixvals['main'])
+        else:       
+            mainFm = FormMain(initial=initialvals['main'],  prefix=prefixvals['main'])
+        if matlRec:
+            matlSubFm = FormSubs[0](_userorg, matlRec.pk, instance=matlRec, prefix=prefixvals['matl'])
+        else:
+            matlSubFm = FormSubs[0](_userorg, None, initial=initialvals['matl'], prefix=prefixvals['matl'])
+
+    # CountEntryForm MaterialList dropdown
+    matlchoiceForm = {}
+    if matlRec:
+        matlchoiceForm['gotoItem'] = matlRec        # the template pulls Material from this record
+    else:
+        if MatlNum==None: MatlNum = ''
+        matlchoiceForm['gotoItem'] = {'Material':''}
+    matlchoiceForm['choicelist'] = MaterialList.objects.filter(org=_userorg).values('id','Material')
+
+    # display the form
+    cntext = {'frmMain': mainFm,
+            'frmMatlInfo': matlSubFm,
+            'matlchoiceForm':matlchoiceForm,
+            'changes_saved': changes_saved,
+            'changed_data': chgd_dat,
+            'recNum': recNum,
+            'matlnum_changed': MatlNum,
+            'msgDupSched': msgDupSched,
+            'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+            }
+    templt = 'frm_RequestCountScheduleRec.html'
+    return render(req, templt, cntext)
+
+
+def fnRequestedCountEditListView(req):
+    requser = WICSuser.objects.get(user=req.user)
+    _userorg = requser.org
+
+    ShowFilledRequests = True      #later, make this a parameter
+
+    FormMain = RequestCountScheduleRecordForm
+    FormSubs = [S for S in []]
+
+    modelMain = FormMain.Meta.model
+    modelSubs = [S.Meta.model for S in FormSubs]
+
+    prefixvals = {
+        'main': 'counts',
+    }
+    initialvals = {
+        'main': {'CountDate': calvindate().as_datetime(),'Requestor':req.user.get_short_name()},
+    }
+    fieldlist = {
+        'main':  ('id', 'CountDate', 'Material', 'Requestor', 'RequestFilled', 'Counter', 'Priority', 'ReasonScheduled', 'Notes',)
+    }
+    excludelist = {
+        'main': ()            # ('Requestor_userid',)
+    }
+
+    changes_saved = {
+        'main': False,
+        }
+    chgd_dat = {
+        'main':None, 
+        }
+
+    mainFm_class = modelformset_factory(modelMain,
+                fields=fieldlist['main'],
+                exclude=excludelist['main'],
+                # form=FormMain,
+                extra=0,can_delete=False)
+    qs_RequestsToShow = modelMain.objects.filter(Requestor__isnull=False)
+    if not ShowFilledRequests:
+        qs_RequestsToShow = qs_RequestsToShow.filter(RequestFilled=False)
+
+    if req.method == 'POST':
+        # process main form
+        mainFm = mainFm_class(req.POST, prefix=prefixvals['main'], initial=initialvals['main'],
+                    queryset=qs_RequestsToShow)
+
+        if mainFm.is_valid():
+            if mainFm.has_changed():
+                s = mainFm.save()
+                chgd_dat['main'] = mainFm.changed_objects
+                changes_saved['main'] = s
+    else:
+        mainFm = mainFm_class(prefix=prefixvals['main'], initial=initialvals['main'],
+                    queryset=qs_RequestsToShow)
+
+     # display the form
+    cntext = {'frmMain': mainFm,
+            'changes_saved': changes_saved,
+            'changed_data': chgd_dat,
+            'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+            }
+    templt = 'frm_RequestCountScheduleEditList.html'
     return render(req, templt, cntext)
 

@@ -54,6 +54,14 @@ urlpatterns = [
             views.fnCountScheduleRecView, {'gotoCommand':'ChgKey'},
             name='CountScheduleForm'),
 
+    path('RequestCountScheduleForm',
+            views.fnRequestCountScheduleRecView, name='RequestCountScheduleForm'),
+    path('RequestCountScheduleForm/<int:recNum>/<str:reqDate>/<str:MatlNum>',
+            views.fnRequestCountScheduleRecView, {'gotoCommand':'ChgKey'},
+            name='RequestCountScheduleForm'),
+    path('RequestedCountListEdit',
+            views.fnRequestedCountEditListView, name='RequestCountListEdit'),
+
     path('CountSummaryRpt',
             procs_ActualCounts.fnCountSummaryRpt, name='CountSummaryReport'),
     path('CountSummaryRpt/<str:passedCountDate>',

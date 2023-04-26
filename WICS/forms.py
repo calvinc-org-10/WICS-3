@@ -3,6 +3,7 @@ from django import forms
 from cMenu.utils import calvindate
 from WICS.models import MaterialList, ActualCounts, CountSchedule, WhsePartTypes
 from WICS.procs_misc import HolidayList
+from userprofiles.models import WICSuser
 
 
 class CountEntryForm(forms.ModelForm):
@@ -53,6 +54,7 @@ class CountEntryForm(forms.ModelForm):
         rec.save()
         return rec
 
+
 class CountScheduleRecordForm(forms.ModelForm):
     id = forms.IntegerField(required=False, widget=forms.HiddenInput)
     CountDate = forms.DateField(required=True, 
@@ -94,6 +96,56 @@ class CountScheduleRecordForm(forms.ModelForm):
         
         rec.save()
         return rec
+
+
+class RequestCountScheduleRecordForm(forms.ModelForm):
+    id = forms.IntegerField(required=False, widget=forms.HiddenInput)
+    CountDate = forms.DateField(required=True, 
+        initial=calvindate().nextWorkdayAfter(extraNonWorkdayList=HolidayList()).as_datetime
+        )
+    Requestor = forms.CharField(max_length=100, required=True)
+      # the requestor can type whatever they want here, but WICS will record the userid behind-the-scenes
+    RequestFilled = forms.BooleanField(required=False, initial=False)
+    Material = forms.CharField(required=True)
+        # Material is handled this way because of the way it's done in the html.
+        # later, create a DropdownText widget??
+    Counter = forms.CharField(required=False)
+    Priority = forms.CharField(max_length=50, required=False)
+    ReasonScheduled = forms.CharField(max_length=250, required=False)
+    CMPrintFlag = forms.BooleanField(required=False, initial=False)
+    Notes  = forms.CharField(required=False)
+
+    class Meta:
+        model = CountSchedule
+        fields = ['id', 'CountDate', 'Requestor', 'RequestFilled', 'Counter', 'Priority', 'ReasonScheduled', 'CMPrintFlag', 'Notes']
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+    def save(self, savingUser: WICSuser) -> CountSchedule:
+        if not self.is_valid():
+            return None
+        dbmodel = self.Meta.model
+        required_fields = ['CountDate', 'Material', 'Requestor'] #id, org handled separately
+        PriK = self['id'].value()
+        M = MaterialList.objects.get(org=self.org, Material=self.cleaned_data['Material']) 
+        if not str(PriK).isnumeric(): PriK = -1
+        existingrec = dbmodel.objects.filter(pk=PriK).exists()
+        if existingrec: rec = dbmodel.objects.get(pk=PriK)
+        else: rec = dbmodel()
+        for fldnm in self.changed_data + required_fields:
+            if fldnm=='id' or fldnm=='org': continue
+            elif fldnm=='Material':
+                setattr(rec,fldnm, M)
+            else:
+                setattr(rec, fldnm, self.cleaned_data[fldnm])
+        rec.org = savingUser.org
+        rec.Requestor_userid = savingUser
+        
+        rec.save()
+        return rec
+
+
+################################
+################################
 
 class RelatedMaterialInfo(forms.ModelForm):
     Description = forms.CharField(max_length=250, disabled=True, required=False)

@@ -17,7 +17,7 @@
             <div class="col-4"></div>
             <div class="col-6"></div>
             <div class="col">
-                <button id="close_btn" type="button" onclick="open(location, '_self').close();">
+                <button id="close_btn" type="button" onclick="location = location.href;">
                     <!-- <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img> -->
                     Login
                 </button>
@@ -52,6 +52,10 @@
                 
                 <div class="row mt-5">
                     <i>{{ Greeting }}</i>
+                    {% if sysver_key == 'DEV' %}
+                        <br><br>
+                        <input type="submit" name="dev_bypass" value="1">
+                    {% endif %}
                 </div>
             </form>
             </div>
