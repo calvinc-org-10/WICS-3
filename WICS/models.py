@@ -74,10 +74,16 @@ class tmpMaterialListUpdate(models.Model):
     PriceUnit = models.PositiveIntegerField(null=True, blank=True)
 
 
+from userprofiles.models import WICSuser        
+    # this import is down here because WICSuser contains a fk to Organizations, defined above
 class CountSchedule(models.Model):
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
     CountDate = models.DateField(null=False)
     Material = models.ForeignKey(MaterialList, on_delete=models.RESTRICT)
+    Requestor = models.CharField(max_length=100, null=True, blank=True)     
+      # the requestor can type whatever they want here, but WICS will record the userid behind-the-scenes
+    Requestor_userid = models.ForeignKey(WICSuser, on_delete=models.SET_NULL, null=True)
+    RequestFilled = models.BooleanField(null=True, default=0)
     Counter = models.CharField(max_length=250, blank=True)
     Priority = models.CharField(max_length=50, blank=True)
     ReasonScheduled = models.CharField(max_length=250, blank=True)

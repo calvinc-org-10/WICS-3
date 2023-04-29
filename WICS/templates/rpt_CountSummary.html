@@ -2,7 +2,7 @@
 {% load widget_tweaks %}
 {% load static %}
 
-{% block tTitle %}Count Summary{% endblock %}
+{% block tTitle %}{% if variation == 'REQ' %}Requested {% endif %}Count Summary{% endblock %}
 
 
 {% block boddy %}
@@ -10,7 +10,7 @@
     <div class="row">
         <div class="col-5 fs-3 text-end">
             <u>{{ orgname }}</u>
-            <br>Counts Scheduled and Performed
+            <br>Counts {% if variation == 'REQ' %}Requested{% else %}Scheduled and Done{% endif %}
         </div>
         <div class="col-5 text-start">
             <img src={% static 'WICS-Logo.png' %} width="200" height="100">
@@ -41,7 +41,7 @@
             <div class="col-1">Count Date</div>
             <div class="col-1">Cyc Ct ID</div>
             <div class="col-2">Material</div>
-            <div class="col-3">Sched | Actual Counter</div>
+            <div class="col-3">Counter</div>
             <div class="col-1">BLDG</div>
             <div class="col-1">LOCATION</div>
             <div class="col-1">PKG ID / Desc</div>
@@ -53,7 +53,7 @@
                     <div class="col-1">{{ CountDate|date:"m/d" }}</div>
                     <div class="col-1">{{ ent.CycCtID }}</div>
                     <div class="col-2">{{ ent.Material }}</div>
-                    <div class="col-3">{{ ent.SchedCounter|default:'----' }} | {{ ent.ActCounter }}</div>
+                    <div class="col-3">{{ ent.ActCounter }}</div>
                     <div class="col-1">{{ ent.BLDG }}</div>
                     <div class="col-1">{{ ent.LOCATION }}</div>
                     <div class="col-1">{{ ent.PKGID }}</div>
@@ -104,9 +104,17 @@
                     "><b>{{ ent.Accuracy|floatformat:2 }}%</b></div>
                     <div class="col-1"></div>
                     <div class="col-1"></div>
+                    {% if variation != 'REQ' %}
                     <div class="col-1">
                         <button type="button" class="btnSchCt" value="{{ ent.Material_id }}"><small>Schedule Count</small></button>
                     </div>
+                    {% endif %}
+                </div>
+                <div class="row g-0">
+                    Scheduled Counter: {{ ent.SchedCounter|default:'----' }}
+                    {% if ent.Requestor  %}
+                        | Requestor: {{ ent.Requestor }} | RequestFilled: {{ ent.RequestFilled|yesno|upper }}
+                    {% endif %}
                 </div>
                 {% if ent.ReasonScheduled %}
                 <div class="row g-0 small">
@@ -124,7 +132,7 @@
                     <div class="col-1">Count Date</div>
                     <div class="col-1">Cyc Ct ID</div>
                     <div class="col-2">Material</div>
-                    <div class="col-3">Sched | Actual Counter</div>
+                    <div class="col-3">Counter</div>
                     <div class="col-1">BLDG</div>
                     <div class="col-1">LOCATION</div>
                     <div class="col-1">PKG ID / Desc</div>
@@ -192,7 +200,7 @@
             dVal = dVal.toISOString().substring(0,10)   // make it a string
 
             thisMtlGPN = this.value
-            
+
             newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
             newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
             newRec = newRec.replace("/passedCountDate","/"+dVal);
@@ -202,7 +210,11 @@
     //---------
 
     function newCtDate() {
+        {% if variation is None %}            
         var newRec = "{% url 'CountSummaryReport' 'PCD' %}".replace('/PCD','/'+$('#CtDate').val())
+        {% else %}
+        var newRec = "{% url 'CountSummaryReport-v' 'VARI' 'PCD' %}".replace('/PCD','/'+$('#CtDate').val()).replace('/VARI','/{{variation}}')
+        {% endif %}
         window.location = newRec;
     }
 

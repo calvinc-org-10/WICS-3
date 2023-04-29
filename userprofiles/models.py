@@ -1,12 +1,12 @@
 from django.contrib.auth.models import User
 from django.db import models
-from WICS.models import Organizations
+import WICS.models as WICSmodels
 from cMenu.models import menuGroups
 
 
 class WICSuser(models.Model):
     user = models.OneToOneField(User,on_delete = models.CASCADE, related_name='WICSuser')
-    org = models.ForeignKey(Organizations, on_delete=models.CASCADE)
+    org = models.ForeignKey(WICSmodels.Organizations, on_delete=models.CASCADE)
     menuGroup = models.ForeignKey(menuGroups,on_delete=models.RESTRICT,null=True)
 
     def save(self, *args, **kwargs):
