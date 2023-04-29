@@ -62,6 +62,12 @@ urlpatterns = [
     path('RequestedCountListEdit',
             views.fnRequestedCountEditListView, name='RequestCountListEdit'),
 
+    path('CountSummaryRpt/v/REQ',
+            procs_ActualCounts.fnCountSummaryReqRpt, name='CountSummaryReport-v-init'),
+    path('CountSummaryRpt/v/<str:Rptvariation>',
+            procs_ActualCounts.fnCountSummaryRpt, name='CountSummaryReport-v'),
+    path('CountSummaryRpt/v/<str:Rptvariation>/<str:passedCountDate>',
+            procs_ActualCounts.fnCountSummaryRpt, name='CountSummaryReport-v'),
     path('CountSummaryRpt',
             procs_ActualCounts.fnCountSummaryRpt, name='CountSummaryReport'),
     path('CountSummaryRpt/<str:passedCountDate>',

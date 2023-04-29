@@ -20,238 +20,6 @@ from WICS.procs_SAP import fnSAPList
 
 
 
-@login_required
-def OBSOLETE_fnCountEntryForm(req, recNum = 0, 
-    loadMatlInfo = None, 
-    loadCountDate=str(calvindate().today()), 
-    gotoCommand=None
-    ):
-# one day I will clean this up ...
-
-    _userorg = WICSuser.objects.get(user=req.user).org
-    FormMain = CountEntryForm
-    FormSubs = [S for S in [RelatedMaterialInfo, RelatedScheduleInfo]]
-
-    modelMain = FormMain.Meta.model
-    modelSubs = [S.Meta.model for S in FormSubs]
-
-    # the string 'None' is not the same as the value None
-    if loadMatlInfo=='None': loadMatlInfo=None
-    if gotoCommand=='None': gotoCommand=None
-
-    prefixvals = {}
-    prefixvals['main'] = 'counts'
-    prefixvals['matl'] = 'matl'
-    prefixvals['schedule'] = 'schedule'
-    initialvals = {}
-    initialvals['main'] = {'CountDate':calvindate(loadCountDate).as_datetime()}
-    initialvals['matl'] = {}
-    initialvals['schedule'] = {'CountDate':calvindate(loadCountDate).as_datetime()}
-
-    MatlList = org_queryset(MaterialList, _userorg) # this is used often, plus part of it needs to be passed to the template
-
-    # recover currRec and matlSubFm from POST data
-    if req.method == 'POST':
-        try:
-            recNum = int(req.POST['RecPK'])
-        except:
-            recNum = 0
-        loadMatlInfo = MatlList.get(pk=req.POST['MatlPK']).Material
-
-    # if a record number was passed in, retrieve it
-    # # later, handle record not found (i.e. - invalid recNum passed in)
-    if recNum <= 0:
-        currRec = ActualCounts.objects.filter(org=_userorg).none()
-        if loadMatlInfo:
-            matlRec = MatlList.get(Material=loadMatlInfo)
-        else:
-            matlRec = MatlList.none()
-    else:
-        # currRec = ActualCounts.objects.filter(org=_userorg).get(pk=recNum)
-        currRec = org_queryset(ActualCounts, org=_userorg).get(pk=recNum)
-        matlRec = currRec.Material
-    # endif
-    MaterialID = getattr(matlRec, 'pk', None)
-    
-    changes_saved = {
-        'main': False,
-        'matl': False,
-        'schedule': False
-        }
-    chgd_dat = {
-        'main':None, 
-        'matl': None, 
-        'schedule': None
-        }
-
-    if req.method == 'POST':
-        # changed data is being submitted.  process and save it
-        # process mainFm AND subforms.
-
-        gotoCommand = None
-
-        # process main form
-        if currRec: mainFm = CountEntryForm(_userorg, req.POST, instance=currRec,  prefix=prefixvals['main'])   # do I need to pass in intial?
-        else: mainFm = CountEntryForm(_userorg, req.POST, initial=initialvals['main'],  prefix=prefixvals['main']) 
-        matlSubFm = RelatedMaterialInfo(_userorg, MaterialID, req.POST, instance=matlRec, prefix=prefixvals['matl'])
-        #schedSet = RelatedScheduleInfo(_userorg, SchedID, req.POST, prefix=prefixvals['schedule'], initial=initialvals['schedule'])
-
-        s = ActualCounts.objects.none()
-
-        # if mainFm.is_valid() and matlSubFm.is_valid() and schedFm.is_valid():
-        if mainFm.is_valid() and matlSubFm.is_valid():
-            if mainFm.has_changed():
-                s = mainFm.save()
-                chgd_dat['main'] = mainFm.changed_data
-                changes_saved['main'] = s.id
-            # material info subform
-            if matlSubFm.has_changed():
-                matlSubFm.save()
-                chgd_dat['matl'] = matlSubFm.changed_data
-                changes_saved['matl'] = True
-            # count schedule subform
-            # if schedSet.has_changed():
-            #      schedSet.save()
-            #      chgd_dat['schedule'] = schedSet.changed_data
-            #      changes_saved['schedule'] = True
-
-            gotoCommand = "New"
-        else:
-            gotoCommand = "Invalid"
-
-    #endif req.method=='POST'
-
-    # if this is a gotoCommand, get the correct record
-    if gotoCommand=="First" or (gotoCommand=="Prev" and recNum <=0):
-        currRec = org_queryset(ActualCounts, org=_userorg).order_by('id').first()
-        if currRec: 
-            recNum = currRec.id
-            loadMatlInfo = currRec.Material.Material
-            matlRec = currRec.Material
-            MaterialID = matlRec.id
-        else: recNum = 0
-    elif gotoCommand=="Prev":
-        currRec = org_queryset(ActualCounts, org=_userorg).filter(pk__lt=recNum).order_by('id').last()
-        if currRec: 
-            recNum = currRec.id
-            loadMatlInfo = currRec.Material.Material
-            matlRec = currRec.Material
-            MaterialID = matlRec.id
-        else: recNum = 0
-    elif gotoCommand=="Next":
-        currRec = org_queryset(ActualCounts, org=_userorg).filter(pk__gt=recNum).order_by('id').first()
-        if currRec: 
-            recNum = currRec.id
-            loadMatlInfo = currRec.Material.Material
-            matlRec = currRec.Material
-            MaterialID = matlRec.id
-        else: recNum = 0
-    elif gotoCommand=="Last":
-        currRec = org_queryset(ActualCounts, org=_userorg).order_by('id').last()
-        if currRec: 
-            recNum = currRec.id
-            loadMatlInfo = currRec.Material.Material
-            matlRec = currRec.Material
-            MaterialID = matlRec.id
-        else: recNum = 0
-    elif gotoCommand=="Invalid":
-        # this command occurs when a form (new or existing) is submitted, but it has errors
-        # currRec is already set above
-        if currRec: 
-            recNum = currRec.id
-            loadMatlInfo = currRec.Material.Material
-            matlRec = currRec.Material
-            MaterialID = matlRec.id
-        else: recNum = 0
-    elif gotoCommand=="New":
-        currRec = ActualCounts.objects.filter(org=_userorg).none()
-        recNum=0
-        loadMatlInfo = None
-        matlRec = getattr(currRec,'Material', '')
-        MaterialID = getattr(matlRec, 'pk', None)
-    else:
-        if currRec:
-            recNum = currRec.id
-            loadMatlInfo = currRec.Material.Material
-            matlRec = currRec.Material
-            MaterialID = matlRec.id
-        else:
-            # recNum remains whatever was passed in (0 - else there would be a currRec)
-            # passedMatlNum remains whatever was passed in
-            # matlRec remains what was constructed above
-            MaterialID = getattr(matlRec, 'pk', None)
-    #endif
-
-    # prep the forms for the template
-    # mainFm and matlSubFm
-    if gotoCommand != "Invalid":
-        if currRec: 
-            mainFm = CountEntryForm(_userorg, instance=currRec, prefix=prefixvals['main'])
-        else:       
-            mainFm = CountEntryForm(_userorg, initial=initialvals['main'],  prefix=prefixvals['main'])
-        if matlRec:
-            matlSubFm = RelatedMaterialInfo(_userorg, MaterialID, instance=matlRec, prefix=prefixvals['matl'])
-        else:
-            matlSubFm = RelatedMaterialInfo(_userorg, MaterialID, initial=initialvals['matl'], prefix=prefixvals['matl'])
-    # all counts for this Material today
-    if matlRec: 
-        todayscounts = ActualCounts.objects.filter(CountDate=loadCountDate,Material=matlRec)
-    else: 
-        todayscounts = ActualCounts.objects.none()
-    # schedFm
-    if currRec:
-        getDate = currRec.CountDate
-        if org_queryset(CountSchedule, org=_userorg).filter(CountDate=getDate, Material=matlRec).exists():
-            schedinfo = org_queryset(CountSchedule, org=_userorg).filter(CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
-        else:
-            schedinfo = CountSchedule.objects.none()
-    elif (loadMatlInfo!=None) and (gotoCommand==None):
-        # review and clean up this block!
-        if loadMatlInfo != None:
-            # fill in MatlInfo and CountSchedInfo
-            if recNum > 0: getDate = currRec.CountDate 
-            else: getDate = loadCountDate
-            if org_queryset(CountSchedule, org=_userorg).filter(CountDate=getDate, Material=matlRec).exists():
-                schedinfo = org_queryset(CountSchedule, org=_userorg).filter(CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
-            else:
-                schedinfo = CountSchedule.objects.none()
-        elif recNum > 0:
-            # ??????????? shouldn't this already be handled?  Think about it...
-            # fill in MatlInfo and CountSchedInfo
-            getDate = currRec.CountDate
-            if org_queryset(CountSchedule, org=_userorg).filter(CountDate=getDate, Material=matlRec).exists():
-                schedinfo = org_queryset(CountSchedule, org=_userorg).filter(CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
-            else:
-                schedinfo = CountSchedule.objects.none()
-    else: schedinfo = CountSchedule.objects.none()
-    if not schedinfo: schedFm = RelatedScheduleInfo(_userorg, None, initial=initialvals['schedule'], prefix=prefixvals['schedule'])
-    else: schedFm = RelatedScheduleInfo(_userorg, schedinfo.pk, instance=schedinfo, prefix=prefixvals['schedule'])
-
-    # CountEntryForm MaterialList dropdown
-    matlchoiceForm = {}
-    if currRec:
-        matlchoiceForm['gotoItem'] = currRec
-    else:
-        if loadMatlInfo==None: loadMatlInfo = ''
-        matlchoiceForm['gotoItem'] = {'Material':loadMatlInfo}
-    matlchoiceForm['choicelist'] = MatlList.values('id','Material')
-
-    # display the form
-    cntext = {'frmMain': mainFm,
-            'frmMatlInfo': matlSubFm,
-            'todayscounts': todayscounts,
-            'matlchoiceForm':matlchoiceForm,
-            'noSchedInfo':(not schedinfo),
-            'frmSchedInfo': schedFm,
-            'changes_saved': changes_saved,
-            'changed_data': chgd_dat,
-            'recNum': recNum,
-            'matlnum_changed': loadMatlInfo,
-            'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
-            }
-    templt = 'frm_CountEntry.html'
-    return render(req, templt, cntext)
-
 ##############################################################
 ##############################################################
 ##############################################################
@@ -465,7 +233,10 @@ class ActualCountListForm(LoginRequiredMixin, ListView):
 #####################################################################
 
 @login_required
-def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
+def fnCountSummaryReqRpt(req, passedCountDate='CURRENT_DATE'):
+    return fnCountSummaryRpt(req, passedCountDate, Rptvariation='REQ')
+@login_required
+def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
     _userorg = WICSuser.objects.get(user=req.user).org
 
     # get the SAP data
@@ -488,6 +259,9 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
             outputline['TypicalPalletQty'] = lastrow['TypicalPalletQty']
             outputline['Material'] = lastrow['Material']
             outputline['Material_id'] = lastrow['Material_id']
+            outputline['SchedCounter'] = lastrow['SchedCounter']
+            outputline['Requestor'] = lastrow['Requestor']
+            outputline['RequestFilled'] = lastrow['RequestFilled']
             outputline['PartType'] = lastrow['PartType']
             outputline['CountTotal'] = lastrow['TotalCounted']
             outputline['SAPTotal'] = SAPTot
@@ -502,11 +276,15 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
             #outputrows.append(outputline)
 
             return outputline
+        # end def SummaryLine
 
         def CreateLastrow(rawrow):
             lastrow = dict()
             lastrow['Material'] = rawrow.Matl_PartNum
             lastrow['Material_id'] = rawrow.matl_id
+            lastrow['SchedCounter'] = rawrow.cs_Counter
+            lastrow['Requestor'] = rawrow.Requestor
+            lastrow['RequestFilled'] = rawrow.RequestFilled
             lastrow['PartType'] = rawrow.PartType
             lastrow['TotalCounted'] = 0
             lastrow['CMFlag'] = rawrow.cs_CMPrintFlag
@@ -517,6 +295,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
             lastrow['ReasonScheduled'] = rawrow.cs_ReasonScheduled
 
             return lastrow
+        # end def CreateLastRow
 
         def DetailLine(rawrow, Eval_CTDQTY=True):
             outputline = dict()
@@ -524,7 +303,6 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
             outputline['CycCtID'] = rawrow.ac_CycCtID
             outputline['Material'] = rawrow.Matl_PartNum
             outputline['Material_id'] = rawrow.matl_id
-            outputline['SchedCounter'] = rawrow.cs_Counter
             outputline['ActCounter'] = rawrow.ac_Counter
             outputline['BLDG'] = rawrow.ac_BLDG
             outputline['LOCATION'] = rawrow.ac_LOCATION
@@ -535,7 +313,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
             outputline['CTD_QTY_Expr'] = rawrow.ac_CTD_QTY_Expr
             if Eval_CTDQTY:
                 try:
-                    outputline['CTD_QTY_Eval'] = evaluate(rawrow.ac_CTD_QTY_Expr)   # yes, I know the risks - Ill write my own parser later ...
+                    outputline['CTD_QTY_Eval'] = evaluate(rawrow.ac_CTD_QTY_Expr)
                     # do next line at caller
                     # lastrow['TotalCounted'] += outputline['CTD_QTY_Eval']
                 except:
@@ -547,7 +325,8 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
             # outputrows.append(outputline)
 
             return outputline
-        
+        # end def DetailLine
+
         outputrows = []
         lastrow = {'Material_id': None}
         for rawrow in raw_qs:
@@ -572,11 +351,13 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
             outputrows.append(SummaryLine(lastrow))
         
         return outputrows
+    # end def CreateOutputRows
         
     ### main body of fnCountSummaryRpt
 
     fldlist = "0 as id, cs.id as cs_id, cs.CountDate as cs_CountDate , cs.Counter as cs_Counter" \
         ", cs.Priority as cs_Priority, cs.ReasonScheduled as cs_ReasonScheduled, cs.CMPrintFlag as cs_CMPrintFlag" \
+        ", cs.Requestor, cs.RequestFilled" \
         ", cs.Notes as cs_Notes" \
         ", ac.id as ac_id, ac.CountDate as ac_CountDate, ac.CycCtID as ac_CycCtID, ac.Counter as ac_Counter" \
         ", ac.LocationOnly as ac_LocationOnly, ac.CTD_QTY_Expr as ac_CTD_QTY_Expr, ac.BLDG as ac_BLDG" \
@@ -596,50 +377,66 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
     A_Sched_Ctd_from = 'WICS_countschedule cs INNER JOIN WICS_materiallist mtl INNER JOIN WICS_actualcounts ac'    
     A_Sched_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id AND ac.Material_id=mtl.id'    
     A_Sched_Ctd_where = ''
+    if Rptvariation == 'REQ':
+        if A_Sched_Ctd_where:  A_Sched_Ctd_where += ' AND ' 
+        A_Sched_Ctd_where += 'Requestor IS NOT NULL'
     A_Sched_Ctd_sql = 'SELECT ' + fldlist + \
         ' FROM ' + A_Sched_Ctd_from + \
         ' ON ' + A_Sched_Ctd_joinon + \
-        ' WHERE NOT ac.LocationOnly AND ' + org_condition + ' AND ' + date_condition + \
-        ' ORDER BY ' + order_by
-        # + ' AND ' + A_Sched_Ctd_where
+        ' WHERE NOT ac.LocationOnly AND ' + org_condition + ' AND ' + date_condition
+    if A_Sched_Ctd_where:
+        A_Sched_Ctd_sql += ' AND ' + A_Sched_Ctd_where
+    A_Sched_Ctd_sql += ' ORDER BY ' + order_by
     A_Sched_Ctd_qs = CountSchedule.objects.raw(A_Sched_Ctd_sql)
     # build display lines
+    ttl = 'Scheduled and Counted'
+    if Rptvariation == 'REQ':
+        ttl = 'Requested and Counted'            
     SummaryReport.append({
-                'Title':'Scheduled and Counted',
+                'Title':ttl,
                 'outputrows': CreateOutputRows(A_Sched_Ctd_qs)
                 })
 
-    B_UnSched_Ctd_from = 'WICS_countschedule cs RIGHT JOIN' \
-        ' (WICS_actualcounts ac INNER JOIN WICS_materiallist mtl ON ac.Material_id=mtl.id)'
-    B_UnSched_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id'
-    B_UnSched_Ctd_where = '(cs.id IS NULL)'
-    B_UnSched_Ctd_sql = 'SELECT ' + fldlist + ' ' + \
-        ' FROM ' + B_UnSched_Ctd_from + \
-        ' ON ' + B_UnSched_Ctd_joinon + \
-        ' WHERE NOT ac.LocationOnly AND ' + org_condition + ' AND ' + date_condition + \
-        ' AND ' + B_UnSched_Ctd_where + \
-        ' ORDER BY ' + order_by
-    B_UnSched_Ctd_qs = CountSchedule.objects.raw(B_UnSched_Ctd_sql)
-    SummaryReport.append({
-                'Title':'UnScheduled',
-                'outputrows': CreateOutputRows(B_UnSched_Ctd_qs)
-                })
+    if Rptvariation is None:
+        B_UnSched_Ctd_from = 'WICS_countschedule cs RIGHT JOIN' \
+            ' (WICS_actualcounts ac INNER JOIN WICS_materiallist mtl ON ac.Material_id=mtl.id)'
+        B_UnSched_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id'
+        B_UnSched_Ctd_where = '(cs.id IS NULL)'
+        B_UnSched_Ctd_sql = 'SELECT ' + fldlist + ' ' + \
+            ' FROM ' + B_UnSched_Ctd_from + \
+            ' ON ' + B_UnSched_Ctd_joinon + \
+            ' WHERE NOT ac.LocationOnly AND ' + org_condition + ' AND ' + date_condition + \
+            ' AND ' + B_UnSched_Ctd_where + \
+            ' ORDER BY ' + order_by
+        B_UnSched_Ctd_qs = CountSchedule.objects.raw(B_UnSched_Ctd_sql)
+        SummaryReport.append({
+                    'Title':'UnScheduled',
+                    'outputrows': CreateOutputRows(B_UnSched_Ctd_qs)
+                    })
     
     C_Sched_NotCtd_Ctd_from = '(WICS_countschedule cs INNER JOIN WICS_materiallist mtl ON cs.Material_id=mtl.id)' \
         ' LEFT JOIN WICS_actualcounts ac'
     C_Sched_NotCtd_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id'
     C_Sched_NotCtd_Ctd_where = '(ac.id IS NULL)'
+    if Rptvariation == 'REQ':
+        if A_Sched_Ctd_where:  A_Sched_Ctd_sql += ' AND ' 
+        A_Sched_Ctd_where += '(Requestor IS NOT NULL)'
     C_Sched_NotCtd_Ctd_sql = 'SELECT ' + fldlist + ' ' + \
         ' FROM ' + C_Sched_NotCtd_Ctd_from + \
         ' ON ' + C_Sched_NotCtd_Ctd_joinon + \
-        ' WHERE ' + org_condition + ' AND ' + date_condition + \
-        ' AND ' + C_Sched_NotCtd_Ctd_where + \
-        ' ORDER BY ' + order_by
+        ' WHERE ' + org_condition + ' AND ' + date_condition
+    if C_Sched_NotCtd_Ctd_where:
+        C_Sched_NotCtd_Ctd_sql += ' AND ' + C_Sched_NotCtd_Ctd_where
+    C_Sched_NotCtd_Ctd_sql += ' ORDER BY ' + order_by
     C_Sched_NotCtd_Ctd_qs = CountSchedule.objects.raw(C_Sched_NotCtd_Ctd_sql)
+    ttl = 'Scheduled but Not Counted'
+    if Rptvariation == 'REQ':
+        ttl = 'Requested but Not Counted'            
     SummaryReport.append({
-                'Title':'Scheduled but Not Counted',
+                'Title':ttl,
                 'outputrows': CreateOutputRows(C_Sched_NotCtd_Ctd_qs, Eval_CTDQTY=False)
                 })
+
     AccuracyCutoff = { 
                 'DANGER': float(getcParm('ACCURACY-DANGER')),
                 'SUCCESS': float(getcParm('ACCURACY-SUCCESS')),
@@ -648,6 +445,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE'):
 
     # display the form
     cntext = {
+            'variation': Rptvariation,
             'CountDate': dtobj_pDate,
             'SAPDate': SAP_SOH['SAPDate'],
             'AccuracyCutoff': AccuracyCutoff,

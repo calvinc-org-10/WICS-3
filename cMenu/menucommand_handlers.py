@@ -43,7 +43,12 @@ def FormBrowse(req, formname, recNum = -1):
         url = 'CountSummaryReport'
         theView = resolve(reverse(url)).func
         theForm = theView(req)
-    elif formname.lower() == 'frmExportCMCounts': pass
+    elif formname.lower() == 'frmrequestedcountsummary'.lower(): 
+        url = 'CountSummaryReport-v-init'
+        theView = resolve(reverse(url)).func
+        theForm = theView(req)
+    elif formname.lower() == 'frmExportCMCounts': 
+        pass
     elif formname.lower() == 'frmimportsap'.lower():
         url = 'UploadSAPSprSht'
         theView = resolve(reverse(url)).func
