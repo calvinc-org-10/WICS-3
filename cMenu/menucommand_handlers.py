@@ -43,7 +43,12 @@ def FormBrowse(req, formname, recNum = -1):
         url = 'CountSummaryReport'
         theView = resolve(reverse(url)).func
         theForm = theView(req)
-    elif formname.lower() == 'frmExportCMCounts': pass
+    elif formname.lower() == 'frmrequestedcountsummary'.lower(): 
+        url = 'CountSummaryReport-v-init'
+        theView = resolve(reverse(url)).func
+        theForm = theView(req)
+    elif formname.lower() == 'frmExportCMCounts': 
+        pass
     elif formname.lower() == 'frmimportsap'.lower():
         url = 'UploadSAPSprSht'
         theView = resolve(reverse(url)).func
@@ -64,13 +69,22 @@ def FormBrowse(req, formname, recNum = -1):
         url = 'MatlByDESCValue'
         theView = resolve(reverse(url)).func
         theForm = theView(req)
-    elif formname.lower() == 'frmRandCountScheduler'.lower(): pass
+    elif formname.lower() == 'frmRandCountScheduler'.lower(): 
+        pass
     elif formname.lower() == 'matllistupdt'.lower(): 
         url = 'UpdateMatlListfromSAP'
         theView = resolve(reverse(url)).func
         theForm = theView(req)
     elif formname.lower() == 'frmCountScheduleEntry'.lower():
         url = 'CountScheduleForm'
+        theView = resolve(reverse(url)).func
+        theForm = theView(req)
+    elif formname.lower() == 'frmRequestCountScheduleEntry'.lower():
+        url = 'RequestCountScheduleForm'
+        theView = resolve(reverse(url)).func
+        theForm = theView(req)
+    elif formname.lower() == 'frmRequestedCountListEdit'.lower():
+        url = 'RequestCountListEdit'
         theView = resolve(reverse(url)).func
         theForm = theView(req)
     elif formname.lower() == 'rptCountWorksheet'.lower():
@@ -85,7 +99,8 @@ def FormBrowse(req, formname, recNum = -1):
         url = 'LocationList'
         theView = resolve(reverse(url)).func
         theForm = theView(req)
-    elif formname.lower() == 'zutilShowColor'.lower(): pass
+    elif formname.lower() == 'zutilShowColor'.lower(): 
+        pass
     elif formname.lower() == 'sap'.lower():
         url = 'showtable-SAP'
         theView = resolve(reverse(url)).func
