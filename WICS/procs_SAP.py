@@ -9,7 +9,7 @@ from openpyxl import load_workbook
 from cMenu.models import getcParm
 from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
-from WICS.models import SAP_SOHRecs, UnitsOfMeasure
+from WICS.models import SAP_SOHRecs, SAPPlants_org, UnitsOfMeasure
 from WICS.models import WhsePartTypes, MaterialList, tmpMaterialListUpdate
 
 ExcelWorkbook_fileext = ".XLSX"
@@ -50,7 +50,6 @@ class UploadSAPForm(forms.Form):
 
 @login_required
 def fnUploadSAP(req):
-    _userorg = WICSuser.objects.get(user=req.user).org
 
     if req.method == 'POST':
         form = UploadSAPForm(req.POST, req.FILES)
@@ -90,15 +89,16 @@ def fnUploadSAP(req):
             # if SAP SOH records exist for this date, kill them; only one set of SAP SOH records per day
             # (this was signed off on by user before coming here)
             UplDate = calvindate(req.POST['uploaded_at']).as_datetime()
-            SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=UplDate).delete()
+            SAP_SOHRecs.objects.filter(uploaded_at=UplDate).delete()
 
             nRows = 0
             for row in ws.iter_rows(min_row=2, values_only=True):
                 if row[SAPcolmnMap['Material']]==None: MatNum = ''
                 else: MatNum = row[SAPcolmnMap['Material']]
                 if len(str(MatNum)):
+                    _org = SAPPlants_org.objects.filter(SAPPlant=row[SAPcolmnMap['Plant']])[0].org
                     SRec = SAP_SOHRecs(
-                                org = _userorg,
+                                org = _org,
                                 uploaded_at = UplDate
                                 )
                     for fldName, colNum in SAPcolmnMap.items():
@@ -113,17 +113,17 @@ def fnUploadSAP(req):
             os.remove(fName)
 
             cntext = {'uploaded_at':UplDate, 'nRows':nRows,
-                    'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+                    'uname':req.user.get_full_name()
                     }
             templt = 'frm_upload_SAP_Success.html'
     else:
-        LastSAPUpload = SAP_SOHRecs.objects.filter(org=_userorg).aggregate(LastSAPDate=Max('uploaded_at'))
+        LastSAPUpload = SAP_SOHRecs.objects.all().aggregate(LastSAPDate=Max('uploaded_at'))
         # .first().values('LastSAPDate')['LastSAPDate']
 
         form = UploadSAPForm()
         cntext = {'form': form, 
                 'LastSAPUploadDate': LastSAPUpload['LastSAPDate'],
-                'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+                'uname':req.user.get_full_name()
                 }
         templt = 'frm_upload_SAP.html'
     #endif
