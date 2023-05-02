@@ -199,8 +199,13 @@ class SAP_SOHRecs(models.Model):
         ordering = ['uploaded_at', 'org', 'Material']
         indexes = [
             models.Index(fields=['uploaded_at', 'org', 'Material']),
+            models.Index(fields=['Plant']),
         ]
 
+class SAPPlants_org(models.Model):
+    SAPPlant = models.CharField(max_length=20, primary_key=True)
+    org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=False)
+    
 class UnitsOfMeasure(models.Model):
     UOM = models.CharField(max_length=50, unique=True)
     UOMText = models.CharField(max_length=100, blank=True, default='')
