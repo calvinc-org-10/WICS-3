@@ -42,15 +42,17 @@ class WhsePartTypes(models.Model):
 class MaterialList(models.Model):
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
     Material = models.CharField(max_length=100)
-    Description = models.CharField(max_length=250, blank=True)
-    PartType = models.ForeignKey(WhsePartTypes, null=True, on_delete=models.RESTRICT)
-    SAPMaterialType = models.CharField(max_length=100, blank=True)
-    SAPMaterialGroup = models.CharField(max_length=100, blank=True)
-    Price = models.FloatField(null=True, blank=True)
-    PriceUnit = models.PositiveIntegerField(null=True, blank=True)
-    TypicalContainerQty = models.IntegerField(null=True, blank=True)
-    TypicalPalletQty = models.IntegerField(null=True, blank=True)
-    Notes = models.CharField(max_length=250, blank=True)
+    Description = models.CharField(max_length=250, blank=True, default='')
+    PartType = models.ForeignKey(WhsePartTypes, null=True, on_delete=models.RESTRICT, default=None)
+    Plant = models.CharField(max_length=20, blank=True, default='')
+    SAPMaterialType = models.CharField(max_length=100, blank=True, default='')
+    SAPMaterialGroup = models.CharField(max_length=100, blank=True, default='')
+    Price = models.FloatField(null=True, blank=True, default=0.0)
+    PriceUnit = models.PositiveIntegerField(null=True, blank=True, default=1)
+    Currency = models.CharField(max_length=20, blank=True, default='')
+    TypicalContainerQty = models.CharField(max_length=100, null=True, blank=True, default=None)
+    TypicalPalletQty = models.CharField(max_length=100, null=True, blank=True, default=None)
+    Notes = models.CharField(max_length=250, blank=True, default='')
 
     class Meta:
         ordering = ['org','Material']
@@ -58,20 +60,26 @@ class MaterialList(models.Model):
                 models.UniqueConstraint(fields=['org', 'Material'],name="wics_materiallist_realpk"),
             ]
         indexes = [
-            models.Index(fields=['PartType']),
+            models.Index(fields=['Material']),
         ]
-        
 
     def __str__(self) -> str:
-        return self.Material.__str__()
-        # return super().__str__()
+        if MaterialList.objects.filter(Material=self.Material).exclude(org=self.org).exists():
+            # there is a Material with this number in another org; specify this org
+            return str(self.Material) + ' (' + str(self.org) + ')'
+        else:
+            return str(self.Material)
 class tmpMaterialListUpdate(models.Model):
+    org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True,null=True)
     Material = models.CharField(primary_key=True, max_length=100, blank=False)
+    MaterialLink = models.ForeignKey(MaterialList, on_delete=models.RESTRICT, blank=True, null=True)
     Description = models.CharField(max_length=250, blank=True)
+    Plant = models.CharField(max_length=20, blank=True, default='')
     SAPMaterialType = models.CharField(max_length=100, blank=True)
     SAPMaterialGroup = models.CharField(max_length=100, blank=True)
     Price = models.FloatField(null=True, blank=True)
     PriceUnit = models.PositiveIntegerField(null=True, blank=True)
+    Currency = models.CharField(max_length=20, blank=True)
 
 
 from userprofiles.models import WICSuser        
