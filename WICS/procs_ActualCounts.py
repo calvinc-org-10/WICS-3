@@ -26,51 +26,65 @@ from WICS.procs_SAP import fnSAPList
 
 @login_required
 def fnUploadActCountSprsht(req):
-    _userorg = WICSuser.objects.get(user=req.user).org
 
-    def validatefld(fld, val):
+    def cleanupfld(fld, val):
+        """
+        fld is the name of the field in the ActualCount or MaterialList table
+        val is the value to be cleaned for insertion into the fld
+        Returns  {'usefld':usefld, 'cleanval': cleanval}
+            usefld is a boolean indicating that val could/not be cleaned to the correct type
+            cleanval is val in the correct type (if usefld==True)
+        """
+        cleanval = None
+
         if   fld == 'CountDate': 
             if isinstance(val,(calvindate, datetime.date, datetime.datetime)):
-                retval = True
+                usefld = True
+                cleanval = calvindate(val).as_datetime()
             else:
-                retval = (isDate(val) != False)
-        elif fld == 'Material': 
-            retval = True
-        elif fld == 'Counter': 
-            retval = True
-        elif fld == 'BLDG': 
-            retval = True
-        elif fld == 'LOCATION': 
-            retval = True
-        elif fld == 'LocationOnly': 
-            if isinstance(val,str):
-                retval = str.isnumeric()
-            elif isinstance(val,(float,int)):
-                retval = True
-            else:                
-                retval = False
-        elif fld == 'CTD_QTY_Expr': 
+                usefld = isDate(val) 
+                if (usefld != False):
+                    cleanval = calvindate(usefld).as_datetime()
+                    usefld = True
+        elif fld in \
+            ['CTD_QTY_Expr', 
+             'FLAG_PossiblyNotRecieved', 
+             'FLAG_MovementDuringCount',
+             ]:
             try:
-                v = evaluate(val)
+                v = evaluate(str(val))
             except (SyntaxError, NameError, TypeError, ZeroDivisionError):
                 v = "-- INVALID --"
-            retval = (v!="-- INVALID --")
-        elif fld == 'Notes': 
-            retval = True
-        elif fld == 'TypicalContainerQty' \
-        or fld == 'TypicalPalletQty':
-            if val == '' or val == None: 
-                retval = True   # this will be converted to 0
-            elif isinstance(val,str):
-                retval = str.isnumeric()
-            elif isinstance(val,(float,int)):
-                retval = True
-            else:                
-                retval = False
+            usefld = (v!="-- INVALID --")
+            cleanval = val if (v != "--INVALID--") else None
+        elif fld in \
+            ['org_id', 
+             'LocationOnly',
+             ]:
+            try:
+                cleanval = int(val)
+                usefld = True
+            except:
+                usefld = False
+        elif fld in \
+            ['Material', 
+             'Counter', 
+             'BLDG', 
+             'LOCATION', 
+             'Notes', 
+             'TypicalContainerQty', 
+             'TypicalPalletQty',
+             'PKGID_Desc',	
+             'TAGQTY',
+             ]:
+            usefld = True
+            cleanval = val
         else:
-            retval = True
+            usefld = True
+            cleanval = val
         
-        return retval
+        return {'usefld':usefld, 'cleanval': cleanval}
+    #end def cleanupfld
 
     if req.method == 'POST':
         # save the file so we can open it as an excel file
@@ -85,55 +99,73 @@ def fnUploadActCountSprsht(req):
         ws = wb['Counts']
 
         CountSprshtcolmnNames = ws[1]
-        CountSprshtcolmnMap = {'Material': None,'CountDate':None, 'Counter':None, 'BLDG':None}
+        CountSprshtREQUIREDFLDS = ['Material','CountDate','Counter','BLDG']     
+            # LocationOnly/CTD_QTY_Expr handled separately since at least one must be present and both can be
+        CountSprshtcolmnMap = {}
         CountSprsht_SSName_TableName_map = {
                 'CountDate': 'CountDate',
                 'Counter': 'Counter',
                 'BLDG': 'BLDG',
                 'LOCATION': 'LOCATION',
+                'org_id': 'org_id',
                 'Material': 'Material',
                 'LocationOnly': 'LocationOnly',
                 'CTD_QTY_Expr': 'CTD_QTY_Expr',
-                'TypicalContainerQty': 'TypicalContainerQty',
-                'TypicalPalletQty': 'TypicalPalletQty',
+                'Typ Cntner Qty': 'TypicalContainerQty',
+                'Typ Plt Qty': 'TypicalPalletQty',
                 'Notes': 'Notes',
+                'PKGID_Desc': 'PKGID_Desc',
+                'TAGQTY': 'TAGQTY',
+                'Poss Not Rcvd': 'FLAG_PossiblyNotRecieved',
+                'Mvmt Dur Ct': 'FLAG_MovementDuringCount',
                 }
         for col in CountSprshtcolmnNames:
             if col.value in CountSprsht_SSName_TableName_map:
                 CountSprshtcolmnMap[CountSprsht_SSName_TableName_map[col.value]] = col.column - 1
-        if (CountSprshtcolmnMap['Material'] == None) \
-          or (CountSprshtcolmnMap['CountDate'] == None) \
-          or (CountSprshtcolmnMap['Counter'] == None) \
-          or (CountSprshtcolmnMap['BLDG'] == None):
+        
+        HeaderGood = True
+        for reqFld in CountSprshtREQUIREDFLDS:
+            HeaderGood = HeaderGood and (reqFld in CountSprshtcolmnMap)
+        if not HeaderGood:
             raise Exception('SAP Spreadsheet has bad header row.  See Calvin to fix this.')
-
         UplResults = []
-        nRows = 0
-        rowNum=1
+        nRowsAdded = 0
+        SprshtRowNum=1
         MAX_COUNT_ROWS = 5000
-        for row in ws.iter_rows(min_row=rowNum+1, max_row=MAX_COUNT_ROWS, values_only=True):
-            rowNum += 1
-            try:
-                MatObj = MaterialList.objects.get(org=_userorg, Material=row[CountSprshtcolmnMap['Material']])
-            except:
-                MatObj = None
+        for row in ws.iter_rows(min_row=SprshtRowNum+1, max_row=MAX_COUNT_ROWS, values_only=True):
+            SprshtRowNum += 1
 
-            if MatObj:
-                requiredFields={
-                        'CountDate': False,
-                        'Material': False,
-                        'Counter': False,
-                        'BLDG': False,
-                        'Both LocationOnly and CTD_QTY': False,
-                        }
+            # if no org given, check that Material unique.
+            spshtorg = cleanupfld('org_id', row[CountSprshtcolmnMap['org_id']])['cleanval']
+            matlnum = cleanupfld('Material', row[CountSprshtcolmnMap['Material']])['cleanval']
+            MatlKount =  MaterialList.objects.filter(Material=matlnum).count() 
+            MatObj = None
+            err_already_handled = False
+            if spshtorg is None:
+                if MatlKount > 1:
+                    UplResults.append({'error':matlnum+" in in multiple org_id's, but no org_id given ", 'rowNum':SprshtRowNum})
+                    err_already_handled = True
+            if MatlKount == 1:
+                MatObj = MaterialList.objects.get(Material=matlnum)
+            if MatlKount > 1:
+                MatObj = MaterialList.objects.get(org_id=spshtorg, Material=matlnum)
+
+            if matlnum and not MatObj:
+                if not err_already_handled:
+                    UplResults.append({'error':'either ' + matlnum + ' does not exist in MaterialList or incorrect org_id (' + spshtorg + ') given', 'rowNum':SprshtRowNum})
+            elif matlnum and MatObj:
+                requiredFields = {reqFld: False for reqFld in CountSprshtREQUIREDFLDS}
+                requiredFields['Both LocationOnly and CTD_QTY'] = False
+
                 MatChanged = False
-                SRec = ActualCounts(org = _userorg)
+                SRec = ActualCounts()
                 for fldName, colNum in CountSprshtcolmnMap.items():
-                    V = row[colNum]
-                    if V!=None: 
-                        if validatefld(fldName, V):
+                    # check/correct problematic data types
+                    usefld, V = cleanupfld(fldName, row[colNum]).values()
+                    if (V is not None):
+                        if usefld: 
                             if   fldName == 'CountDate': 
-                                setattr(SRec, fldName, calvindate(V).as_datetime())   #calvindate
+                                setattr(SRec, fldName, V) 
                                 requiredFields['CountDate'] = True
                             elif fldName == 'Material': 
                                 setattr(SRec, fldName, MatObj)
@@ -144,22 +176,22 @@ def fnUploadActCountSprsht(req):
                             elif fldName == 'BLDG': 
                                 setattr(SRec, fldName, V)
                                 requiredFields['BLDG'] = True
-                            elif fldName == 'LOCATION': setattr(SRec, fldName, V)
                             elif fldName == 'LocationOnly': 
                                 setattr(SRec, fldName, makebool(V))
                                 requiredFields['Both LocationOnly and CTD_QTY'] = True
                             elif fldName == 'CTD_QTY_Expr': 
                                 setattr(SRec, fldName, V)
                                 requiredFields['Both LocationOnly and CTD_QTY'] = True
-                            elif fldName == 'Notes': setattr(SRec, fldName, V)
                             elif fldName == 'TypicalContainerQty' \
                             or fldName == 'TypicalPalletQty':
                                 if V == '' or V == None: V = 0
                                 if V != 0 and V != getattr(MatObj,fldName,0): 
                                     setattr(MatObj, fldName, V)
                                     MatChanged = True
+                            else:
+                                if hasattr(SRec, fldName): setattr(SRec, fldName, V)
                         else:
-                            UplResults.append({'error':str(V)+' is invalid for '+fldName, 'rowNum':rowNum})
+                            UplResults.append({'error':str(V)+' is invalid for '+fldName, 'rowNum':SprshtRowNum})
                             
 
                 # are all required fields present?
@@ -167,33 +199,32 @@ def fnUploadActCountSprsht(req):
                 for keyname, Prsnt in requiredFields.items():
                     AllRequiredPresent = AllRequiredPresent and Prsnt
                     if not Prsnt:
-                        UplResults.append({'error':keyname+' missing', 'rowNum':rowNum})
+                        UplResults.append({'error':keyname+' missing', 'rowNum':SprshtRowNum})
 
                 if AllRequiredPresent:
+                    SRec.org_id = MatObj.org_id     # kill this line when org_id leaves actualcounts
                     SRec.save()
                     if MatChanged: MatObj.save()
                     qs = type(SRec).objects.filter(pk=SRec.pk).values().first()
-                    res = {'error': False, 'rowNum':rowNum, 'TypicalQty':MatChanged, 'MaterialNum': row[CountSprshtcolmnMap['Material']] }
-                    res.update(qs)
+                    res = {'error': False, 'rowNum':SprshtRowNum, 'TypicalQty':MatChanged, 'MaterialNum': str(MatObj) }
+                    res.update(qs)      # tack the new record (along with its new pk) onto res
+                        #QUESTION:  can I do this directly with SRec??
                     UplResults.append(res)
-                    nRows += 1
-            else:
-                if row[CountSprshtcolmnMap['Material']]:
-                    UplResults.append({'error':row[CountSprshtcolmnMap['Material']]+' does not exist in MaterialList', 'rowNum':rowNum})
+                    nRowsAdded += 1
 
-        if rowNum >= MAX_COUNT_ROWS:
+        if SprshtRowNum >= MAX_COUNT_ROWS:
             UplResults.insert(0,{'error':f'Data in spreadsheet rows {MAX_COUNT_ROWS+1} and beyond are being ignored.'})
 
         # close and kill temp files
         wb.close()
         os.remove(fName)
 
-        cntext = {'UplResults':UplResults, 'nRowsRead':rowNum, 'nRowsAdded':nRows,
-                'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+        cntext = {'UplResults':UplResults, 'nRowsRead':SprshtRowNum, 'nRowsAdded':nRowsAdded,
+                'uname':req.user.get_full_name()
                 }
         templt = 'frm_uploadCountEntry_Success.html'
     else:
-        cntext = {'orgname':_userorg.orgname, 'uname':req.user.get_full_name()
+        cntext = {'uname':req.user.get_full_name()
                 }
         templt = 'frm_UploadCountEntrySprdsht.html'
     #endif
