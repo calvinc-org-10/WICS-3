@@ -8,7 +8,6 @@
 <div class="container text-center mx-auto">
     <div class="row">
         <div class="col-5 fs-3 text-end">
-            <u>{{ orgname }}</u>
             <br>
             Update Material List Finished
         </div>
@@ -27,12 +26,23 @@ Material Added:
 <ul>
     {% for rec in AddedMatls %}
         <li>
+        {{ rec.org }} -
         {{ rec.Material }} - 
         {{ rec.Description }} - 
         {{ rec.SAPMaterialType }} -
         {{ rec.SAPMaterialGroup }} -
         {{ rec.Price }} -
         {{ rec.PriceUnit }}
+        </li>
+    {% endfor %}
+</ul>
+<hr>
+Material Removed:
+<ul>
+    {% for rec in RemvdMatls %}
+        <li>
+        {{ rec.org }} -
+        {{ rec.Material }} - 
         </li>
     {% endfor %}
 </ul>

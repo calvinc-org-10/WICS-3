@@ -126,7 +126,7 @@ class RequestCountScheduleRecordForm(forms.ModelForm):
         dbmodel = self.Meta.model
         required_fields = ['CountDate', 'Material', 'Requestor'] #id, org handled separately
         PriK = self['id'].value()
-        M = MaterialList.objects.get(org=self.org, Material=self.cleaned_data['Material']) 
+        M = MaterialList.objects.get(org=savingUser.org, Material=self.cleaned_data['Material']) 
         if not str(PriK).isnumeric(): PriK = -1
         existingrec = dbmodel.objects.filter(pk=PriK).exists()
         if existingrec: rec = dbmodel.objects.get(pk=PriK)

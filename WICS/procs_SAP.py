@@ -9,7 +9,7 @@ from openpyxl import load_workbook
 from cMenu.models import getcParm
 from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
-from WICS.models import SAP_SOHRecs, SAPPlants_org, UnitsOfMeasure
+from WICS.models import ActualCounts, CountSchedule, SAP_SOHRecs, SAPPlants_org, UnitsOfMeasure
 from WICS.models import WhsePartTypes, MaterialList, tmpMaterialListUpdate
 
 ExcelWorkbook_fileext = ".XLSX"
@@ -23,7 +23,7 @@ def fnShowSAP(req, reqDate=calvindate().today()):
     _myDtFmt = '%Y-%m-%d'
 
     SAP_tbl = fnSAPList(_userorg,for_date=reqDate)
-    SAPDatesRaw = choices=SAP_SOHRecs.objects.filter(org=_userorg).order_by('-uploaded_at').values('uploaded_at').distinct()
+    SAPDatesRaw = SAP_SOHRecs.objects.filter(org=_userorg).order_by('-uploaded_at').values('uploaded_at').distinct()
     SAPDates = []
     for D in SAPDatesRaw:
         SAPDates.append(D['uploaded_at'].strftime(_myDtFmt))
@@ -57,7 +57,7 @@ def fnUploadSAP(req):
             # save the file so we can open it as an excel file
             SAPFile = req.FILES['SAPFile']
             svdir = getcParm('SAP-FILELOC')
-            fName = svdir+"tmpSAP"+str(uuid.uuid4())+".xlsx"
+            fName = svdir+"tmpSAP"+str(uuid.uuid4())+ExcelWorkbook_fileext
             with open(fName, "wb") as destination:
                 for chunk in SAPFile.chunks():
                     destination.write(chunk)
@@ -189,13 +189,13 @@ def fnSAPList(org, for_date = calvindate().today(), matl = None):
 """
 @login_required
 def fnUpdateMatlListfromSAP(req):
-    _userorg = WICSuser.objects.get(user=req.user).org
+    # _userorg = WICSuser.objects.get(user=req.user).org
 
     if req.method == 'POST':
         if req.POST['NextPhase']=='02-Upl-Sprsht':
             SAPFile = req.FILES['SAPFile']
             svdir = getcParm('SAP-FILELOC')
-            fName = svdir+"tmpMatlList"+str(uuid.uuid4())+".xlsx"
+            fName = svdir+"tmpMatlList"+str(uuid.uuid4())+ExcelWorkbook_fileext
             with open(fName, "wb") as destination:
                 for chunk in SAPFile.chunks():
                     destination.write(chunk)
@@ -209,10 +209,12 @@ def fnUpdateMatlListfromSAP(req):
             SAP_SSName_TableName_map = {
                     'Material': 'Material', 
                     'Material description': 'Description', 
+                    'Plant': 'Plant',
                     'Material type': 'SAPMaterialType',
                     'Material Group': 'SAPMaterialGroup',
                     'Price': 'Price',
                     'Price unit': 'PriceUnit',
+                    'Currency':'Currency',
                     }
             for col in SAPcolmnNames:
                 if col.value in SAP_SSName_TableName_map:
@@ -221,36 +223,58 @@ def fnUpdateMatlListfromSAP(req):
                 raise Exception('SAP Spreadsheet has bad header row.  See Calvin to fix this.')
 
             for row in ws.iter_rows(min_row=2, values_only=True):
-                tmpMaterialListUpdate(
-                                Material = row[SAPcol['Material']], 
-                                Description = row[SAPcol['Description']], 
-                                SAPMaterialType = row[SAPcol['SAPMaterialType']],
-                                SAPMaterialGroup = row[SAPcol['SAPMaterialGroup']],
-                                Price = row[SAPcol['Price']],
-                                PriceUnit = row[SAPcol['PriceUnit']]
-                                ).save()
+                if row[SAPcol['Material']]==None: MatNum = ''
+                else: MatNum = row[SAPcol['Material']]
+                if len(str(MatNum)):
+                    _org = SAPPlants_org.objects.filter(SAPPlant=row[SAPcol['Plant']])[0].org
+                    try:
+                        MaterialLink = MaterialList.objects.filter(org=_org, Material=MatNum)[0]
+                    except:
+                        MaterialLink = None
+                    tmpMaterialListUpdate(
+                        org = _org,
+                        Material = row[SAPcol['Material']], 
+                        MaterialLink = MaterialLink,
+                        Description = row[SAPcol['Description']], 
+                        Plant = row[SAPcol['Plant']],
+                        SAPMaterialType = row[SAPcol['SAPMaterialType']],
+                        SAPMaterialGroup = row[SAPcol['SAPMaterialGroup']],
+                        Price = row[SAPcol['Price']],
+                        PriceUnit = row[SAPcol['PriceUnit']],
+                        Currency = row[SAPcol['Currency']]
+                        ).save()
             # endfor
 
             
             # later, save (FileMatList - MaterialList) and (MaterialList - FileMatList)
-            # ask permission to correct each to the other
-            # that will involve a temp table 
-            # almost there now that I've created tmpMaterialListUpdate
+            # TODO: ??ask permission to correct each to the other
 
-            # for now ...
-            AddedMatls = tmpMaterialListUpdate.objects.exclude(Material__in=MaterialList.objects.filter(org=_userorg).values('Material'))
+            AddedMatls = tmpMaterialListUpdate.objects.filter(MaterialLink__isnull=True)
             # one day django will implement insert ... select.  Until then ...
             for newRec in AddedMatls:
-                MaterialList (
-                        org = _userorg,
-                        Material = newRec.Material,
-                        Description = newRec.Description,
-                        PartType = WhsePartTypes.objects.get(WhsePartType='UNKNOWN'),
-                        SAPMaterialType = newRec.SAPMaterialType,
-                        SAPMaterialGroup = newRec.SAPMaterialGroup,
-                        Price = newRec.Price,
-                        PriceUnit = newRec.PriceUnit
-                        ).save()
+                newRec.MaterialLink = MaterialList (
+                    org = newRec.org,
+                    Material = newRec.Material,
+                    Description = newRec.Description,
+                    Plant = newRec.Plant,
+                    PartType = WhsePartTypes.objects.get(WhsePartType='UNKNOWN'),
+                    SAPMaterialType = newRec.SAPMaterialType,
+                    SAPMaterialGroup = newRec.SAPMaterialGroup,
+                    Price = newRec.Price,
+                    PriceUnit = newRec.PriceUnit,
+                    Currency = newRec.Currency
+                    )
+                newRec.MaterialLink.save()
+
+            # materials which should be removed are in MaterialList, but not in the temp table
+            RemvMatls = MaterialList.objects.exclude(id__in=tmpMaterialListUpdate.objects.all().values('MaterialLink'))
+            # don't include the records just added (should already be missing, but JIC)
+            RemvMatls = RemvMatls.exclude(id__in=AddedMatls.values('MaterialLink'))
+            # but don't delete if ActualCounts or CountSchedule records exist for them
+            RemvMatls = RemvMatls.exclude(id__in=ActualCounts.objects.all().values('Material'))
+            RemvMatls = RemvMatls.exclude(id__in=CountSchedule.objects.all().values('Material'))
+            RemvSaveset = list(RemvMatls.values('org','Material'))
+            RemvMatls.delete()
 
             # delete the temporary table and the temporary file
             tmpMaterialListUpdate.objects.all().delete()
@@ -258,7 +282,10 @@ def fnUpdateMatlListfromSAP(req):
             os.remove(fName)
 
         # endif req.POST['NextPhase']=='02-Upl-Sprsht'
-        cntext = {'AddedMatls':AddedMatls}
+        cntext = {
+            'AddedMatls':AddedMatls,
+            'RemvdMatls':RemvSaveset,
+            }
         templt = 'frmUpdateMatlListfromSAP_done.html'
     else:
         # (hopefully,) this is the initial phase; all others will be part of a POST request
@@ -266,7 +293,6 @@ def fnUpdateMatlListfromSAP(req):
         templt = 'frmUpdateMatlListfromSAP_phase0.html'
     #endif req.method = 'POST'
 
-    cntext['orgname'] = _userorg.orgname
     cntext['uname'] = req.user.get_full_name()
     return render(req, templt, cntext)
 
