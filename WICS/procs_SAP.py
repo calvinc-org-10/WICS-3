@@ -3,6 +3,7 @@ import os, uuid
 # from dateutil import parser
 from django import forms
 from django.contrib.auth.decorators import login_required
+from django.db import connection
 from django.db.models import Max, OuterRef, Subquery
 from django.shortcuts import render
 from openpyxl import load_workbook
@@ -175,6 +176,14 @@ def fnSAPList(org, for_date = calvindate().today(), matl = None):
 
     return SList
 
+#TODO: promote this to a utility
+def dictfetchall(cursor):
+    """
+    Return all rows from a cursor as a dict.
+    Assume the column names are unique.
+    """
+    columns = [col[0] for col in cursor.description]
+    return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
 """
     qs = SAP
@@ -227,14 +236,10 @@ def fnUpdateMatlListfromSAP(req):
                 else: MatNum = row[SAPcol['Material']]
                 if len(str(MatNum)):
                     _org = SAPPlants_org.objects.filter(SAPPlant=row[SAPcol['Plant']])[0].org
-                    try:
-                        MaterialLink = MaterialList.objects.filter(org=_org, Material=MatNum)[0]
-                    except:
-                        MaterialLink = None
                     tmpMaterialListUpdate(
                         org = _org,
                         Material = row[SAPcol['Material']], 
-                        MaterialLink = MaterialLink,
+                        # MaterialLink = MaterialLink,
                         Description = row[SAPcol['Description']], 
                         Plant = row[SAPcol['Plant']],
                         SAPMaterialType = row[SAPcol['SAPMaterialType']],
@@ -244,47 +249,67 @@ def fnUpdateMatlListfromSAP(req):
                         Currency = row[SAPcol['Currency']]
                         ).save()
             # endfor
-
-            
-            # later, save (FileMatList - MaterialList) and (MaterialList - FileMatList)
-            # TODO: ??ask permission to correct each to the other
-
-            AddedMatls = tmpMaterialListUpdate.objects.filter(MaterialLink__isnull=True)
-            # one day django will implement insert ... select.  Until then ...
-            for newRec in AddedMatls:
-                newRec.MaterialLink = MaterialList (
-                    org = newRec.org,
-                    Material = newRec.Material,
-                    Description = newRec.Description,
-                    Plant = newRec.Plant,
-                    PartType = WhsePartTypes.objects.get(WhsePartType='UNKNOWN'),
-                    SAPMaterialType = newRec.SAPMaterialType,
-                    SAPMaterialGroup = newRec.SAPMaterialGroup,
-                    Price = newRec.Price,
-                    PriceUnit = newRec.PriceUnit,
-                    Currency = newRec.Currency
-                    )
-                newRec.MaterialLink.save()
-
-            # materials which should be removed are in MaterialList, but not in the temp table
-            RemvMatls = MaterialList.objects.exclude(id__in=tmpMaterialListUpdate.objects.all().values('MaterialLink'))
-            # don't include the records just added (should already be missing, but JIC)
-            RemvMatls = RemvMatls.exclude(id__in=AddedMatls.values('MaterialLink'))
-            # but don't delete if ActualCounts or CountSchedule records exist for them
-            RemvMatls = RemvMatls.exclude(id__in=ActualCounts.objects.all().values('Material'))
-            RemvMatls = RemvMatls.exclude(id__in=CountSchedule.objects.all().values('Material'))
-            RemvSaveset = list(RemvMatls.values('org','Material'))
-            RemvMatls.delete()
-
-            # delete the temporary table and the temporary file
-            tmpMaterialListUpdate.objects.all().delete()
             wb.close()
             os.remove(fName)
 
+            UpdMaterialLinkSQL = 'UPDATE WICS_tmpmateriallistupdate, (select id, org_id, Material from WICS_materiallist) as MasterMaterials'
+            UpdMaterialLinkSQL += ' set WICS_tmpmateriallistupdate.MaterialLink_id = MasterMaterials.id '
+            UpdMaterialLinkSQL += ' where WICS_tmpmateriallistupdate.org_id = MasterMaterials.org_id '
+            UpdMaterialLinkSQL += '   and WICS_tmpmateriallistupdate.Material = MasterMaterials.Material '
+            # tmpMaterialListUpdate.objects.all().update(MaterialLink=Subquery(MaterialList.objects.filter(org=OuterRef('org'), Material=OuterRef('Material'))[0]))
+            with connection.cursor() as cursor:
+                cursor.execute(UpdMaterialLinkSQL)
+
+            # later, save (FileMatList - MaterialList) and (MaterialList - FileMatList)
+            # TODO: ??ask permission to correct each to the other
+
+            MustKeepMatlsSQL = "(SELECT MaterialLink_id AS Material_id FROM WICS_tmpmateriallistupdate WHERE MaterialLink_id IS NOT NULL)"
+            MustKeepMatlsSQL += " UNION (SELECT Material_id FROM WICS_actualcounts)"
+            MustKeepMatlsSQL += " UNION (SELECT Material_id FROM WICS_countschedule)"
+
+            DeleteMatlsSelectSQL = "SELECT id, Material, Description, Plant FROM WICS_materiallist WHERE id NOT IN"
+            DeleteMatlsSelectSQL += " (" + MustKeepMatlsSQL + ")"
+            with connection.cursor() as cursor:
+                cursor.execute(DeleteMatlsSelectSQL)
+                RemvdMatlsList = dictfetchall(cursor)
+
+            # do the Removals
+            RemoveIDSQLList = "(-1"
+            for rmvRec in RemvdMatlsList:
+                RemoveIDSQLList += ", " + str(rmvRec['id'])
+            RemoveIDSQLList += ")"
+            DeleteMatlsDoitSQL = "DELETE FROM WICS_materiallist"
+            DeleteMatlsDoitSQL += " WHERE id IN " + RemoveIDSQLList
+            with connection.cursor() as cursor:
+                cursor.execute(DeleteMatlsDoitSQL)
+
+            UnknownTypeID = WhsePartTypes.objects.get(WhsePartType='UNKNOWN')
+            AddMatlsSelectSQL = "SELECT"
+            AddMatlsSelectSQL += " org_id, Material, Description, Plant, " + str(UnknownTypeID.pk) + " AS PartType_id,"
+            AddMatlsSelectSQL += " SAPMaterialType, SAPMaterialGroup, Price, PriceUnit, Currency,"
+            AddMatlsSelectSQL += " '' AS TypicalContainerQty, '' AS TypicalPalletQty, '' AS Notes"
+            AddMatlsSelectSQL += " FROM WICS_tmpmateriallistupdate WHERE MaterialLink_id IS NULL"
+            with connection.cursor() as cursor:
+                cursor.execute(AddMatlsSelectSQL)
+                AddedMatlsList = dictfetchall(cursor)
+
+            # do the adds
+            # one day django will implement insert ... select.  Until then ...
+            AddMatlsDoitSQL = "INSERT INTO WICS_materiallist"
+            AddMatlsDoitSQL += " (org_id, Material, Description, Plant, PartType_id,"
+            AddMatlsDoitSQL += " SAPMaterialType, SAPMaterialGroup, Price, PriceUnit, Currency,"
+            AddMatlsDoitSQL += " TypicalContainerQty, TypicalPalletQty, Notes)"
+            AddMatlsDoitSQL += " " + AddMatlsSelectSQL
+            with connection.cursor() as cursor:
+                cursor.execute(AddMatlsDoitSQL)
+
+            # delete the temporary table and the temporary file
+            tmpMaterialListUpdate.objects.all().delete()
+
         # endif req.POST['NextPhase']=='02-Upl-Sprsht'
         cntext = {
-            'AddedMatls':AddedMatls,
-            'RemvdMatls':RemvSaveset,
+            'AddedMatls':AddedMatlsList,
+            'RemvdMatls':RemvdMatlsList,
             }
         templt = 'frmUpdateMatlListfromSAP_done.html'
     else:
@@ -295,4 +320,3 @@ def fnUpdateMatlListfromSAP(req):
 
     cntext['uname'] = req.user.get_full_name()
     return render(req, templt, cntext)
-

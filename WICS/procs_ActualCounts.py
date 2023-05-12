@@ -19,7 +19,6 @@ from WICS.models import ActualCounts, MaterialList, CountSchedule, WhsePartTypes
 from WICS.procs_SAP import fnSAPList
 
 
-
 ##############################################################
 ##############################################################
 ##############################################################
@@ -152,7 +151,7 @@ def fnUploadActCountSprsht(req):
 
             if matlnum and not MatObj:
                 if not err_already_handled:
-                    UplResults.append({'error':'either ' + matlnum + ' does not exist in MaterialList or incorrect org_id (' + spshtorg + ') given', 'rowNum':SprshtRowNum})
+                    UplResults.append({'error':'either ' + matlnum + ' does not exist in MaterialList or incorrect org_id (' + str(spshtorg) + ') given', 'rowNum':SprshtRowNum})
             elif matlnum and MatObj:
                 requiredFields = {reqFld: False for reqFld in CountSprshtREQUIREDFLDS}
                 requiredFields['Both LocationOnly and CTD_QTY'] = False
@@ -450,8 +449,8 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
     C_Sched_NotCtd_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id'
     C_Sched_NotCtd_Ctd_where = '(ac.id IS NULL)'
     if Rptvariation == 'REQ':
-        if A_Sched_Ctd_where:  A_Sched_Ctd_sql += ' AND ' 
-        A_Sched_Ctd_where += '(Requestor IS NOT NULL)'
+        if C_Sched_NotCtd_Ctd_where:  C_Sched_NotCtd_Ctd_where += ' AND ' 
+        C_Sched_NotCtd_Ctd_where += '(Requestor IS NOT NULL)'
     C_Sched_NotCtd_Ctd_sql = 'SELECT ' + fldlist + ' ' + \
         ' FROM ' + C_Sched_NotCtd_Ctd_from + \
         ' ON ' + C_Sched_NotCtd_Ctd_joinon + \
