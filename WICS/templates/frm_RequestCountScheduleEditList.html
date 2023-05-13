@@ -70,7 +70,7 @@ button:focus {
         <div class="col-5 text-start">
             {% render_field itm.CountDate size="10" %} | 
             {% render_field itm.Requestor size="10" %} |
-            {% render_field itm.Material style="width:12em;" %} |
+            {{ itm.instance.Material.Material }} |
         </div> 
         <div class="col-4 text-start">
             {% render_field itm.Counter size="10" %} |
@@ -121,6 +121,9 @@ button:focus {
                 Close Form
             </button>
         </div>
+    </div>
+    <div class="row">
+        <b class="text-danger">Please do NOT make changes using this form unless you absolutely must.  I haven't thoroughly tested it yet.  Sorry.  - Calvin C</b>
     </div>
 </div>
 

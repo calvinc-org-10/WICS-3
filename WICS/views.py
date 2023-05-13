@@ -1,11 +1,12 @@
 # import dateutil.utils as dateutils
 from django.contrib.auth.decorators import login_required
-from django.db.models import OuterRef, Subquery, Exists
+from django.db.models import OuterRef, Subquery, Exists, Value
 from django.forms import modelformset_factory
 from django.shortcuts import render
 from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
-from WICS.forms import CountEntryForm, CountScheduleRecordForm, RequestCountScheduleRecordForm, RelatedMaterialInfo, RelatedScheduleInfo
+from WICS.forms import CountEntryForm, CountScheduleRecordForm, RequestCountScheduleRecordForm # , RequestCountScheduleListForm, 
+from WICS.forms import RelatedMaterialInfo, RelatedScheduleInfo
 from WICS.models import MaterialList, ActualCounts
 from WICS.procs_CountSchedule import fnCountScheduleRecordExists
 
@@ -558,8 +559,7 @@ def fnRequestedCountEditListView(req):
                 exclude=excludelist['main'],
                 # form=FormMain,
                 extra=0,can_delete=False)
-    qs_RequestsToShow = modelMain.objects.filter(Requestor__isnull=False)\
-        .annotate(hascounts=Exists(Subquery(ActualCounts.objects.filter(Material=OuterRef('Material'),CountDate=OuterRef('CountDate')))))
+    qs_RequestsToShow = modelMain.objects.filter(Requestor_userid__isnull=False).annotate(hascounts=Value(False))
     if not ShowFilledRequests:
         qs_RequestsToShow = qs_RequestsToShow.filter(RequestFilled=False)
 
@@ -576,6 +576,10 @@ def fnRequestedCountEditListView(req):
     else:
         mainFm = mainFm_class(prefix=prefixvals['main'], initial=initialvals['main'],
                     queryset=qs_RequestsToShow)
+
+    # show if the request has counts or not
+    for rec in qs_RequestsToShow:
+        rec.hascounts = ActualCounts.objects.filter(Material=rec.Material,CountDate=rec.CountDate).exists()
 
      # display the form
     cntext = {'frmMain': mainFm,
