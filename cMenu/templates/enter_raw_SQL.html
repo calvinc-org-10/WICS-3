@@ -1,0 +1,63 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+
+{% block tTitle %}Enter SQL{% endblock %}
+{% block tHeader %}{% endblock %}
+{% block boddy %} {% block boddyAttr %}{% endblock %}
+<div class="container text-center mx-auto">
+<div class="row">
+    <div class="col-10 fs-1">
+    </div>
+    <div class="col-2 text-end"> {{ user.get_full_name }} </div>
+</div>
+<div class="row"> <!-- status messages -->
+
+    <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+
+</div>
+</div>
+<hr>
+{% if messages %}
+<ul class="messages">
+    {% for message in messages %}
+    <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+Enter SQL to run (only SELECT statements are supported)
+<div class="container mx-auto">
+<form id="FmMain" class="trackformchanges" method="post">
+    {% csrf_token %}
+    {{ form }}
+    <hr>
+    <div class="container">
+        <div class="row mx-auto max-width=100%">
+            <div class="col-4">
+                <button id="save_btn" type="submit">
+                    <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                    Run SQL
+                </button>
+            </div>
+            <div class="col-6"></div>
+            <div class="col">
+                <button id="close_btn" type="button">
+                    <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                    Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+</div>
+
+<script>
+    document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
+        }
+
+    $("#close_btn").on("click", function () { window.close() });
+</script>
+{% endblock %}
+

@@ -1,0 +1,12 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block tTitle %}Not Ready Yet{% endblock %}
+
+
+{% block boddy %}
+<h1>Form {{ formname }} is not built yet.  Calvin needs more coffee.</h1>
+<img src="{% static 'under-construction-barrier-icon.svg' %}">
+{% endblock %}
+

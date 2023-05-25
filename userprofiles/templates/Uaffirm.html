@@ -1,0 +1,73 @@
+{% extends "WICS_common.html" %}
+{% load static %}
+
+{% block tTitle %}WICS Log in{% endblock %}
+{% block tHeader %}
+    <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="robots" content="NONE,NOARCHIVE">
+{% endblock %}
+{% block boddy %}
+
+<div class="container m-2">
+{% if form.errors %}
+    <h1>You are not an authorized user.</h1>
+    <br><br>
+    <div class="container">
+        <div class="row mx-auto max-width=100%">
+            <div class="col-4"></div>
+            <div class="col-6"></div>
+            <div class="col">
+                <button id="close_btn" type="button" onclick="location = location.href;">
+                    <!-- <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img> -->
+                    Login
+                </button>
+            </div>
+        </div>
+    </div>
+{% else %}
+    <!-- Header -->
+    <!-- END Header -->
+    <div id="content-main" class="container">
+    <div class="row">
+        <div class="col-6 border-right border-dark">
+            <div id="header">
+                <img src={% static 'WICS-Logo.png' %} width="200" height="100">
+                <br><span class=h1>WICS</span> version {{ sysver }}
+            </div>
+            <div class="container">
+            <form method="post" id="login-form"> 
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-2">{{ form.username.label_tag }}</div>
+                    <div class="col">{{ form.username }}</div>
+                </div>
+                <div class="row">
+                    <div class="col-2">{{ form.password.label_tag }}</div>
+                    <div class="col">{{ form.password }}</div>
+                </div>
+                <div class="submit-row">
+                    <input type="submit" value="login">
+                    <input type="hidden" name="next" value="{% url 'initWICSuser' %}">
+                </div>
+                
+                <div class="row mt-5">
+                    <i>{{ Greeting }}</i>
+                    {% if sysver_key == 'DEV' %}
+                        <br><br>
+                        <input type="submit" name="dev_bypass" value="1">
+                    {% endif %}
+                </div>
+            </form>
+            </div>
+        </div>
+        <div class="col-6">
+            {% include "WICSNews.html" %}
+        </div>
+    </div>
+    </div>
+    <br class="clear">
+    <!-- footer -->
+    <br>
+{% endif %}
+</div>
+{% endblock %}

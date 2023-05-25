@@ -1,0 +1,209 @@
+{% extends "WICS_common.html" %}
+{% load static %}
+
+{% block tTitle %}{{ menuName }}{% endblock %}
+{% block boddy %}
+    <!-- menu head -->
+    <div class="container">
+        <div class="row max-width=100%">
+            <div class="col-2 text-start"></div>
+            <div class="col-8 text-center">
+                <h5>
+                Menu Group <select id="menuGroup" onchange="loadNewMenu(true);">
+                {% for ch in menuGoto.menuGroup_choices %}
+                    <option value="{{ ch.id }}"
+                    {% if ch.id == menuGoto.menuGroup %}  selected {% endif %}
+                    >{{ ch }}</option>"
+                {% endfor %}
+                </select>  <small>{{ menuGoto.menuGroup }}</small>
+                <br>
+                Menu <select id="menuID" onchange="loadNewMenu(false);">
+                {% for ch in menuGoto.menuID_choices %}
+                    <option value="{{ ch.MenuID }}"
+                    {% if ch.MenuID == menuGoto.menuID %}  selected {% endif %}
+                    >{{ ch }}</option>"
+                {% endfor %}
+                </select>
+                </h5>
+            </div>
+            <div class="col-2 text-end">{{ user.get_full_name }}</div>
+        </div>
+        <div class="row max-width=100%">
+            <div class="col-1 text-start"></div>
+            <div class="col-7 text-center">
+                GroupName: <input type="text" name="menugroupName" form="menueditForm" value="{{ menuGroupName }}" size="15">
+                MenuName:  <input type="text" name="menuName" form="menueditForm" value="{{ menuName }}" size="15">
+            </div>
+            <div class="col-3">
+                <button type="button" id="CopyMenu">Copy Menu</button>
+                <button type="button" id="NewMenu">New Menu</button>
+                <button type="button" id="RemvMenu">Remv Menu</button>
+            </div>
+        </div>
+        <div class="row"> <!-- status messages -->
+
+        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+        {% if changed_data %}
+            <div class="alert alert-success p-0 alert-dismissible fade show">
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                Changes successfully saved.
+                ChDat: {{ changed_data }}
+            </div>
+        {% endif %}
+        </div>
+    
+    </div>
+    <!-- menu body -->
+    <form method="post" id="menueditForm">
+    {% csrf_token %}
+    <div class="container" style="height:350px;overflow:auto">
+        {{ menuContents|safe }}
+    </div>
+    <br>
+    <!-- form footer -->
+    <br>
+    <div class="container">
+        <div class="row mx-auto max-width=100%">
+            <div class="col-4">
+                <button id="save_btn" type="submit">
+                    <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                    Save changes
+                </button>
+            </div>
+            <div class="col-6"></div>
+            <div class="col">
+                <button id="close_btn" type="button" onclick="window.close();">
+                    <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                    Close Form
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<div id="get-MenuID-dialog" title="New Menu Group/ID">
+    <form>
+        <fieldset>
+            <label for="NewMnuGroup">Menu Group</label>
+            <input type="number" name="NewMnuGroup" id="NewMnuGroup" class="text ui-widget-content ui-corner-all">
+            <label for="NewMnuID">Menu ID</label>
+            <input type="number" name="NewMnuID" id="NewMnuID" class="text ui-widget-content ui-corner-all">
+   
+            <!-- Allow form submission with keyboard without duplicating the dialog button -->
+            <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+        </fieldset>
+    </form>
+</div>
+
+<!-- generalize this one day ... -->
+<div id="yesno-dialog" title="Are You Sure?">
+    <div id="yesno-dialog-text"></div>
+</div>
+  
+<script>
+
+    CopyORNew = ''
+
+    $("#get-MenuID-dialog").dialog({
+        autoOpen: false,
+        closeOnEscape: false,
+        modal: true,
+        // do I need a button to close this?
+    })
+    $("#get-MenuID-dialog").find( "form" ).on( "submit", function( event ) {
+        event.preventDefault();
+        NewMenuID_chosen();
+    });
+   
+    $("#yesno-dialog").dialog({
+        autoOpen: false,
+        closeOnEscape: false,
+        modal: true,
+        buttons: {
+            "Yes": function() {
+                yesno_chosen(true);
+                $(this).dialog("close");
+            },
+            "No":  function() {
+                yesno_chosen(false);
+                $(this).dialog("close");
+            }
+        }
+    });
+    $("#yesno-dialog").find( "button" ).on( "click", function( event ) {
+        // event.preventDefault();
+        yesno_chosen();
+        $("yesno-dialog").close()
+    });
+
+    function NewMenuID_chosen() {
+        var newRec
+
+        if (CopyORNew == 'copy') {
+            newRec = "{% url 'MenuCreate' 'menuGroup' 'menuNum' 'fromGroup' 'fromMenu' %}"
+        } else if (CopyORNew == 'new') {
+            newRec = "{% url 'MenuCreate' 'menuGroup' 'menuNum' %}"
+        } else {
+            // something is wrong
+        }
+        newRec = newRec.replace('/menuGroup','/'+$('#NewMnuGroup').val())
+        newRec = newRec.replace('/menuNum','/'+$('#NewMnuID').val())
+        newRec = newRec.replace('/fromGroup','/'+$('#menuGroup').val())
+        newRec = newRec.replace('/fromMenu','/'+$('#menuID').val())
+        window.location = newRec;
+    }
+
+    function yesno_chosen(yesnoVal) {
+        if (yesnoVal) {
+            //OK, kill this menu
+            newRec = "{% url 'MenuRemove' 'menuGroup' 'menuNum' %}"
+            newRec = newRec.replace('/menuGroup','/'+$('#menuGroup').val())
+            newRec = newRec.replace('/menuNum','/'+$('#menuID').val())
+            window.location = newRec;
+
+        } else {
+            // nope, don't really wanna destroy this menu; carry on
+        }
+    }
+  
+
+    $("#CopyMenu").on("click", function() {
+        CopyORNew = 'copy'
+        $("#get-MenuID-dialog").dialog("open")
+    });    
+
+    $("#NewMenu").on("click", function() {
+        CopyORNew = 'new'
+        $("#get-MenuID-dialog").dialog("open")
+    });    
+
+    $("#RemvMenu").on("click", function() {
+        // are you sure?
+        $("#yesno-dialog-text").html("Are you <b>SURE</b> you want to remove this menu?")  // is there a way I can pass this to the dialog object?
+        $("#yesno-dialog").dialog("open")
+    });    
+
+    function loadNewMenu(newGrp) {
+        var newRec = "{% url 'EditMenu' 'mGrp' 'mItm' %}"
+        newRec = newRec.replace('/mGrp','/'+$('#menuGroup').val())
+        if (newGrp) {
+            newRec = newRec.replace('/mItm','/0')
+        } else {
+            newRec = newRec.replace('/mItm','/'+$('#menuID').val())
+        }
+        window.location = newRec;
+    }
+
+    document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
+    }
+
+</script>
+{% endblock %}

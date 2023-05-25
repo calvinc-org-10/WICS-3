@@ -1,0 +1,355 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+
+{% block tHeader %}
+{{ block.super }}
+<style>
+button:focus {
+    <!-- border-color:#9ecaed;   !-- convert to rgba -->
+    border-color: rgba(158, 202, 237, 1)
+    box-shadow: 0 0 5px rgba(0, 0, 255, 1);
+    -webkit-box-shadow: 0 0 5px rgba(0, 0, 255, 1); 
+    -moz-box-shadow: 0 0 5px rgba(0, 0, 255, 1);
+    border:1px solid rgba(0,0,255, 0.8); 
+}
+</style>
+{% endblock %}
+
+{% block tTitle %}Count Scheduling{% endblock %}
+
+{% block boddy %}
+    <div class="container text-center mx-auto">
+    <div class="row">
+        <div class="col-5 fs-3 text-end">
+            <br>Count Scheduling
+        </div>
+        <div class="col-5 text-start">
+            <img src={% static 'WICS-Logo.png' %} width="200" height="100">
+        </div>
+        <div class="col-2 text-end"> {{ user.get_full_name }} </div>
+    </div>
+    <div class="row"> <!-- status messages -->
+        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+        {% if changes_saved.main %}
+            <div class="alert alert-success p-0 alert-dismissible fade show">
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                Count record {{ changes_saved.main }} successfully saved.
+                <span class="d-none d-md-inline">
+                ChData: {{ changed_data.main }}
+                </span>
+            </div>
+        {% endif %}
+        {% if changes_saved.matl %}
+            <div class="alert alert-success p-0 alert-dismissible fade show">
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                Material changes for this record successfully saved.
+                <span class="d-none d-md-inline">
+                ChData: {{ changed_data.matl }}
+                </span>
+            </div>
+        {% endif %}
+        {% if msgDupSched %}
+            <div class="alert alert-danger p-0 alert-dismissible fade show">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-exclamation-octagon-fill" viewBox="0 0 16 16">
+                <path d="M11.46.146A.5.5 0 0 0 11.107 0H4.893a.5.5 0 0 0-.353.146L.146 4.54A.5.5 0 0 0 0 4.893v6.214a.5.5 0 0 0 .146.353l4.394 4.394a.5.5 0 0 0 .353.146h6.214a.5.5 0 0 0 .353-.146l4.394-4.394a.5.5 0 0 0 .146-.353V4.893a.5.5 0 0 0-.146-.353L11.46.146zM8 4c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 4.995A.905.905 0 0 1 8 4zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+                </svg>            
+                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+                {{ msgDupSched }}
+            </div>
+        {% endif %}
+    </div><!-- row -->
+    </div><!-- container -->
+    <hr>
+
+    {{ recNum }} / {{ frmMain.id.value }}
+    <input type="hidden" id="thisRecNum" value="{{recNum}}">
+
+    <form id="CSchForm" class="trackformchanges" method="post">
+        {% csrf_token %}
+        <!-- form header -->
+        {{ frmMain.errors }}
+        {{ frmMain.id }}
+
+        <!-- main part of form -->
+        <!-- put initial focus on Material and/or init CountDate to today(local) -->
+        <div class="container m-2">
+        <div class="row g-0">
+            <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" tabindex="-1" size="8" onchange="loadExtraInfo();" %}</div>
+            <div class="col-4">Material:
+                {# {% render_field frmMain.Material onchange="loadExtraInfo()" %}</div> #}
+                <input list="Material-list"
+                    id="{{frmMain.Material.id_for_label}}" name="{{frmMain.Material.html_name}}"
+                    tabindex="1" autofocus
+                    onfocus="$(this).select();"
+                    onchange="loadExtraInfo();"
+                    value="{{matlchoiceForm.gotoItem.Material}}"
+                    required
+                    style="width:18em;">
+                <span class="bi-caret-down-square"
+                    style="position:relative;top:+0px;font-size:20px;left:-30px;"
+                    tabindex = "-1"
+                    onclick="$('#{{frmMain.Material.id_for_label}}').focus();">
+                </span>
+                <datalist id="Material-list">
+                    {% for itm in matlchoiceForm.choicelist %}
+                        <option value="{{itm.Material_org}}">
+                    {% endfor %}
+                </datalist>
+            </div>
+            <div class="col-3">Counter: {% render_field frmMain.Counter class="need-Matl-Dt" size="12" %}</div>
+        </div>
+        <div class="row g-0">
+            <div class="col-3">Priority: {% render_field frmMain.Priority class="need-Matl-Dt" size="10" %}</div>
+            <div class="col-6">Reason Scheduled: {% render_field frmMain.ReasonScheduled class="need-Matl-Dt" size="35" %}</div>
+        </div>
+        <div class="row g-0">
+            <div class="col-8">Schedule Notes: {% render_field frmMain.Notes class="need-Matl-Dt" size="60" %}</div>
+            <div class="col-2">
+                <button id="save_btn" type="button" form="CSchForm" class="need-Matl-Dt" onclick="SubmMainFm();" >
+                    <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                    Save changes
+                </button>
+            </div>
+        </div>
+        <hr>
+        <div class="row g-0">
+            Material Info
+        </div>
+        <div class=row g-0>
+            {{ frmMatlInfo.id }}
+            <input type="hidden" id="MatlPK" name="MatlPK" value={{ frmMatlInfo.id }} required></input>
+            <div class="col-5">Description: {% render_field frmMatlInfo.Description class="need-Matl-Dt" size="50" tabindex="-1" %}</div>
+            <div class="col-2">Part Type: {% render_field frmMatlInfo.PartType class="need-Matl-Dt" style="width:7em" tabindex="-1" %}</div>
+            <div class="col-4">
+                Typ Container Qty: {% render_field frmMatlInfo.TypicalContainerQty class="need-Matl-Dt" style="width:7em" tabindex="-1" %}
+                Typ Plt Qty: {% render_field frmMatlInfo.TypicalPalletQty class="need-Matl-Dt" style="width:7em" tabindex="-1" %}
+            </div>
+        </div>
+        <div class=row g-0>
+            <div class="col-12">Material Notes: {% render_field frmMatlInfo.Notes size="100" class="need-Matl-Dt" tabindex="-1" %}</div>
+        </div>
+        </div>  <!-- container-fluid, on same level with rows -->
+    </form>
+
+    <!-- form footer -->
+    <hr>
+    <div class="container">
+        <div class="row mx-auto max-width=100%">
+            <div class="col-2">
+            </div>
+            <div class="col-8">
+                <button id="btn_firstrec" type="button" onclick="processGoToReq('First');">First</button>
+                <button id="btn_prevrec"  type="button" onclick="processGoToReq('Prev');" >Prev</button>
+                <button id="btn_nextrec"  type="button" onclick="processGoToReq('Next');" >Next</button>
+                <button id="btn_lastrec"  type="button" onclick="processGoToReq('Last');" >Last</button>
+                <button id="btn_newrec"   type="button" onclick="processGoToReq('New');"  >New</button>
+            </div>
+            <div class="col-2">
+                <button id="close_btn" type="button">
+                    <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                    Close Form
+                </button>
+            </div>
+        </div>
+    </div>
+
+<div id="modalGeneric" class="modal" >
+</div>
+        
+    
+<script>
+    // var $form = $('.trackformchanges');
+    var $forms = document.getElementById("CSchForm").querySelectorAll(":scope input");
+    var ctdtID = $('#{{frmMain.CountDate.id_for_label}}');
+    var orig_ctdt = ctdtID.val()
+    var mtlnmID = $('#{{frmMain.Material.id_for_label}}');
+    var orig_matl = mtlnmID.val()
+    var initialState;
+    var thisRecNum = $("#thisRecNum").val();
+    // set up MatlMap for verifying if an entered Material # is valid
+    var MatlMap = new Map(
+    [
+    {% for itm in matlchoiceForm.choicelist %}
+        ['{{itm.Material_org}}', {{itm.id}}],
+    {% endfor %}
+    ]    )
+
+
+    // JAVASCRIPT DATES SUCK!!!!!!
+    // expand this one day - this could be useful - Fix it first!!!
+    function dtstr(dt = Date(), fmt = "YYYY-MM-DD HH:NN:SS")
+    {
+        dt = (dt == undefined) ? Date() : dt;   // how do I move dt to localtime??? - easy - by not introducing syntax errors!
+        if (typeof(dt) == 'string') { dt = new Date(dt) }
+        d_str = fmt
+        d_str = d_str.replaceAll('YYYY',("0000"+dt.getFullYear()).slice(-4))
+        d_str = d_str.replaceAll('MM',("00"+(dt.getMonth()+1)).slice(-2))
+        d_str = d_str.replaceAll('DD',("00"+dt.getDate()).slice(-2))
+        d_str = d_str.replaceAll('HH',("00"+dt.getHours()).slice(-2))
+        d_str = d_str.replaceAll('NN',("00"+dt.getMinutes()).slice(-2))
+        d_str = d_str.replaceAll('SS',("00"+dt.getSeconds()).slice(-2))
+        // if new_dt = Date(d_str) is invalid, replace with dt.toString()
+        return d_str
+    }
+
+    document.body.onload = function() {
+
+        // turn off controls that need the Date and Material first
+        $(".need-Matl-Dt").prop("disabled", !isValid_Date_Material());
+
+        initialState = serialize($forms);
+        }
+
+    document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
+        }
+
+    // later, duplicate this for closeform (see document.body.onbeforeunload)
+    document.getElementById("close_btn").addEventListener("click",
+        function(evobj){
+            confirmLeave(YesCloseIt)
+        });
+
+    function processGoToReq(goDir) {
+        confirmLeave(()=>loadCountEntryRec(goDir));
+        };
+
+// TODO: move to common???
+    function isValid_Date_Material() {
+        return isValid_Date() && isValid_Material();
+    }
+    function isValid_Date() {
+        let dVal;
+
+        if (ctdtID.val().trim()=="") {
+            return false;
+        }
+
+        try {
+            dVal = new Date(ctdtID.val())
+        }
+        catch {
+            return false;
+        }
+        return true;
+    }
+    function isValid_Material() {
+        if (mtlnmID.val().trim()=="") {
+                return false;
+        } else {
+            return MatlMap.has(mtlnmID.val());
+        }
+
+    }
+
+    function loadExtraInfo() {
+        let dVal;
+
+        if (!isValid_Date()) {
+            alertBox("Invalid Date", ctdtID.val() + " is not a valid date");
+            ctdtID.focus();
+            return;
+        }
+        else {
+            dVal = (new Date(ctdtID.val())).toISOString().substring(0,10)
+        }
+        // if (typeof(dVal) == 'string') { dVal = new Date(dVal) };
+        // dVal =  dtstr(dt = dVal, fmt = "YYYY-MM-DD")
+        ctdtID.val(dVal)    // this sets ctdtID.val to dVal
+
+        if (!isValid_Material()) {
+            if (mtlnmID.val() != "") { alertBox("Invalid Material", mtlnmID.val() + " is not a valid Material number"); }
+            // else { alertBox("No Material Chosen", "Please choose a valid Material number")}
+            mtlnmID.focus();
+            return;
+        }
+
+        newRec = "{% url 'CountScheduleForm' 9999 'passedCountDate' 'passedMatlNum' %}"  // gotoCommand = None
+        R = Number.parseInt( document.getElementById('{{frmMain.id.id_for_label}}').value );
+        if ( isNaN(R) ) { R = 0 };
+        newRec = newRec.replace("/9999","/"+R);
+        newRec = newRec.replace("passedCountDate",dVal)
+        mNum="None"; if (mtlnmID.val() != "") {mNum = MatlMap.get(mtlnmID.val())}
+        newRec = newRec.replace("/passedMatlNum","/"+mNum)
+        window.location = newRec;
+    };
+    function loadCountEntryRec(goDir) {
+
+        newRec = "{% url 'CountScheduleFormGo' 9999 'gotoCommand' %}"
+        R = Number.parseInt( document.getElementById('{{frmMain.id.id_for_label}}').value );
+        if ( isNaN(R) ) { R = 0 };
+        newRec = newRec.replace("/9999","/"+R);
+        newRec = newRec.replace("/gotoCommand","/"+goDir);
+        window.location = newRec;
+    };
+
+    function SubmMainFm() {
+        // enable CountDate and Material so they'll be send back with the form
+        ctdtID.prop("disabled", false);
+        mtlnmID.prop("disabled", false);
+        $("#CSchForm").submit();
+    }
+
+//******************
+
+function alertBox(titl, msg) {
+    $("#modalGeneric").dialog("option","title",titl);
+    document.getElementById("modalGeneric").innerHTML = msg
+
+    $("#modalGeneric").dialog("option","buttons", 
+        { 
+            "OK" : function() {
+                $(this).dialog("close"); }
+        } );
+    $("#modalGeneric").dialog("open");
+}
+
+function isFormChanged() {
+    currState = serialize($forms);
+    return !(initialState === currState);
+};
+
+function confirmLeave(LeaveProc){
+    if (isFormChanged()) {
+        $("#modalGeneric").dialog("option","title","Leave Record?");
+        document.getElementById("modalGeneric").innerHTML = "This record has changed<br>Do you really want to leave without saving?"
+
+        $("#modalGeneric").dialog("option","buttons", 
+            { 
+                "Yes": function() { 
+                    LeaveProc();
+                    $(this).dialog("close"); },
+                "No" : function() {
+                    $(this).dialog("close"); }
+            } );
+        $("#modalGeneric").dialog("open");
+    } else {
+        LeaveProc();
+    }
+};
+
+// handle Modal
+$("#modalGeneric").dialog({
+    autoOpen: false,
+    closeOnEscape: false,
+    modal: true,
+    hide: "puff",
+    position: {
+        my: "top center", at: "top center"
+    }
+});
+
+function YesCloseIt() {
+    window.close()
+}
+
+function DoNothing() {
+    // what do you _think_ this does??
+}
+
+</script>
+
+{% endblock %}
+

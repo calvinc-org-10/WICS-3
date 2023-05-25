@@ -1,0 +1,119 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block tTitle %}WICS User Admin{% endblock %}
+{% block tHeader %}
+{% endblock %}
+{% block boddy %}
+    <!-- form head -->
+    <div class="container">
+        {{ PW }} is default PW for new users
+        <div class="row max-width=100%">
+            <div class="col-3 text-start"></div>
+            <div class="col-6 text-center"><h1>WICS User Administration</h1></div>
+            <div class="col-3 text-end">{{ user.get_full_name }}</div>
+        </div>
+    </div>
+
+    <!-- form body -->
+    <div class="container text-center">
+    <form method="post">  <!-- action=?? - not needed - submit will submit to calling view -->
+        {% csrf_token %}
+        {{ ulist.management_form }}
+        <!-- form main -->
+        <div class="row">
+            {{ ulist.non_form_errors }}
+        </div>
+        <hr>
+        <div class="row">
+            <div class="col-9">
+                ID - UserName - Menu Group - First Name - Last Name - email - 
+            </div>
+            <div class="col">
+                superuser? - administrator? - active? - Last Login
+            </div>
+        </div>
+        <div class="row">
+            <ul id="form_set">
+            {% for u in ulist %}
+                {{ u.errors }}
+                <li>
+                    {% render_field u.showuid size="4" %}
+                    {% render_field u.uname size="12" %}
+                    {% render_field u.menuGroup %}  <!-- size will be # of dropdowns.  How to specify width? -->
+                    {% render_field u.fname size="20" %}
+                    {% render_field u.lname size="20" %}
+                    {% render_field u.email size="20" %}
+                    {% render_field u.superuser %}
+                    {% render_field u.admin %}
+                    {% render_field u.active %}
+                    {% render_field u.last_login size="20" %}
+                    <button type="button" onclick="chpw('{{ u.uname.value }}')">Change Password</button>
+                    <button style="visibility:hidden">Remove (keep??)</button>
+                </li>
+                <hr>
+            {% endfor %}
+            </ul>
+            </div>
+        </div>
+
+        <!-- form footer -->
+        <div class="container">
+            <div class="row mx-auto max-width=100%">
+                <div class="col-5">
+                    <button type="submit">
+                        <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                        Save changes
+                    </button>
+                    <button id="add-user" type="button" onclick="create_empty_user()">
+                        Add user
+                    </button>
+                </div>
+                <div class="col-5"></div>
+                <div class="col">
+                    <button type="button" onclick="window.close();">
+                        <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                        Close Form
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div id="empty_form" hidden>
+            <li>
+                {% render_field ulist.empty_form.showuid size="4" %}
+                {% render_field ulist.empty_form.uname size="12" %}
+                {% render_field ulist.empty_form.menuGroup %}  <!-- size will be # of dropdowns.  How to specify width? -->
+                {% render_field ulist.empty_form.fname size="20" %}
+                {% render_field ulist.empty_form.lname size="20" %}
+                {% render_field ulist.empty_form.email size="20" %}
+                {% render_field ulist.empty_form.superuser %}
+                {% render_field ulist.empty_form.admin %}
+                {% render_field ulist.empty_form.active %}
+                {% render_field ulist.empty_form.last_login size="20" %}
+            </li>
+            <hr>
+        </div>
+
+    </form>
+    </div>
+
+    <script>
+        function create_empty_user() {
+            var form_idx = $('#id_form-TOTAL_FORMS').val()
+            // check against max-forms before allowing add
+            $('#form_set').append($('#empty_form').html().replace(/__prefix__/g, form_idx).replace("hidden",""))
+            $('#id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1)
+        }
+        function chpw(usNm) {
+
+            pwForm = "{% url 'change_password_u' 'nname' %}"
+            pwForm = pwForm.replace("/nname","/"+usNm);
+            window.open(pwForm,'_blank');
+    
+        }
+    </script>
+
+
+{% endblock %}

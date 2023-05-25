@@ -1,0 +1,2 @@
+My settings.py file is not in the git reporsitory because it reveals too much about my development and production environments.
+Develop your own settings.py file.  If you need help, let me know.

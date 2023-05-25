@@ -1,0 +1,237 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block tTitle %}{% if variation == 'REQ' %}Requested {% endif %}Count Summary{% endblock %}
+
+
+{% block boddy %}
+<div class="container text-center mx-auto">
+    <div class="row">
+        <div class="col-5 fs-3 text-end">
+            <br>Counts {% if variation == 'REQ' %}Requested{% else %}Scheduled and Done{% endif %}
+        </div>
+        <div class="col-5 text-start">
+            <img src={% static 'WICS-Logo.png' %} width="200" height="100">
+        </div>
+        <div class="col-2 text-end"> {{ user.get_full_name }} </div>
+    </div>
+
+    <!-- GoTo Date -->
+    <div class="container-fluid text-center bg-info">
+        <div class="row">
+            <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+            <div class="col-1"></div>
+            <div class="col-6">
+                <h3>{{ CountDate|date:"l" }} <input id="CtDate" type="Date" value="{{ CountDate|date:'Y-m-d' }}" onchange="newCtDate();" size="5"></input></h3>
+            </div>
+            <div class="col-4 text-right">
+                SAP Date {{ SAPDate }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="mainReport" class="container-fluid mx-auto"  style="height:350px; overflow:auto;" >
+    {% for RptSection in SummaryReport %}
+        <hr>
+        <h3><u>{{ RptSection.Title }}</u></h3>
+        <div class="row g-0 calvin-smalltext">
+            <div class="col-1">Count Date</div>
+            <div class="col-1">Cyc Ct ID</div>
+            <div class="col-2">Material</div>
+            <div class="col-3">Counter</div>
+            <div class="col-1">BLDG</div>
+            <div class="col-1">LOCATION</div>
+            <div class="col-1">PKG ID / Desc</div>
+            <div class="col-1">TAG QTY</div>
+        </div>
+        {% for ent in RptSection.outputrows %}
+            {% if ent.type == 'Detail' %}
+            <div class="row g-0 calvin-smalltext">
+                <div class="col-1">{{ CountDate|date:"m/d" }}</div>
+                <div class="col-1">{{ ent.CycCtID }}</div>
+                <div class="col-2">{{ ent.Material }}</div>
+                <div class="col-3">{{ ent.ActCounter }}</div>
+                <div class="col-1">{{ ent.BLDG }}</div>
+                <div class="col-1">{{ ent.LOCATION }}</div>
+                <div class="col-1">{{ ent.PKGID }}</div>
+                <div class="col-1">{{ ent.TAGQTY }}</div>
+            </div>
+            <div class="row g-0 small">
+                <div class="col-11 small text-end">
+                    {% if ent.ActCountNotes %}
+                        <b>Count Notes: </b>{{ ent.ActCountNotes }}
+                    {% endif %}
+                    <b>Actual Count: </b> {{ ent.CTD_QTY_Expr }}
+                </div>
+                <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
+            </div>
+            {% if ent.PossNotRec or ent.MovDurCt %}
+            <div class="text-center">
+                {% if ent.PossNotRec %}<b>POSSIBLY NOT RECIEVED</b>{% endif %}
+                {% if ent.MovDurCt %}<b>MOVEMENT DURING COUNT</b>{% endif %}
+            </div>
+            {% endif %}
+            {% elif ent.type == 'Summary' %}
+            <div>
+                <b>SAP:</b>
+                {% for s in ent.SAPNum %}{{ s }}{% endfor %}, 
+                Typical Container Qty = {{ ent.TypicalContainerQty }}, 
+                Typical Pallet Qty = {{ ent.TypicalPalletQty }}
+            </div>
+            <div class="row g-0">
+                <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
+                <div class="col-1">Counted</div>
+                <div class="col-1">SAP</div>
+                <div class="col-1">Diff</div>
+                <div class="col-1">Acc %</div>
+                <div class="col-1"></div>
+                <div class="col-1"></div>
+                <div class="col-1"></div>
+            </div>
+            <div class="row g-0">
+                <div class="col-5">Part Type {{ ent.PartType }}</div>
+                <div class="col-1">{{ ent.CountTotal }}</div>
+                <div class="col-1">{{ ent.SAPTotal }}</div>
+                <div class="col-1">{{ ent.Diff }}</div>
+                <div class="col-1 
+                    {% if ent.Accuracy < AccuracyCutoff.DANGER  %} bg-danger
+                    {% elif ent.Accuracy > AccuracyCutoff.SUCCESS %} bg-success
+                    {% elif ent.Accuracy > AccuracyCutoff.WARNING %} bg-warning
+                    {% endif %}
+                "><b>{{ ent.Accuracy|floatformat:2 }}%</b></div>
+                <div class="col-1"></div>
+                <div class="col-1"></div>
+                {% if variation != 'REQ' %}
+                <div class="col-1">
+                    <button type="button" class="btnSchCt" value="{{ ent.Material_id }}"><small>Schedule Count</small></button>
+                </div>
+                {% endif %}
+            </div>
+            <div class="row g-0">
+                Scheduled Counter: {{ ent.SchedCounter|default:'----' }}
+                {% if ent.Requestor  %}
+                    | Requestor: {{ ent.Requestor }} | RequestFilled: {{ ent.RequestFilled|yesno|upper }}
+                {% endif %}
+            </div>
+            {% if ent.ReasonScheduled %}
+            <div class="row g-0 small">
+                <div class="col"><b>Reason Scheduled: </b>{{ ent.ReasonScheduled }}</div>
+            </div>
+            {% endif %}
+            {% if ent.SchedNotes %}
+            <div class="row g-0 small">
+                <div class="col"><b>Schedule Notes: </b>{{ ent.SchedNotes }}</div>
+            </div>
+            {% endif %}
+            {% if not forloop.last %}
+            <hr>
+            <div class="row g-0 calvin-smalltext">
+                <div class="col-1">Count Date</div>
+                <div class="col-1">Cyc Ct ID</div>
+                <div class="col-2">Material</div>
+                <div class="col-3">Counter</div>
+                <div class="col-1">BLDG</div>
+                <div class="col-1">LOCATION</div>
+                <div class="col-1">PKG ID / Desc</div>
+                <div class="col-1">TAG QTY</div>
+            </div>
+            {% endif %}
+            {% else %}
+                Unknown lineout.type {{ ent.type }}<br>
+            {% endif %}
+        {% endfor %}
+        <hr>
+    {% endfor %}
+</div>
+
+<div class="container">
+    <!-- form footer -->
+    <hr>
+    <div class="container">
+        <div class="row mx-auto max-width=100%">
+            <div class="col-8"></div>
+            <div class="col-2">
+                <button id="swap_prt_disp_btn" type="button" onclick="swap_prt_disp();">Print Version</button>
+            </div>
+            <div class="col-2">
+                <button id="close_btn" type="button">
+                    <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                    Close Form
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    var mainscroll = "height:350px; overflow:auto;"
+
+    //---------
+
+    document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
+        }
+
+    //---------
+
+    function confirmLeave(){
+        // this is not an input form; we're always ready to leave
+        return true;
+    };
+
+    //---------
+
+    document.getElementById("close_btn").addEventListener("click",
+        function(evobj){
+            if (confirmLeave()) {
+                window.close()
+            }
+        });
+
+    //---------
+
+    $(".btnSchCt").on("click",
+        function() {
+            dVal = (new Date())                         // today
+            dVal.setDate(dVal.getDate()+1)              // tomorrow
+            dVal = dVal.toISOString().substring(0,10)   // make it a string
+
+            thisMtlGPN = this.value
+
+            newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
+            newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
+            newRec = newRec.replace("/passedCountDate","/"+dVal);
+            window.open(newRec,'_blank')
+        });
+
+    //---------
+
+    function newCtDate() {
+        {% if variation is None %}
+        var newRec = "{% url 'CountSummaryReport' 'PCD' %}".replace('/PCD','/'+$('#CtDate').val())
+        {% else %}
+        var newRec = "{% url 'CountSummaryReport-v' 'VARI' 'PCD' %}".replace('/PCD','/'+$('#CtDate').val()).replace('/VARI','/{{variation}}')
+        {% endif %}
+        window.location = newRec;
+    }
+
+    //---------
+
+    function swap_prt_disp() {
+        // remove scroll from mainReport so it can be printed or put it back for a scrolling window
+        let scrollval = $("#mainReport").attr("style");
+        if (scrollval==undefined) {
+            $("#mainReport").attr("style",mainscroll)
+            $("#swap_prt_disp_btn").html("Print Version")
+        } else {
+            $("#mainReport").removeAttr("style")
+            $("#swap_prt_disp_btn").html("Display Version")
+        }
+    }
+
+</script>
+
+{% endblock %}
+

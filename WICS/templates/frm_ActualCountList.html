@@ -1,0 +1,156 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load evaluate_arithmetic %}
+{% load static %}
+
+{# I gotta clean this template up too... #}
+
+{% block tTitle %}Actual Counts{% endblock %}
+
+{% block boddy %}
+<div class="container text-center mx-auto">
+<div class="row">
+    <div class="col-5 fs-3 text-end">
+        Actual Count Records
+    </div>
+    <div class="col-5 text-start">
+        <img src={% static 'WICS-Logo.png' %} width="200" height="100">
+    </div>
+<div class="col-2 text-end"> {{ user.get_full_name }} </div>
+</div>
+<!-- header row -->
+<div class="row g-0">
+    <div class="col-1"></div>
+    <div class="col-7 text-start">
+        Count Date | Counter | Material | BLDG_LOCATION | Counted Quantity
+    </div> 
+    <div class="col-4">Notes</div>
+</div>
+<hr>
+<div class="container" style="height:350px; overflow-y:auto; overflow-x:clip">
+    {% for itm in ActCtList %}
+    <div class="row g-0">
+        <div class="col-1">
+            {{ itm.id }}  
+        </div>
+        <div class="col-6 text-start">
+            {{ itm.CountDate }} | 
+            {{ itm.Counter }} |
+            {{ itm.Material }} |
+            {{ itm.BLDG }}_{{ itm.LOCATION }} |
+            {% if not itm.LocationOnly %}
+                {{ itm.CTD_QTY_Expr }} = {{ itm.CTD_QTY_Expr|eval_arith }}
+            {% else %}
+                <b>LOCATION ONLY</b>
+            {% endif %}
+        </div>
+        <div class="col-4 text-start">{{ itm.Notes }}</div>
+        <div class="col-1">
+            <button id="edit{{ itm.id }}" class="edit" value="{{ itm.id }}" type="button">Edit</button>
+            <button id="remv{{ itm.id }}" class="remv" value="{{ itm.id }}" type="button">Remove</button>
+        </div>
+    </div>
+    <hr>
+    {% endfor %}
+</div>
+
+<!-- form footer -->
+<hr>
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-2">
+            <button 
+                id="add_btn" 
+                type="button">
+                <img src="{% static 'addition-color-outline-icon.svg' %}" width="20" height="20"></img>
+                Add New Count
+            </button>
+        </div>
+        <div class="col-8">
+        </div>
+        <div class="col-2">
+            <button 
+                id="close_btn" 
+                type="button" 
+                onclick="window.close();">
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                Close Form
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div class="modal-sm fade" id="modalRemvCheck" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h4 class="modal-title" id="modal_title"></h4>
+        </div>
+        <div class="modal-body" id="modal_question">
+        </div>
+        <div class="modal-footer">
+        <form>
+            <input type="hidden" name="RecNum"></input>
+            <fieldset>
+            <button type="button" class="btn btn-default" name="killRec" value="false" data-dismiss="modal">No</button>
+            <button type="button" class="btn"             name="killRec" value="true"  data-dismiss="modal">Yes, abandon changes</button>
+            <!-- Allow form submission with keyboard without duplicating the dialog button -->
+            <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+            </fieldset>
+        </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    function leavequestion_chosen() {
+        var delRec = $("#modalRemvCheck").find( "form" ).find("[name='killRec']").val()
+        if (delRec) {
+            fn_postclosecheck();
+        }
+    }
+    $("#modalRemvCheck").find( "form" ).on( "submit", function( event ) {
+        event.preventDefault();
+        leavequestion_chosen($("#modalRemvCheck").find( "form" ).find("[name='RecNum']").val());
+    });
+
+    $(".edit").on("click",loadCountEntryRec)
+
+    function loadCountEntryRec(event) {
+        R = parseInt(this.value)
+
+        newRec = "{% url 'CountEntryFormGo' 0 %}"
+        newRec = newRec.replace("/0","/"+R);
+        window.open(newRec,'_blank');
+
+    };
+
+    $("#add_btn").on("click",addNewCountEntryRec)
+
+    function addNewCountEntryRec(event) {
+        newRec = "{% url 'CountEntryForm' %}"
+        window.open(newRec,'_blank');
+    };
+
+    $(".remv").on("click",remvCountEntryRec)
+
+    //TODO: fix me!! Implement record deletes
+    function remvCountEntryRec(event) {
+        R = parseInt(this.value)
+
+        fn_postclosecheck = doRemove
+        document.getElementById("modal_title").innerHTML = "Remove Record?"
+        document.getElementById("modal_question").innerHTML = "Are you sure you want to remove count record ".concat(R).concat("?")
+        $("#modalRemvCheck").find( "form" ).find("[name='RecNum']").val(R)
+
+        $('#modalRemvCheck').modal();
+    };
+    function doRemove(RecNum) {
+        alert("The delete option will be done later...")
+    };
+</script>
+
+{% endblock %}

@@ -1,0 +1,119 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{# I gotta clean this template up too... #}
+
+
+{% block tTitle %}Material By Part Type{% endblock %}
+
+{% block boddy %}
+<div class="container text-center mx-auto">
+    <div class="row">
+        <div class="col-5 text-end">
+            <h4>Material By Part Type</h4>
+            SAP Date = {{ SAPDate }}
+       </div>
+        <div class="col-5 text-start">
+            <img src={% static 'WICS-Logo.png' %} width="200" height="100">
+        </div>
+        <div class="col-2 text-end"> {{ user.get_full_name }} </div>
+    </div>
+</div>
+<!-- header row -->
+<!--
+<div class="row">
+    <div class="col-1"></div>
+    <div class="col-3"></div> 
+    <div class="col-3"></div>
+    <div class="col-1"></div>
+    <div class="col-3"></div>
+</div>
+-->
+<div class="row">
+    <div class="col-1"></div>
+    <div class="col-9">
+        ID |
+        Material Num | 
+        Last Count Date |
+        Last Found At |
+        SAP Qty |
+        Notes
+    </div>
+</div>
+<hr>
+<div id="mainReport" class="container" style="height:350px; overflow-y:auto; overflow-x:hidden;">
+    <ul>
+    {% for itm in MatlList %}
+        {% if itm.enumerate_in_group == 1 %}
+            <h3><u>{{ itm.PartType }}</u></h3>
+        {% endif %}
+        <div class="row">
+            <div class="col-9">
+            {{ itm.id }} |
+            {{ itm.Material }} | 
+            {{ itm.LFADate }} |
+            {{ itm.LFALocation }} |
+            {% if itm.SAPQty %}
+                SAPQty = {{ itm.SAPQty }} |
+            {% else %}
+                <b>No SAP Qty</b> |
+            {% endif %}
+            {{ itm.Notes }}
+            </div>
+            <div class="col-2"><button id="SchedCt{{ itm.id }}" class="SchedCt" value="{{ itm.Material }}" type="button">Schedule Count</button></div>
+        </div>
+    <hr>
+    {% endfor %}
+    </ul>
+</div>
+
+<!-- form footer -->
+<hr>
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-8"></div>
+        <div class="col-2">
+            <button id="swap_prt_disp_btn" type="button" onclick="swap_prt_disp();">Print Version</button>
+        </div>
+        <div class="col-2">
+            <button 
+                id="close_btn" 
+                type="button" 
+                onclick="window.close();">
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                Close Form
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    var mainscroll = "height:350px; overflow-y:auto; overflow-x:hidden;"
+
+    function swap_prt_disp() {
+        // remove scroll from mainReport so it can be printed or put it back for a scrolling window
+        let scrollval = $("#mainReport").attr("style");
+        if (scrollval==undefined) {
+            $("#mainReport").attr("style",mainscroll)
+            $("#swap_prt_disp_btn").html("Print Version")
+        } else {
+            $("#mainReport").removeAttr("style")
+            $("#swap_prt_disp_btn").html("Display Version")
+        }
+    }
+
+    $(".SchedCt").on("click",
+        function() {
+            dVal = (new Date()).toISOString().substring(0,10)
+
+            newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
+            newRec = newRec.replace("/passedMatlNum","/"+this.value);
+            newRec = newRec.replace("/passedCountDate","/"+dVal);
+            window.open(newRec,'_blank')
+        });
+
+
+</script>
+
+{% endblock %}

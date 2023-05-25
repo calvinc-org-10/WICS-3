@@ -1,0 +1,129 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{# I gotta clean this template up too... #}
+
+{% block tTitle %}Count Schedule{% endblock %}
+
+{% block boddy %}
+<div class="container text-center mx-auto">
+<div class="row">
+    <div class="col-5 fs-3 text-end">
+        Count Schedule Records
+    </div>
+    <div class="col-5 text-start">
+        <img src={% static 'WICS-Logo.png' %} width="200" height="100">
+    </div>
+<div class="col-2 text-end"> {{ user.get_full_name }} </div>
+</div>
+<!-- header row -->
+<div class="row g-0">
+    .......
+    <div class="col-3">
+        Count Date | Counter | Material
+    </div> 
+    <div class="col-2">
+        Priority | Reason Sched.
+    </div>
+    <div class="col-4">Notes</div>
+</div>
+<hr>
+<div class="container" style="height:350px; overflow: auto;">
+    {% for itm in CtSchdList %}
+    <div class="row g-0">
+        {{ itm.id }}
+        <div class="col-3">
+            {{ itm.CountDate }} | 
+            {{ itm.Counter }} |
+            {{ itm.Material }} |
+        </div> 
+        <div class="col-2">
+            {{ itm.Priority }} |
+            {{ itm.ReasonScheduled }}
+        </div>
+        <div class="col-1">
+        </div>
+        <div class="col-4">{{ itm.Notes }}</div>
+        <div class="col-1">
+            <button id="edit{{ itm.id }}" class="edit" value="{{ itm.id }}" type="button">Edit</button>
+            <button id="remv{{ itm.id }}" class="remv" value="{{ itm.id }}" type="button">Remove</button>
+        </div>
+    </div>
+    <hr>
+    {% endfor %}
+</div>
+
+<!-- form footer -->
+<hr>
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-2">
+            <button 
+                id="add_btn" 
+                type="button">
+                <img src="{% static 'addition-color-outline-icon.svg' %}" width="20" height="20"></img>
+                Add Schedule Entry
+            </button>
+        </div>
+        <div class="col-8">
+        </div>
+        <div class="col-2">
+            <button 
+                id="close_btn" 
+                type="button" 
+                onclick="window.close();">
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                Close Form
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    //---------------------------
+
+    $(".edit").on("click",loadCountEntryRec)
+
+    function loadCountEntryRec(event) {
+
+        R = parseInt(this.value)
+
+        newRec = "{% url 'CountScheduleFormGo' 0 %}"
+        newRec = newRec.replace("/0","/"+R);
+        window.open(newRec,'_blank');
+
+    };
+
+    //----------------------------
+
+    $(".remv").on("click",remvCountEntryRec)
+
+    //TODO: fix me!! Implement record deletes
+    function remvCountEntryRec(event) {
+        R = parseInt(this.value)
+
+        fn_postclosecheck = doRemove
+        document.getElementById("modal_title").innerHTML = "Remove Record?"
+        document.getElementById("modal_question").innerHTML = "Are you sure you want to remove count record ".concat(R).concat("?")
+        $("#modalRemvCheck").find( "form" ).find("[name='RecNum']").val(R)
+
+        $('#modalRemvCheck').modal();
+    };
+    function doRemove(RecNum) {
+        alert("The delete option will be done later...")
+    };
+
+    //----------------------------
+
+    $("#add_btn").on("click",addNewCountEntryRec)
+
+    function addNewCountEntryRec(event) {
+        newRec = "{% url 'CountScheduleForm' %}"
+        window.open(newRec,'_blank')
+        };
+
+</script>
+
+{% endblock %}

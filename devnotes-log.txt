@@ -1,0 +1,96 @@
+2023-04-20 Real start of the real rewrite
+- remove org everywhere except Material.  str(Material) should include the org if Material exists in more than one org
+- for port -- massive db changes, so copy db to archive, then do migrations
+
+2023-04-22 Migrations done on db wicsv3dev
+
+2023-04-24 Ryan requested #33 with a deadline of 05-05.  This may have to be pushed to production before WICS3
+*** add org to CountEntry Spreadsheet for Material with more than one org (#1)
+
+changed files:
+WICS/models.py   ## DO MIGRATIONS!!!!! (#1 #3 #6 #11)
+initdata/WICS VIEWS.sql (#3)
+    moved to WICS/dbVIEWS.sql and modified to reflect changes in models.py
+WICS/procs_SAP.py
+    (so far, just a TODO comment added)
+userprofiles/templates/Uaffirm.html (#4)
+userprofiles/login.py (#15)
+cMenu/models.py   (#1 #3)
+    fixed django UniqueConstraint args. Remigrated.
+WICS/forms.py   # may need more changes   (#1)
+WICS/procs_ActualCounts.py  # may need more changes (#1 #3)
+WICS/views.py     # may need more changes (#5 #1 #3)
+WICS/procs_CountSchedule.py   # may need more changes (#1 #3)
+WICS/templates/frm_CountEntry.html    # may need more changes (#5 #1 #3)
+WICS/templates/frm_CountScheduleRec.html (#5 #1 #3)
+
+WICS-3 issues handled:
+#6 #1 #3 #11 #4 #15 #5 #2
+issues NOT handled:
+#7 #8 #14 #20 #30 #32 (#38: Matl lookup wait spinner) (#39: container vs container-fluid/Redesign for mobile) #37
+
+======================================================
+======================================================
+======================================================
+
+2023-04-17 stuff I broke that I need to fix ASAP
+frm_CountEntry.html: slowdown in part # verification now at form load.
+  try this: load Map on server (have fnCountEntryForm pass Matl list in the context, build Map in template)
+            load options from map in document.body unload (mebbe, mebbe not - think on this)
+            rest of code should be ok with minor changes
+
+Goals for 2023 Mar 10-13 Material Form rework
+(this will be a template/test to propagate to all code)
+- Tie close event to confirm dialog  -- DONE
+- Move modals to Bootstrap
+- No jquery -- DONE
+
+2023 Mar 15
+Can't get Bootstrap modals to work.  But guess what? Bootstrap is dependent on jQuery!  So there's no point in killing my jQuery code, plus (after some trial/error) jQuery UI modals DO work
+Note that the best (only?) way of getting text into a jQuery modal is through document.findbyElementId().innerHTML.  Without setting the text this way, jQuery modals act wierd/won't work
+Plastered the WICS Logo/favicon in login screen, menu screen and Material Form, and, of course, WICS_common
+
+=================================================
+
+2022 Dec 10-12
+Material Form:
+  changed presentation of GoTo Material dropdown so that it looks like a real dropdown (it's actually a <input type="list"> with a "dropdown" graphic and a few strategic event handlers)
+  TODO: do same in CountEntry
+  ActualCount and CountSchedule subforms - order by descending date
+  Cleaned up look and feel of subforms (field ordering, width, etc), part 1.  More needs to be done
+  Auto-calculate quantities on actual counts
+Count Entry form:
+  Removed GoToRec from this form.  Too expensive to load list of ALL count records
+
+2022 Dec 12 - commit to Matl-CountEnt fork
+2022 Dec 13 - merge Matl-CountEnt (so far) with main
+2022 Dec 13-14 - migrate home development env: db --> local MariaDB, master code on GitHub, changes through fetches, etc
+2022 Dec 14 - handle empty tables (triggered by migration noted above) in MaterialForm
+
+2022 Dec 15-16
+change presentation of dropdowns in CountEntry (see Material Form)
+When entering Material in Count Entry form, pass it in as string
+Make sure Javascript date is really a Date object before calling its methods
+pretty up Count Entry form
+Implement the navigation buttons on Count Entry fm
+
+2022 Dec 17 
+Getting Count Entry form to properly save is harder than I thought!!
+Got it to save new records.  Needs more work, which must come later
+
+2022 Dec 18-22
+Got Count Entry behaving (pretty much).  For new records, disable data fields until Count Date and Material given, for existing records, disallow Count Date or Material changes
+Saving Count Entry records/changes works now
+Added flds on Count Entry which are needed, continued to work on "pretty" placement
+Force Material to be a valid choicelist
+
+
+MISC NOTES:
+When importing initial records, store blank char fields as '', not null.  That way, they won't flag as changed if another field is.  Most notable in Notes field
+
+
+TODO:
+Review ALL code and clean it up - developing while learning has made me write a lot of patchy and nasty-looking code
+Implement buttons: Abandon Changes, Delete Record
+BUGFIX: If new rec, Material chosen, then erased, erasure is not caught, and data fields are not disabled
+

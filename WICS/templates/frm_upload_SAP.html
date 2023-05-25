@@ -1,0 +1,88 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block tTitle %}Upload SAP File{% endblock %}
+
+{% block boddy %}
+    <div class="container text-center mx-auto">
+    <div class="row">
+        <div class="col-6 fs-3 text-end">
+            <br>
+            Upload SAP MB52 Spreadsheet
+        </div>
+        <div class="col-4 text-start">
+            <img src={% static 'WICS-Logo.png' %} width="200" height="100">
+        </div>
+        <div class="col-2 text-end"> {{ user.get_full_name }} </div>
+    </div>
+    <div class="row"> <!-- status messages -->
+        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+    </div>
+    </div>
+    <hr>
+
+    {{ form.errors }}
+    <hr>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        <p>Last Upload was <span class="h4"> {{ LastSAPUploadDate|date:'Y-m-d' }}</span></p>
+        <p>This upload will have date: {{ form.uploaded_at }} (if an existing upload exists for this date, it will be overwritten)</p>
+        <p>{{ form.SAPFile }}</p>
+
+        <!-- form footer -->
+        <div class="container">
+            <div class="row mx-auto max-width=100%">
+                <div class="col-4">
+                    <button id="save_btn" type="submit">
+                        <img src="{% static 'upload-outbox-line-icon.svg' %}" width="20" height="20"></img>
+                        Upload
+                    </button>
+                </div>
+                <div class="col-6"></div>
+                <div class="col">
+                    <button id="close_btn" type="button">
+                        <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                        Close Form
+                    </button>
+                </div>
+            </div>
+        </div>
+
+  </form>
+
+    <script>
+        // JAVASCRIPT DATES SUCK!!!!!!
+
+
+        // expand this one day - this could be useful - Fix it first!!!
+        function dtstr(dt = Date(), fmt = "YYYY-MM-DD")
+        {
+            dt = (dt == undefined) ? Date() : dt;   // how do I move dt to localtime??? - easy - by not introducing syntax errors!
+            if (typeof(dt) == 'string') { dt = new Date(dt) }
+            d_str = fmt
+            d_str = d_str.replaceAll('YYYY',("0000"+dt.getFullYear()).slice(-4))
+            d_str = d_str.replaceAll('MM',("00"+(dt.getMonth()+1)).slice(-2))
+            d_str = d_str.replaceAll('DD',("00"+dt.getDate()).slice(-2))
+            //d_str = d_str.replaceAll('HH',("00"+dt.getHours()).slice(-2))
+            //d_str = d_str.replaceAll('NN',("00"+dt.getMinutes()).slice(-2))
+            //d_str = d_str.replaceAll('SS',("00"+dt.getSeconds()).slice(-2))
+            // if new_dt = Date(d_str) is invalid, replace with dt.toString()
+            return d_str
+        }
+
+        document.getElementById("id_uploaded_at").value = dtstr()   // find a way to use {{form.uploaded_at.id}}
+        // document.getElementById("id_uploaded_at").value = new Date().toLocaleTimeString()   // find a way to use {{form.uploaded_at.id}}
+
+        document.body.onbeforeunload = function() {
+            document.getElementById("wait_spinner").style.display = "block";
+            }
+
+        document.getElementById("close_btn").addEventListener("click",
+            function(){
+                window.close();
+            });
+
+    </script>
+
+{% endblock %}

@@ -1,0 +1,92 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block tTitle %}Update Material List from SAP Spreadsheet{% endblock %}
+
+{% block boddy %}
+<div class="container text-center mx-auto">
+    <div class="row">
+        <div class="col-5 fs-3 text-end">
+            <br>
+            Update Material List Finished
+        </div>
+        <div class="col-5 text-start">
+            <img src={% static 'WICS-Logo.png' %} width="200" height="100">
+        </div>
+        <div class="col-2 text-end"> {{ user.get_full_name }} </div>
+    </div>
+    <div class="row"> <!-- status messages -->
+        <div id="wait_spinner" class="spinner-border text-success" style="display:none"> Processing... </div>
+    </div>
+</div>
+<hr>
+{% if ImpErrList %}
+<hr>
+<b>Errors:</b>
+<ul>
+    {% for err in ImpErrList %}
+    <li>
+        <b>{{ err }}</b>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}
+<hr>
+Material Added:
+<ul>
+    {% for rec in AddedMatls %}
+        <li>
+        {{ rec.orgname }} -
+        {{ rec.Material }} - 
+        {{ rec.Description }} - 
+        {{ rec.SAPMaterialType }} -
+        {{ rec.SAPMaterialGroup }} -
+        {{ rec.Price }} -
+        {{ rec.PriceUnit }}
+        </li>
+    {% endfor %}
+</ul>
+<hr>
+Material Removed:
+<ul>
+    {% for rec in RemvdMatls %}
+        <li>
+        {{ rec.org }} -
+        {{ rec.Material }} - 
+        {{ rec.Description }}
+        </li>
+    {% endfor %}
+</ul>
+
+<!-- form footer -->
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-4">
+            <input type="hidden" name="NextPhase" value="99-DONE"></input>
+        </div>
+        <div class="col-6"></div>
+        <div class="col">
+            <button id="close_btn" type="button">
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                Close Form
+            </button>
+        </div>
+    </div>
+</div>
+<script>
+
+    /****
+     document.body.onbeforeunload = function() {
+        document.getElementById("wait_spinner").style.display = "block";
+        }
+    ****/
+
+    document.getElementById("close_btn").addEventListener("click",
+        function(){
+            window.close();
+        });
+
+</script>
+
+{% endblock %}
