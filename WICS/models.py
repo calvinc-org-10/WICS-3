@@ -64,7 +64,7 @@ class MaterialList(models.Model):
             return str(self.Material)
 class tmpMaterialListUpdate(models.Model):
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True, null=True)
-    Material = models.CharField(primary_key=True, max_length=100, blank=False)
+    Material = models.CharField(max_length=100, blank=False)
     MaterialLink = models.ForeignKey(MaterialList, on_delete=models.RESTRICT, blank=True, null=True)
     Description = models.CharField(max_length=250, blank=True)
     Plant = models.CharField(max_length=20, blank=True, default='')
