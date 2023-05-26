@@ -1,4 +1,3 @@
-# import dateutil.utils as dateutils
 from django.contrib.auth.decorators import login_required
 from django.db.models import OuterRef, Subquery, Exists, Value
 from django.forms import modelformset_factory
@@ -18,7 +17,6 @@ def fnCountEntryView(req,
             ):
 
     # the string 'None' is not the same as the value None
-    #if MatlNum=='None': MatlNum=None
     if MatlNum=='None': MatlNum=0
     if gotoCommand=='None': gotoCommand=None
 

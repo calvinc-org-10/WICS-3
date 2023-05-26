@@ -1,17 +1,13 @@
 import re as regex
-# from django import forms
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Value
 from django.db.models.query import QuerySet
 from django.http import HttpResponse, HttpRequest
-# from django.shortcuts import render
 from django.views.generic import ListView
 from barcode import Code128
 from userprofiles.models import WICSuser
-# from WICS.forms import CountScheduleRecordForm, RelatedMaterialInfo
 from WICS.models import MaterialList, CountSchedule
-# from WICS.models import WhsePartTypes
 from WICS.models import LastFoundAt, WorksheetZones, Location_WorksheetZone
 from WICS.procs_SAP import fnSAPList
 from typing import *

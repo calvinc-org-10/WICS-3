@@ -3,7 +3,6 @@ from django import forms
 from cMenu.utils import calvindate
 from WICS.models import MaterialList, ActualCounts, CountSchedule, WhsePartTypes
 from WICS.procs_misc import HolidayList
-from userprofiles.models import WICSuser
 
 
 class CountEntryForm(forms.ModelForm):

@@ -1,7 +1,6 @@
 import datetime
 from datetime import MINYEAR
 from operator import attrgetter
-#import dateutil.utils
 from django import forms, urls
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
