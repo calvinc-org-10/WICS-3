@@ -14,7 +14,7 @@ from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate
 from mathematical_expressions_parser.eval import evaluate
 from openpyxl import load_workbook
 from openpyxl.utils.datetime import from_excel, WINDOWS_EPOCH
-from WICS.models import ActualCounts, MaterialList, CountSchedule
+from WICS.models import ActualCounts, MaterialList, CountSchedule, Organizations
 from WICS.procs_SAP import fnSAPList
 
 
@@ -349,6 +349,8 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
             outputline['CycCtID'] = rawrow.ac_CycCtID
             outputline['Material'] = rawrow.Matl_PartNum
             outputline['Material_id'] = rawrow.matl_id
+            outputline['org_id'] = rawrow.org_id
+            outputline['orgName'] = rawrow.OrgName
             outputline['ActCounter'] = rawrow.ac_Counter
             outputline['BLDG'] = rawrow.ac_BLDG
             outputline['LOCATION'] = rawrow.ac_LOCATION
@@ -374,9 +376,9 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
         #end def DetailLine
         
         outputrows = []
-        lastrow = {'Material': None}
+        lastrow = {'Material_id': None}
         for rawrow in raw_qs:
-            if rawrow.Matl_PartNum != lastrow['Material']:     # new Matl
+            if rawrow.matl_id != lastrow['Material_id']:     # new Matl
                 if outputrows:
                     outputrows.append(SummaryLine(lastrow))
                 # no else -  if outputrows is empty, this is the first row, so keep going
@@ -401,86 +403,92 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
         
     ### main body of fnCountSummaryRpt
 
-    fldlist = "0 as id, cs.id as cs_id, cs.CountDate as cs_CountDate , cs.Counter as cs_Counter" \
-        ", cs.Priority as cs_Priority, cs.ReasonScheduled as cs_ReasonScheduled" \
-        ", cs.Requestor, cs.RequestFilled" \
-        ", cs.Notes as cs_Notes" \
-        ", ac.id as ac_id, ac.CountDate as ac_CountDate, ac.CycCtID as ac_CycCtID, ac.Counter as ac_Counter" \
-        ", ac.LocationOnly as ac_LocationOnly, ac.CTD_QTY_Expr as ac_CTD_QTY_Expr, ac.BLDG as ac_BLDG" \
-        ", ac.LOCATION as ac_LOCATION, ac.PKGID_Desc as ac_PKGID_Desc, ac.TAGQTY as ac_TAGQTY" \
-        ", ac.FLAG_PossiblyNotRecieved, ac.FLAG_MovementDuringCount, ac.Notes as ac_Notes" \
-        ", mtl.id as matl_id" \
-        ", mtl.Material as Matl_PartNum, (SELECT WhsePartType FROM WICS_whseparttypes WHERE id=mtl.PartType_id) as PartType" \
-        ", mtl.Description, mtl.TypicalContainerQty, mtl.TypicalPalletQty, mtl.Notes as mtl_Notes"
-    if isDate(passedCountDate): datestr = WrapInQuotes(passedCountDate,"'","'")
-    else: datestr = passedCountDate
-    date_condition = '(ac.CountDate = ' + datestr + ' OR cs.CountDate = ' + datestr + ') '
-    order_by = 'Matl_PartNum'
-
     SummaryReport = []
 
-    A_Sched_Ctd_from = 'WICS_countschedule cs INNER JOIN WICS_materiallist mtl INNER JOIN WICS_actualcounts ac'    
-    A_Sched_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id AND ac.Material_id=mtl.id'    
-    A_Sched_Ctd_where = ''
-    if Rptvariation == 'REQ':
-        if A_Sched_Ctd_where:  A_Sched_Ctd_where += ' AND ' 
-        A_Sched_Ctd_where += 'Requestor IS NOT NULL'
-    A_Sched_Ctd_sql = 'SELECT ' + fldlist + \
-        ' FROM ' + A_Sched_Ctd_from + \
-        ' ON ' + A_Sched_Ctd_joinon + \
-        ' WHERE NOT ac.LocationOnly AND ' + date_condition
-    if A_Sched_Ctd_where:
-        A_Sched_Ctd_sql += ' AND ' + A_Sched_Ctd_where
-    A_Sched_Ctd_sql += ' ORDER BY ' + order_by
-    A_Sched_Ctd_qs = CountSchedule.objects.raw(A_Sched_Ctd_sql)
-    # build display lines
-    ttl = 'Scheduled and Counted'
-    if Rptvariation == 'REQ':
-        ttl = 'Requested and Counted'            
-    SummaryReport.append({
-                'Title':ttl,
-                'outputrows': CreateOutputRows(A_Sched_Ctd_qs)
-                })
+    for org in Organizations.objects.all():
+        # group by org_id
+        fldlist = "0 as id, cs.id as cs_id, cs.CountDate as cs_CountDate , cs.Counter as cs_Counter" \
+            ", cs.Priority as cs_Priority, cs.ReasonScheduled as cs_ReasonScheduled" \
+            ", cs.Requestor, cs.RequestFilled" \
+            ", cs.Notes as cs_Notes" \
+            ", ac.id as ac_id, ac.CountDate as ac_CountDate, ac.CycCtID as ac_CycCtID, ac.Counter as ac_Counter" \
+            ", ac.LocationOnly as ac_LocationOnly, ac.CTD_QTY_Expr as ac_CTD_QTY_Expr, ac.BLDG as ac_BLDG" \
+            ", ac.LOCATION as ac_LOCATION, ac.PKGID_Desc as ac_PKGID_Desc, ac.TAGQTY as ac_TAGQTY" \
+            ", ac.FLAG_PossiblyNotRecieved, ac.FLAG_MovementDuringCount, ac.Notes as ac_Notes" \
+            ", mtl.id as matl_id, mtl.org_id, mtl.OrgName" \
+            ", mtl.Material_org as Matl_PartNum, mtl.PartType as PartType" \
+            ", mtl.Description, mtl.TypicalContainerQty, mtl.TypicalPalletQty, mtl.Notes as mtl_Notes"
+        if isDate(passedCountDate): datestr = WrapInQuotes(passedCountDate,"'","'")
+        else: datestr = passedCountDate
+        org_condition = '(mtl.org_id = ' + str(org.pk) + ')'
+        date_condition = '(ac.CountDate = ' + datestr + ' OR cs.CountDate = ' + datestr + ') '
+        order_by = 'Matl_PartNum'
 
-    if Rptvariation is None:
-        B_UnSched_Ctd_from = 'WICS_countschedule cs RIGHT JOIN' \
-            ' (WICS_actualcounts ac INNER JOIN WICS_materiallist mtl ON ac.Material_id=mtl.id)'
-        B_UnSched_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id'
-        B_UnSched_Ctd_where = '(cs.id IS NULL)'
-        B_UnSched_Ctd_sql = 'SELECT ' + fldlist + ' ' + \
-            ' FROM ' + B_UnSched_Ctd_from + \
-            ' ON ' + B_UnSched_Ctd_joinon + \
-            ' WHERE NOT ac.LocationOnly AND ' + date_condition + \
-            ' AND ' + B_UnSched_Ctd_where + \
-            ' ORDER BY ' + order_by
-        B_UnSched_Ctd_qs = CountSchedule.objects.raw(B_UnSched_Ctd_sql)
+        A_Sched_Ctd_from = 'WICS_countschedule cs INNER JOIN VIEW_materials mtl INNER JOIN WICS_actualcounts ac'    
+        A_Sched_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id AND ac.Material_id=mtl.id'    
+        A_Sched_Ctd_where = ''
+        if Rptvariation == 'REQ':
+            if A_Sched_Ctd_where:  A_Sched_Ctd_where += ' AND ' 
+            A_Sched_Ctd_where += 'Requestor IS NOT NULL'
+        A_Sched_Ctd_sql = 'SELECT ' + fldlist + \
+            ' FROM ' + A_Sched_Ctd_from + \
+            ' ON ' + A_Sched_Ctd_joinon + \
+            ' WHERE NOT ac.LocationOnly AND ' + date_condition + ' AND ' + org_condition
+        if A_Sched_Ctd_where:
+            A_Sched_Ctd_sql += ' AND ' + A_Sched_Ctd_where
+        A_Sched_Ctd_sql += ' ORDER BY ' + order_by
+        A_Sched_Ctd_qs = CountSchedule.objects.raw(A_Sched_Ctd_sql)
+        # build display lines
+        ttl = 'Scheduled and Counted'
+        if Rptvariation == 'REQ':
+            ttl = 'Requested and Counted'            
         SummaryReport.append({
-                    'Title':'UnScheduled',
-                    'outputrows': CreateOutputRows(B_UnSched_Ctd_qs)
+                    'org':org,
+                    'Title':ttl,
+                    'outputrows': CreateOutputRows(A_Sched_Ctd_qs)
                     })
-    
-    C_Sched_NotCtd_Ctd_from = '(WICS_countschedule cs INNER JOIN WICS_materiallist mtl ON cs.Material_id=mtl.id)' \
-        ' LEFT JOIN WICS_actualcounts ac'
-    C_Sched_NotCtd_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id'
-    C_Sched_NotCtd_Ctd_where = '(ac.id IS NULL)'
-    if Rptvariation == 'REQ':
-        if C_Sched_NotCtd_Ctd_where:  C_Sched_NotCtd_Ctd_where += ' AND ' 
-        C_Sched_NotCtd_Ctd_where += '(Requestor IS NOT NULL)'
-    C_Sched_NotCtd_Ctd_sql = 'SELECT ' + fldlist + ' ' + \
-        ' FROM ' + C_Sched_NotCtd_Ctd_from + \
-        ' ON ' + C_Sched_NotCtd_Ctd_joinon + \
-        ' WHERE ' + date_condition
-    if C_Sched_NotCtd_Ctd_where:
-        C_Sched_NotCtd_Ctd_sql += ' AND ' + C_Sched_NotCtd_Ctd_where
-    C_Sched_NotCtd_Ctd_sql += ' ORDER BY ' + order_by
-    C_Sched_NotCtd_Ctd_qs = CountSchedule.objects.raw(C_Sched_NotCtd_Ctd_sql)
-    ttl = 'Scheduled but Not Counted'
-    if Rptvariation == 'REQ':
-        ttl = 'Requested but Not Counted'            
-    SummaryReport.append({
-                'Title':ttl,
-                'outputrows': CreateOutputRows(C_Sched_NotCtd_Ctd_qs, Eval_CTDQTY=False)
-                })
+
+        if Rptvariation is None:
+            B_UnSched_Ctd_from = 'WICS_countschedule cs RIGHT JOIN' \
+                ' (WICS_actualcounts ac INNER JOIN VIEW_materials mtl ON ac.Material_id=mtl.id)'
+            B_UnSched_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id'
+            B_UnSched_Ctd_where = '(cs.id IS NULL)'
+            B_UnSched_Ctd_sql = 'SELECT ' + fldlist + ' ' + \
+                ' FROM ' + B_UnSched_Ctd_from + \
+                ' ON ' + B_UnSched_Ctd_joinon + \
+                ' WHERE NOT ac.LocationOnly AND ' + date_condition + ' AND ' + org_condition + \
+                ' AND ' + B_UnSched_Ctd_where + \
+                ' ORDER BY ' + order_by
+            B_UnSched_Ctd_qs = CountSchedule.objects.raw(B_UnSched_Ctd_sql)
+            SummaryReport.append({
+                        'org':org,
+                        'Title':'UnScheduled',
+                        'outputrows': CreateOutputRows(B_UnSched_Ctd_qs)
+                        })
+        
+        C_Sched_NotCtd_Ctd_from = '(WICS_countschedule cs INNER JOIN VIEW_materials mtl ON cs.Material_id=mtl.id)' \
+            ' LEFT JOIN WICS_actualcounts ac'
+        C_Sched_NotCtd_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id'
+        C_Sched_NotCtd_Ctd_where = '(ac.id IS NULL)'
+        if Rptvariation == 'REQ':
+            if C_Sched_NotCtd_Ctd_where:  C_Sched_NotCtd_Ctd_where += ' AND ' 
+            C_Sched_NotCtd_Ctd_where += '(Requestor IS NOT NULL)'
+        C_Sched_NotCtd_Ctd_sql = 'SELECT ' + fldlist + ' ' + \
+            ' FROM ' + C_Sched_NotCtd_Ctd_from + \
+            ' ON ' + C_Sched_NotCtd_Ctd_joinon + \
+            ' WHERE ' + date_condition + ' AND ' + org_condition
+        if C_Sched_NotCtd_Ctd_where:
+            C_Sched_NotCtd_Ctd_sql += ' AND ' + C_Sched_NotCtd_Ctd_where
+        C_Sched_NotCtd_Ctd_sql += ' ORDER BY ' + order_by
+        C_Sched_NotCtd_Ctd_qs = CountSchedule.objects.raw(C_Sched_NotCtd_Ctd_sql)
+        ttl = 'Scheduled but Not Counted'
+        if Rptvariation == 'REQ':
+            ttl = 'Requested but Not Counted'            
+        SummaryReport.append({
+                    'org':org,
+                    'Title':ttl,
+                    'outputrows': CreateOutputRows(C_Sched_NotCtd_Ctd_qs, Eval_CTDQTY=False)
+                    })
     
     AccuracyCutoff = { 
                 'DANGER': float(getcParm('ACCURACY-DANGER')),
@@ -496,9 +504,6 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
             'AccuracyCutoff': AccuracyCutoff,
             'SummaryReport': SummaryReport,
             }
-            #'Sched_Ctd': A_Sched_Ctd_outputrows,
-            #'UnSched_Ctd': B_UnSched_Ctd_outputrows,
-            #'Sched_NotCtd':C_Sched_NotCtd_Ctd_outputrows,
     templt = 'rpt_CountSummary.html'
     return render(req, templt, cntext)
 

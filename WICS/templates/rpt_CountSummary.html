@@ -34,6 +34,14 @@
 
 <div id="mainReport" class="container-fluid mx-auto"  style="height:350px; overflow:auto;" >
     {% for RptSection in SummaryReport %}
+    {% ifchanged RptSection.org %}
+    {% if not forloop.first %}
+    </div>
+    {% endif %}
+        <div style="break-after: page;">
+        <h1><u> {{ RptSection.org.orgname }} </u></h1>
+        <br>
+    {% endifchanged %}
         <hr>
         <h3><u>{{ RptSection.Title }}</u></h3>
         <div class="row g-0 calvin-smalltext">
@@ -145,6 +153,7 @@
         <hr>
     {% endfor %}
 </div>
+</div>  <!-- to close open div for the last org -->
 
 <div class="container">
     <!-- form footer -->
