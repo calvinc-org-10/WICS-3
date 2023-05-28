@@ -144,7 +144,10 @@ def fnSAPList(for_date = calvindate().today(), matl = None):
 
     dateObj = calvindate(for_date) #.as_datetime().date()
 
-    LatestSAPDate = SAP_SOHRecs.objects.filter(uploaded_at__lte=dateObj).latest().uploaded_at
+    if SAP_SOHRecs.objects.filter(uploaded_at__lte=dateObj).exists():
+        LatestSAPDate = SAP_SOHRecs.objects.filter(uploaded_at__lte=dateObj).latest().uploaded_at
+    else:
+        LatestSAPDate = SAP_SOHRecs.objects.earliest().uploaded_at
     SAPLatest = VIEW_SAP.objects.filter(uploaded_at=LatestSAPDate).order_by('org_id', 'Material', 'StorageLocation')
 
     # if SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__lte=dateObj).exists():

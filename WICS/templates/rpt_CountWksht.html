@@ -36,6 +36,8 @@
             <img src={% static 'WICS-Logo.png' %} width="150" height="70">
         </div>
     </div>
+</div>
+<div class="container text-center mx-auto">
     <div class="row"> <!-- status messages -->
         <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
     </div>
@@ -45,6 +47,7 @@
 <!-- body -->
 
 <div class="container mx-1 px-1 max-width=100%">
+    {% comment %}     
     <ul class="nav nav-pills">
         {% for Cntr in CounterList %}
         <li class="nav-item">
@@ -54,12 +57,22 @@
         </li>
         {% endfor %}
     </ul>
-
+    {% endcomment %}
     <div class="tab-content mx-1 px-1 max-width=100%">
     {% for itm in CtSchd %}
         {% if itm.NewCounter %}
-            {% if not forloop.first %}</div>{% endif %}
-            <div class="tab-pane container{% if forloop.first %} active{% endif %}" id="_{{ itm.Counter|default:'--UNASSIGNED--'|slugify }}">
+            {% if not forloop.first %}<hr></div>{% endif %}
+            <div style="break-after: page;">
+            <div class="row max-width=100%">
+                <div class="col-10">
+                    <h2>
+                        {{ itm.Counter }} Counting Agenda/Worksheet for {{ CountDate|date:'Y-m-d' }}
+                    </h2>
+                </div>
+                <div class="col-2 text-end">
+                    <img src={% static 'WICS-Logo.png' %} width="150" height="70">
+                </div>
+            </div>
         {% endif %}
 
         <div class="row g-0 max-width=100%">
@@ -127,7 +140,7 @@
             </div>
         </div>
     <hr>
-    {% if forloop.last %}</div>{% endif %}
+    {% if forloop.last %}<hr></div>{% endif %}
     {% endfor %}
     </div>
 </div>
