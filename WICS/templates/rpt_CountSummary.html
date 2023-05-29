@@ -49,7 +49,6 @@
                     </div>
                     <h1><u> {{ RptSection.org.orgname }} </u></h1>
                 </div>    
-            <br>
         {% endifchanged %}
         <hr>
         <h3><u>{{ RptSection.Title }}</u></h3>
@@ -65,6 +64,7 @@
         </div>
         {% for ent in RptSection.outputrows %}
             {% if ent.type == 'Detail' %}
+            <div class="CtSummDetail">
             <div class="row g-0 calvin-smalltext">
                 <div class="col-1">{{ CountDate|date:"m/d" }}</div>
                 <div class="col-1">{{ ent.CycCtID }}</div>
@@ -90,6 +90,7 @@
                 {% if ent.MovDurCt %}<b>MOVEMENT DURING COUNT</b>{% endif %}
             </div>
             {% endif %}
+            </div>
             {% elif ent.type == 'Summary' %}
             <div>
                 <b>SAP:</b>
@@ -169,8 +170,9 @@
     <hr>
     <div class="container">
         <div class="row mx-auto max-width=100%">
-            <div class="col-8"></div>
-            <div class="col-2">
+            <div class="col-7"></div>
+            <div class="col-3">
+                <button id="swap_detail_disp_btn" type="button" class="d-print-none" onclick="swap_detail_disp();">Hide Detail</button>
                 <button id="swap_prt_disp_btn" type="button" class="d-print-none" onclick="swap_prt_disp();">Print Version</button>
             </div>
             <div class="col-2">
@@ -246,6 +248,20 @@
         } else {
             $("#mainReport").removeAttr("style")
             $("#swap_prt_disp_btn").html("Display Version")
+        }
+    }
+
+    //---------
+
+    function swap_detail_disp() {
+        // Hide/Show detail records
+        let detailvis = $(".CtSummDetail").attr("style");
+        if (detailvis==undefined) {
+            $(".CtSummDetail").css("display","none")
+            $("#swap_detail_disp_btn").html("Show Detail")
+        } else {
+            $(".CtSummDetail").removeAttr("style")
+            $("#swap_detail_disp_btn").html("Hide Detail")
         }
     }
 
