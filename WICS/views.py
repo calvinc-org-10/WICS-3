@@ -107,23 +107,43 @@ def fnCountEntryView(req,
     else:
         currRec = modelMain(CountDate=reqDate,Counter=req.user.get_short_name())
         matlRec = modelSubs[0].objects.none()
-        # TODO: later, do try..except blocks
+
+        # TODO: add protection against no records
+        recFirstPK = modelMain.objects.order_by('id').first().pk
+        recLastPK = modelMain.objects.order_by('id').last().pk
+        
+        if gotoCommand == 'New':
+            recNum = 0
         if gotoCommand == 'First':
-            # TODO: add protection against no records
-            recNum = modelMain.objects.order_by('id').first().pk
+            try:
+                recNum = recFirstPK
+            except:
+                recNum = 0
         elif gotoCommand == 'Last':
-            # TODO: add protection against no records
-            recNum = modelMain.objects.order_by('id').last().pk
+            try:
+                recNum = recLastPK
+            except:
+                recNum = 0
         elif gotoCommand == 'Prev':
             try:
-                recNum = modelMain.objects.filter(pk__lt=recNum).order_by('id').last().pk
-            except: # assume it's because we're already at first record.  don't go anywhere
-                pass
+                if recNum <= 0:
+                    recNum = recLastPK
+                elif recNum <= recFirstPK:
+                    recNum = recFirstPK
+                else:
+                    recNum = modelMain.objects.filter(pk__lt=recNum).order_by('id').last().pk
+            except:
+                recNum = 0
         elif gotoCommand == 'Next':
             try:
-                recNum = modelMain.objects.filter(pk__gt=recNum).order_by('id').first().pk
+                if recNum <= 0:
+                    recNum = recFirstPK
+                elif recNum >= recLastPK:
+                    recNum = recLastPK
+                else:
+                    recNum = modelMain.objects.filter(pk__gt=recNum).order_by('id').first().pk
             except:
-                pass
+                recNum = 0
         else:
             pass
 
@@ -304,26 +324,46 @@ def _fnCountSchedRecViewCommon(req, variation,
     else:
         currRec = modelMain(CountDate=reqDate, Requestor=req.user.get_short_name())
         matlRec = modelSubs[0].objects.none()
-        # TODO: later, do try..except blocks
+
+        # TODO: add protection against no records
+        recFirstPK = modelMain.objects.order_by('id').first().pk
+        recLastPK = modelMain.objects.order_by('id').last().pk
+        
+        if gotoCommand == 'New':
+            recNum = 0
         if gotoCommand == 'First':
-            # TODO: add protection against no records
-            recNum = modelMain.objects.order_by('id').first().pk
+            try:
+                recNum = recFirstPK
+            except:
+                recNum = 0
         elif gotoCommand == 'Last':
-            # TODO: add protection against no records
-            recNum = modelMain.objects.order_by('id').last().pk
+            try:
+                recNum = recLastPK
+            except:
+                recNum = 0
         elif gotoCommand == 'Prev':
             try:
-                recNum = modelMain.objects.filter(pk__lt=recNum).order_by('id').last().pk
-            except: # assume it's because we're already at first record.  don't go anywhere
-                pass
+                if recNum <= 0:
+                    recNum = recLastPK
+                elif recNum <= recFirstPK:
+                    recNum = recFirstPK
+                else:
+                    recNum = modelMain.objects.filter(pk__lt=recNum).order_by('id').last().pk
+            except:
+                recNum = 0
         elif gotoCommand == 'Next':
             try:
-                recNum = modelMain.objects.filter(pk__gt=recNum).order_by('id').first().pk
+                if recNum <= 0:
+                    recNum = recFirstPK
+                elif recNum >= recLastPK:
+                    recNum = recLastPK
+                else:
+                    recNum = modelMain.objects.filter(pk__gt=recNum).order_by('id').first().pk
             except:
-                pass
+                recNum = 0
         else:
             pass
-        
+
         incomingMatlRec = matlRec   # in case it's trying to be changed to an existing scheduled count
         if recNum:
             currRec = modelMain.objects.get(pk=recNum)
