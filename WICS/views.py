@@ -656,7 +656,9 @@ def fnRequestedCountEditListView(req, ShowFilledRequests = True):
         rec.hascounts = ActualCounts.objects.filter(Material=rec.Material,CountDate=rec.CountDate).exists()
 
     # display the form
-    cntext = {'frmMain': mainFm,
+    cntext = {
+            'frmMain': mainFm,
+            'ShowFilled': ShowFilledRequests,
             'changes_saved': changes_saved,
             'changed_data': chgd_dat,
             }

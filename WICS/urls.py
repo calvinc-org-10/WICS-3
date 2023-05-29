@@ -60,6 +60,8 @@ urlpatterns = [
             name='RequestCountScheduleForm'),
     path('RequestedCountListEdit',
             views.fnRequestedCountEditListView, name='RequestCountListEdit'),
+    path('RequestedCountListEdit/<int:ShowFilledRequests>',
+            views.fnRequestedCountEditListView, name='RequestCountListEditShowFilled'),
 
     path('CountSummaryRpt/v/REQ',
             procs_ActualCounts.fnCountSummaryReqRpt, name='CountSummaryReport-v-init'),
