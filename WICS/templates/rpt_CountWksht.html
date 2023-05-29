@@ -4,22 +4,19 @@
 
 {% block tTitle %}Counting Agenda/Worksheet{% endblock %}
 {# TODO: Find out why Desc and Last Found lines wrap incorrectly in print #}
-{% comment %}
 {% block tHeader %}
-<!--
 <style>
     @page {
-        // size: 11in 8.5in ;
+        size: letter portrait;
         margin: 0;
         padding: 0;
     }
 </style>
--->
 {% endblock %}
-{% endcomment %}
+
 {% block boddy %}
 <!-- menu head -->
-<div class="container text-center mx-auto">
+<div class="container text-center mx-auto d-print-none">
     <div class="row max-width=100%">
         <div class="col-10">
             <h2>
@@ -37,7 +34,7 @@
         </div>
     </div>
 </div>
-<div class="container text-center mx-auto">
+<div class="container text-center mx-auto d-print-none">
     <div class="row"> <!-- status messages -->
         <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
     </div>
@@ -46,7 +43,7 @@
 <hr>
 <!-- body -->
 
-<div class="container mx-1 px-1 max-width=100%">
+<div class="container mx-auto">
     {% comment %}     
     <ul class="nav nav-pills">
         {% for Cntr in CounterList %}
@@ -58,7 +55,6 @@
         {% endfor %}
     </ul>
     {% endcomment %}
-    <div class="tab-content mx-1 px-1 max-width=100%">
     {% for itm in CtSchd %}
         {% if itm.NewCounter %}
             {% if not forloop.first %}<hr></div>{% endif %}
@@ -121,7 +117,8 @@
         <div class="row g-0">
             <div class="col-11">
                 {{ CountDate|date:'Y-m-d' }} |
-                {{ itm.Material.PartType.WhsePartType }} | Prio: <b>{{ itm.Priority }}</b> |
+                {{ itm.Material.PartType.WhsePartType|default:"NO PART TYPE" }} | 
+                Prio: <b>{{ itm.Priority }}</b> |
                 Sched Counter: {{ itm.Counter }} |
                 {{ itm.Material.Description }}
             </div>
@@ -142,7 +139,6 @@
     <hr>
     {% if forloop.last %}<hr></div>{% endif %}
     {% endfor %}
-    </div>
 </div>
 
     <!-- form footer -->

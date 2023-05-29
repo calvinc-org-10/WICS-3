@@ -3,9 +3,18 @@
 {% load static %}
 
 {% block tTitle %}{% if variation == 'REQ' %}Requested {% endif %}Count Summary{% endblock %}
+{% block tHeader %}
+<style>
+    @page {
+        size: letter portrait;
+        margin: 0;
+        padding: 0;
+    }
+</style>
+{% endblock %}
 
 {% block boddy %}
-<div class="container text-center mx-auto">
+<div class="container text-center mx-auto d-print-none">
     <!-- GoTo Date -->
     <div class="container-fluid text-center bg-info">
         <div class="row">
@@ -113,7 +122,7 @@
                 <div class="col-1"></div>
                 {% if variation != 'REQ' %}
                 <div class="col-1">
-                    <button type="button" class="btnSchCt" value="{{ ent.Material_id }}"><small>Schedule Count</small></button>
+                    <button type="button" class="btnSchCt d-print-none" value="{{ ent.Material_id }}"><small>Schedule Count</small></button>
                 </div>
                 {% endif %}
             </div>
@@ -162,7 +171,7 @@
         <div class="row mx-auto max-width=100%">
             <div class="col-8"></div>
             <div class="col-2">
-                <button id="swap_prt_disp_btn" type="button" onclick="swap_prt_disp();">Print Version</button>
+                <button id="swap_prt_disp_btn" type="button" class="d-print-none" onclick="swap_prt_disp();">Print Version</button>
             </div>
             <div class="col-2">
                 <button id="close_btn" type="button">
