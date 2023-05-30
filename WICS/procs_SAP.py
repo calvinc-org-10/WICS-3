@@ -43,7 +43,7 @@ def fnShowSAP(req, reqDate=calvindate().today()):
 
 
 class UploadSAPForm(forms.Form):
-    uploaded_at = forms.DateField()
+    uploaded_at = forms.DateField(widget=forms.widgets.DateInput())
     SAPFile = forms.FileField()
 
 @login_required

@@ -27,7 +27,14 @@
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         <p>Last Upload was <span class="h4"> {{ LastSAPUploadDate|date:'Y-m-d' }}</span></p>
-        <p>This upload will have date: {{ form.uploaded_at }} (if an existing upload exists for this date, it will be overwritten)</p>
+{% comment %}
+            Django won't render this as a date field
+            <p>This upload will have date: {{ form.uploaded_at }} (if an existing upload exists for this date, it will be overwritten)</p>    
+{% endcomment %}        
+        <p>This upload will have date: 
+            <input type="date" name="uploaded_at" required id="id_uploaded_at">
+            (if an existing upload exists for this date, it will be overwritten)
+        </p>
         <p>{{ form.SAPFile }}</p>
 
         <!-- form footer -->
