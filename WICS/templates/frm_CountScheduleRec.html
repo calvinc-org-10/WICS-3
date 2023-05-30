@@ -69,7 +69,7 @@ button:focus {
     <form id="CSchForm" class="trackformchanges" method="post">
         {% csrf_token %}
         <!-- form header -->
-        {{ frmMain.errors }}
+        {% if frmMain.errors %}{{ frmMain.errors }}{% endif %}
         {{ frmMain.id }}
 
         <!-- main part of form -->

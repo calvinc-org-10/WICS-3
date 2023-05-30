@@ -87,7 +87,7 @@ button:focus {
 <form id="FmMain" class="trackformchanges" method="post">
     {% csrf_token %}
     <!-- form header -->
-    {{ frmMain.errors|default:'' }}
+    {% if frmMain.errors %}{{ frmMain.errors }}{% endif %}
     {% render_field frmMain.org hidden="true" %}
     <hr>
 
@@ -243,7 +243,7 @@ button:focus {
             <div class="card">
                 <div class="card-header">
                     {{ scheduleset.management_form }}
-                    {{ scheduleset.errors }}
+                    {% if scheduleset.errors %}{{ scheduleset.errors }}{% endif %}
                     <div class="container"><div class="row">
                         <div class="col-4">
                             Count Date - Counter - Priority

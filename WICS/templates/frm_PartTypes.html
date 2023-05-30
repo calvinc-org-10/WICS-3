@@ -62,7 +62,7 @@
 <form id="FmMain" class="trackformchanges" method="post">
     {% csrf_token %}
     <!-- form header -->
-    {{ frmMain.errors }}
+    {% if frmMain.errors %}{{ frmMain.errors }}{% endif %}
     <hr>
 
     <!-- main part of form -->

@@ -37,7 +37,7 @@
         <div class="row">
             <ul id="form_set">
             {% for u in ulist %}
-                {{ u.errors }}
+                {% if u.errors %}{{ u.errors }}{% endif %}  
                 <li>
                     {% render_field u.showuid size="4" %}
                     {% render_field u.uname size="12" %}

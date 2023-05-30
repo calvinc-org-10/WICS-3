@@ -68,7 +68,7 @@ button:focus {
     <form id="CEForm" class="trackformchanges" method="post">
         {% csrf_token %}
         <!-- form header -->
-        {{ frmMain.errors }}
+        {% if frmMain.errors %}{{ frmMain.errors }}{% endif %}
         {{ frmMain.id }}
         <input type="hidden" id="RecPK" name="RecPK" value={{ recNum }} required></input>
         <div class="container">
@@ -192,7 +192,7 @@ button:focus {
             {# {{ frmSchedInfo }} #}
             <div class="card">
                 <div class="card-header">
-                    {{ frmSchedInfo.errors }}
+                    {% if frmSchedInfo.errors %}{{ frmSchedInfo.errors }}{% endif %}
                     <div class="container"><div class="row g-0">
                         <div class="col-1">Count Date</div>
                         <div class="col-2">Counter</div>

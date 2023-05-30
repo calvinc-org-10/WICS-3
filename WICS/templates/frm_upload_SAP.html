@@ -22,7 +22,7 @@
     </div>
     <hr>
 
-    {{ form.errors }}
+    {% if form.errors %}{{ form.errors }}{% endif %}
     <hr>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
