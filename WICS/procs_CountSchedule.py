@@ -7,7 +7,7 @@ from django.http import HttpResponse, HttpRequest
 from django.views.generic import ListView
 from barcode import Code128
 from userprofiles.models import WICSuser
-from WICS.models import MaterialList, CountSchedule
+from WICS.models import MaterialList, CountSchedule, VIEW_countschedule
 from WICS.models import LastFoundAt, WorksheetZones, Location_WorksheetZone
 from WICS.procs_SAP import fnSAPList
 from typing import *
@@ -64,7 +64,7 @@ class CountScheduleListForm(LoginRequiredMixin, ListView):
         return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
-        return CountSchedule.objects.all().order_by(*self.ordering)
+        return VIEW_countschedule.objects.all().order_by(*self.ordering)
 
     # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
     #     return super().get(request, *args, **kwargs)

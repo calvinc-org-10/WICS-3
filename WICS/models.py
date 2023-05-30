@@ -322,7 +322,7 @@ class VIEW_countschedule(models.Model):
     Material_org = models.CharField(max_length=200)
     Requestor = models.CharField(max_length=100)
       # the requestor can type whatever they want here, but WICS will record the userid behind-the-scenes
-    Requestor_userid = models.IntegerField()
+    Requestor_userid_id = models.IntegerField()
     RequestFilled = models.BooleanField()
     Counter = models.CharField(max_length=250)
     Priority = models.CharField(max_length=50)
