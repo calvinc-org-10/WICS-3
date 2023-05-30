@@ -17,7 +17,7 @@ from cMenu.utils import calvindate
 from mathematical_expressions_parser.eval import evaluate
 from userprofiles.models import WICSuser
 from WICS.globals import _defaultOrg
-from WICS.models import VIEW_SAP, MaterialList, ActualCounts, CountSchedule, SAP_SOHRecs, VIEW_LastFoundAt, \
+from WICS.models import VIEW_SAP, MaterialList, ActualCounts, CountSchedule, SAP_SOHRecs, VIEW_LastFoundAt, VIEW_materials, \
                         WhsePartTypes, LastFoundAt, FoundAt
 from WICS.procs_SAP import fnSAPList
 from typing import Any, Dict
@@ -139,8 +139,8 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
         SAP_SOH = fnSAPList(matl=currRec)
 
     gotoForm = {}
-    gotoForm['gotoItem'] = currRec
-    gotoForm['choicelist'] = MaterialList.objects.all().values('id','Material')
+    gotoForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
+    gotoForm['gotoItem'] = gotoForm['choicelist'].get(id=currRec.pk)['Material_org']
 
     CountSubFormFields = ('id', 'CountDate', 'CycCtID', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'PKGID_Desc', 'TAGQTY', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',)
     ScheduleSubFormFields = ('id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'Notes',)
@@ -248,7 +248,9 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
     SAPHist = VIEW_SAP.objects.filter(Material_id=recNum).order_by('-uploaded_at')
 
     # display the form
-    cntext = {'frmMain': mtlFm,
+    cntext = {
+            'frmMain': mtlFm,
+            'matlorg': currRec.org.orgname,
             'userReadOnly': req.user.has_perm('WICS.Material_onlyview') and not req.user.has_perm('WICS.SuperUser'),
             'lastFoundAt': LastFoundAt(currRec),
             'FoundAt': FoundAt(currRec),
@@ -492,8 +494,8 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
     # endif
 
     gotoForm = {}
-    gotoForm['gotoItem'] = currRec
     gotoForm['choicelist'] = WhsePartTypes.objects.all().values('id','WhsePartType')
+    gotoForm['gotoItem'] = currRec
 
     # display the form
     cntext = {'frmMain': PtTypFm,

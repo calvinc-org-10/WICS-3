@@ -23,12 +23,12 @@ select
     `org`.`orgname` as `OrgName`,
     if((
     select
-        count(0)
+        count(*)
     from
-        `wics`.`wics_materiallist` `numdups`
+        `WICS_materiallist` `numdups`
     where
         `numdups`.`Material` = `matl`.`Material`
-        and `numdups`.`org_id` <> `matl`.`org_id`) > 0,
+        and `numdups`.`org_id` != `matl`.`org_id`) > 0,
     concat(`matl`.`Material`, ' (', `org`.`orgname`, ')'),
     `matl`.`Material`) as `Material_org`
 from

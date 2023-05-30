@@ -144,8 +144,8 @@ def fnUploadActCountSprsht(req):
                 ws = None
 
         if ws:
-            # SprshtRowNum=1
-            SprshtRowNum = 2  # skip row 2 because it holds hints for the kids, not a count
+            SprshtRowNum=1
+            # SprshtRowNum = 2  # skip row 2 because it holds hints for the kids, not a count - nope, let old spreadsheet work, too
             MAX_COUNT_ROWS = 5000
             for row in ws.iter_rows(min_row=SprshtRowNum+1, max_row=MAX_COUNT_ROWS, values_only=True):
                 SprshtRowNum += 1

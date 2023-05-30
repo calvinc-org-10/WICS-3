@@ -71,12 +71,12 @@ button:focus {
     <div class="row mx-auto max-width=95%">
         <div class="col mx-auto">
             <h1><label for="Material-choice">GoTo Material #</label>
-            <input list="Material-list" id="gotoID" name="gotoID" onfocus="$(this).select();" onchange="processGoToReq();" value="{{gotoForm.gotoItem.Material}}">
+            <input list="Material-list" id="gotoID" name="gotoID" onfocus="$(this).select();" onchange="processGoToReq();" value="{{gotoForm.gotoItem}}">
             <span class="bi-caret-down-square" style="position:relative;top:+0px;font-size:45px;left:-59px;" onclick="$gotoTextBox.focus();"></span>
         </h1>
             <datalist id="Material-list">
                 {% for itm in gotoForm.choicelist %}
-                    <option value="{{itm.Material}}">
+                    <option value="{{itm.Material_org}}">
                 {% endfor %}
             </datalist>
         </div>
@@ -95,6 +95,7 @@ button:focus {
     <div class="container-fluid">
         <div class="row">
             <div class="col-7">
+                {{ matlorg }}
                 Material: {% render_field frmMain.Material size="15" %} 
                 Description: {% render_field frmMain.Description size="50" %}
                 <input type="hidden" name="OrigMaterial" value="{{ frmMain.Material.value }}"></input>
@@ -331,7 +332,7 @@ button:focus {
     var MatlMap = new Map(
     [
     {% for itm in gotoForm.choicelist %}
-        ['{{itm.Material}}', {{itm.id}}],
+        ['{{itm.Material_org}}', {{itm.id}}],
     {% endfor %}
     ]    )
 

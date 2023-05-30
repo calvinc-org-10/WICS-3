@@ -166,7 +166,7 @@ def fnSAPList(for_date = calvindate().today(), matl = None):
             STable = SAPLatest.filter(Material=matl)
         elif isinstance(matl,MaterialList):  # handle case matl is a MaterialList instance here
             STable = SAPLatest.filter(Material_id=matl.id)
-        elif isinstance(matl,str):  # handle case matl is a MaterialList id here
+        elif isinstance(matl,int):  # handle case matl is a MaterialList id here
             STable = SAPLatest.filter(Material_id=matl)
         else:   # it better be an iterable!
             STable = SAPLatest.filter(Material__in=matl)
