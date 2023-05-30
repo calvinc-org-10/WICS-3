@@ -46,8 +46,9 @@ ALGORITHM = UNDEFINED VIEW `VIEW_SAP` AS
 select
     `SAP`.`id` AS `id`,
     `SAP`.`uploaded_at` AS `uploaded_at`,
-    `MATL`.`Material` AS `Material`,
     `MATL`.`id` AS `Material_id`,
+    `MATL`.`Material` AS `Material`,
+    `MATL`.`Material_org` AS `Material_org`,
     `SAP`.`Plant` AS `Plant`,
     `SAP`.`StorageLocation` AS `StorageLocation`,
     `SAP`.`BaseUnitofMeasure` AS `BaseUnitofMeasure`,
@@ -94,6 +95,7 @@ select
     `AC`.`CountDate` AS `CountDate`,
     `AC`.`Material_id` AS `Material_id`,
     `MATL`.`Material` AS `Material`,
+    `MATL`.`Material_org` AS `Material_org`,
     `AC`.`CycCtID` AS `CycCtID`,
     `AC`.`Counter` AS `Counter`,
     `AC`.`CTD_QTY_Expr` AS `CTD_QTY_Expr`,
@@ -127,8 +129,9 @@ ALGORITHM = UNDEFINED VIEW `VIEW_countschedule` AS
 select
     `SCHD`.`id` AS `id`,
     `SCHD`.`CountDate` AS `CountDate`,
-    `MATL`.`Material` AS `Material`,
     `SCHD`.`Material_id` AS `Material_id`,
+    `MATL`.`Material` AS `Material`,
+    `MATL`.`Material_org` AS `Material_org`,
     `SCHD`.`Requestor` AS `Requestor`,
     `SCHD`.`RequestFilled` AS `RequestFilled`,
     `SCHD`.`Requestor_userid_id` AS `Requestor_userid_id`,
@@ -161,6 +164,7 @@ select DISTINCT
     0 AS `id`,
     `AC`.`Material_id` AS `Material_id`,
     `AC`.`Material` AS `Material`,
+    `AC`.`Material_org` AS `Material_org`,
     `AC`.`CountDate` AS `CountDate`,
     group_concat(distinct concat_ws('_', `AC`.`BLDG`, `AC`.`LOCATION`) order by `AC`.`BLDG` ASC, `AC`.`LOCATION` ASC separator ', ') AS `FoundAt`
 from
@@ -181,6 +185,7 @@ select
     0 AS `id`,
     `VIEW_FoundAt`.`Material_id` AS `Material_id`,
     `VIEW_FoundAt`.`Material` AS `Material`,
+    `VIEW_FoundAt`.`Material_org` AS `Material_org`,
     `VIEW_FoundAt`.`CountDate` AS `CountDate`,
     `VIEW_FoundAt`.`FoundAt` AS `FoundAt`
 from
@@ -199,6 +204,7 @@ select distinct
     0 AS `id`,
     `AC`.`Material_id` AS `Material_id`,
     `AC`.`Material` AS `Material`,
+    `AC`.`Material_org` AS `Material_org`,
     `AC`.`CountDate` AS `CountDate`,
     `AC`.`BLDG` AS `BLDG`,
     `AC`.`LOCATION` AS `LOCATION`,
@@ -228,8 +234,9 @@ select
     `SAP`.`uploaded_at` AS `uploaded_at`,
     `SAP`.`org_id` AS `org_id`,
     `SAP`.`OrgName` AS `OrgName`,
-    `SAP`.`Material` AS `Material`,
     `SAP`.`Material_id` AS `Material_id`,
+    `SAP`.`Material` AS `Material`,
+    `SAP`.`Material_org` AS `Material_org`,
     `SAP`.`Plant` AS `Plant`,
     `SAP`.`StorageLocation` AS `StorageLocation`,
     `SAP`.`BaseUnitofMeasure` AS `BaseUnitofMeasure`,
@@ -283,6 +290,7 @@ ALGORITHM = UNDEFINED VIEW `VIEW_MaterialLocationListWithSAP` AS
 select
     `MATL`.`id` AS `id`,
     `MATL`.`Material` AS `Material`,
+    `MATL`.`Material_org` AS `Material_org`,
     `MATL`.`Description` AS `Description`,
     `MATL`.`SAPMaterialType` AS `SAPMaterialType`,
     `MATL`.`SAPMaterialGroup` AS `SAPMaterialGroup`,
@@ -320,5 +328,48 @@ left join `VIEW_LastFoundAt` `LFA` on
 left join `VIEW_SAP` `SAP` on
     ((`MATL`.`id` = `SAP`.`Material_id`)));
     
-   
+-- wicsv3dev.view_materiallocationlistwithlastsap source
 
+create or replace
+algorithm = UNDEFINED view `wicsv3dev`.`VIEW_MaterialLocationListWithLastSAP` as
+select
+    `matl`.`id` as `id`,
+    `matl`.`org_id` as `org_id`,
+    `matl`.`Material` as `Material`,
+    `matl`.`Material_org` as `Material_org`,
+    `matl`.`Description` as `Description`,
+    `matl`.`SAPMaterialType` as `SAPMaterialType`,
+    `matl`.`SAPMaterialGroup` as `SAPMaterialGroup`,
+    `matl`.`Price` as `Price`,
+    `matl`.`PriceUnit` as `PriceUnit`,
+    `matl`.`Notes` as `Notes`,
+    `matl`.`PartType_id` as `PartType_id`,
+    `matl`.`PartType` as `PartType`,
+    `matl`.`PartTypePriority` as `PartTypePriority`,
+    `matl`.`TypicalContainerQty` as `TypicalContainerQty`,
+    `matl`.`TypicalPalletQty` as `TypicalPalletQty`,
+    `matl`.`OrgName` as `OrgName`,
+    `lfa`.`CountDate` as `CountDate`,
+    `lfa`.`FoundAt` as `FoundAt`,
+    `sap`.`id` as `SAP_id`,
+    `sap`.`uploaded_at` as `SAPDate`,
+    `sap`.`Plant` as `Plant`,
+    `sap`.`StorageLocation` as `StorageLocation`,
+    `sap`.`Amount` as `Amount`,
+    `sap`.`BaseUnitofMeasure` as `BaseUnitofMeasure`,
+    `sap`.`UOM` as `UOM`,
+    `sap`.`UOMText` as `UOMText`,
+    `sap`.`DimensionText` as `DimensionText`,
+    `sap`.`mult` as `mult`,
+    `sap`.`ValueUnrestricted` as `ValueUnrestricted`,
+    `sap`.`Currency` as `Currency`,
+    `sap`.`SpecialStock` as `SpecialStock`,
+    `sap`.`Batch` as `Batch`,
+    `sap`.`id` is null
+    and ifnull(`lfa`.`CountDate`, 0) < curdate() - interval cast((select `parm`.`ParmValue` from `wicsv3dev`.`cmenu_cparameters` `parm` where `parm`.`ParmName` = 'LOCRPT-COUNTDAYS-IFNOSAP') as unsigned) day as `DoNotShow`
+from
+    ((`wicsv3dev`.`view_materials` `matl`
+left join `wicsv3dev`.`view_lastfoundat` `lfa` on
+    (`matl`.`id` = `lfa`.`Material_id`))
+left join `wicsv3dev`.`view_lastsap` `sap` on
+    (`matl`.`id` = `sap`.`Material_id`));

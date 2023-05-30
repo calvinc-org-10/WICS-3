@@ -245,8 +245,9 @@ class VIEW_materials(models.Model):
 class VIEW_SAP(models.Model):
     id = models.IntegerField(primary_key=True)
     uploaded_at = models.DateField()
-    Material = models.CharField(max_length=100)
     Material_id = models.IntegerField()
+    Material = models.CharField(max_length=100)
+    Material_org = models.CharField(max_length=200)
     Plant = models.CharField(max_length=20)
     StorageLocation = models.CharField(max_length=20)
     BaseUnitofMeasure = models.CharField(max_length=20)
@@ -286,6 +287,7 @@ class VIEW_actualcounts(models.Model):
     CountDate = models.DateField()
     Material = models.CharField(max_length=100)
     Material_id = models.IntegerField()
+    Material_org = models.CharField(max_length=200)
     CycCtID = models.CharField(max_length=100)
     Counter = models.CharField(max_length=250)
     LocationOnly = models.CharField(max_length=100, blank=True, default='')
@@ -317,6 +319,7 @@ class VIEW_countschedule(models.Model):
     CountDate = models.DateField()
     Material_id = models.IntegerField()
     Material = models.CharField(max_length=100)
+    Material_org = models.CharField(max_length=200)
     Requestor = models.CharField(max_length=100)
       # the requestor can type whatever they want here, but WICS will record the userid behind-the-scenes
     Requestor_userid = models.IntegerField()
@@ -345,6 +348,7 @@ class VIEW_countschedule(models.Model):
 class VIEW_FoundAt(models.Model):
     Material_id = models.IntegerField()
     Material = models.CharField(max_length=100)
+    Material_org = models.CharField(max_length=200)
     CountDate = models.DateField()
     FoundAt = models.CharField(max_length=1024)
 
@@ -356,6 +360,7 @@ class VIEW_FoundAt(models.Model):
 class VIEW_LastFoundAt(models.Model):
     Material_id = models.IntegerField()
     Material = models.CharField(max_length=100)
+    Material_org = models.CharField(max_length=200)
     CountDate = models.DateField()
     FoundAt = models.CharField(max_length=1024)
 
@@ -367,6 +372,7 @@ class VIEW_LastFoundAt(models.Model):
 class VIEW_LastFoundAtList(models.Model):
     Material_id = models.IntegerField()
     Material = models.CharField(max_length=100)
+    Material_org = models.CharField(max_length=200)
     CountDate = models.DateField()
     BLDG = models.CharField(max_length=100)
     LOCATION = models.CharField(max_length=250)
@@ -381,8 +387,9 @@ class VIEW_LastSAP(models.Model):
     id = models.IntegerField(primary_key=True)
     uploaded_at = models.DateField()
     org_id = models.IntegerField()
-    Material = models.CharField(max_length=100)
     Material_id = models.IntegerField()
+    Material = models.CharField(max_length=100)
+    Material_org = models.CharField(max_length=200)
     Plant = models.CharField(max_length=20)
     StorageLocation = models.CharField(max_length=20)
     BaseUnitofMeasure = models.CharField(max_length=20)
@@ -415,9 +422,48 @@ class VIEW_LastSAP(models.Model):
         managed = False
 
  
+class VIEW_MaterialLocationListWithSAP(models.Model):
+    id = models.IntegerField(primary_key=True)
+    Material = models.CharField(max_length=100, blank=True, default='')
+    Material_org = models.CharField(max_length=200)
+    Description = models.CharField(max_length=250, blank=True, default='')
+    SAPMaterialType = models.CharField(max_length=100, blank=True, default='')
+    SAPMaterialGroup = models.CharField(max_length=100, blank=True, default='')
+    Price = models.FloatField(null=True, blank=True)
+    PriceUnit = models.PositiveIntegerField(null=True, blank=True)
+    Notes = models.CharField(max_length=250, blank=True, default='')
+    PartType_id = models.IntegerField()
+    PartType = models.CharField(max_length=50)
+    PartTypePriority = models.SmallIntegerField()
+    TypicalContainerQty = models.CharField(max_length=100,null=True, blank=True)
+    TypicalPalletQty = models.CharField(max_length=100,null=True, blank=True)
+    OrgName = models.CharField(max_length=250)
+    CountDate = models.DateField()
+    FoundAt = models.CharField(max_length=1024)
+    SAP_id = models.IntegerField()
+    SAPDate = models.DateField()
+    Plant = models.CharField(max_length=20)
+    StorageLocation = models.CharField(max_length=20)
+    Amount = models.FloatField()
+    BaseUnitofMeasure = models.CharField(max_length=20)
+    UOM = models.CharField(max_length=50)
+    UOMText = models.CharField(max_length=100)
+    DimensionText = models.CharField(max_length=100)
+    mult = models.FloatField()
+    ValueUnrestricted = models.FloatField(blank=True)
+    Currency = models.CharField(max_length=20)
+    SpecialStock = models.CharField(max_length=20)
+    Batch = models.CharField(max_length=20)
+    DoNotShow = models.BooleanField()
+
+    class Meta:
+        db_table = 'VIEW_MaterialLocationListWithSAP'
+        managed = False
+
 class VIEW_MaterialLocationListWithLastSAP(models.Model):
     id = models.IntegerField(primary_key=True)
     Material = models.CharField(max_length=100, blank=True, default='')
+    Material_org = models.CharField(max_length=200)
     Description = models.CharField(max_length=250, blank=True, default='')
     SAPMaterialType = models.CharField(max_length=100, blank=True, default='')
     SAPMaterialGroup = models.CharField(max_length=100, blank=True, default='')
@@ -451,5 +497,3 @@ class VIEW_MaterialLocationListWithLastSAP(models.Model):
     class Meta:
         db_table = 'VIEW_MaterialLocationListWithLastSAP'
         managed = False
-
-
