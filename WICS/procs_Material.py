@@ -99,6 +99,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
     if req.method == 'POST':
         currRec = MaterialList.objects.filter(pk=req.POST['MatlPK']).first()
 
+    ## this block of code and the next block are suspect.  Go through it with coffee and patience
     if not currRec:
         if newRec:
             # provide new record
@@ -106,14 +107,20 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
         elif recNum <= 0:
             currRec = MaterialList.objects.first()
         else:
-            currRec = MaterialList.objects.get(pk=recNum)   # later, handle record not found
-        # endif
-    #endif
+            try:
+                currRec = MaterialList.objects.get(pk=recNum)
+            except:
+                pass    # currRec remains None
+        # endif newRec, recNum
+    #endif not currRec
 
     if not currRec: #there are no MaterialList records!!
         thisPK = 0
     else:
-        thisPK = currRec.pk
+        if newRec:
+            thisPK = 0
+        else:
+            thisPK = currRec.pk
 
     prefixvals = {
         'main': 'material',
@@ -205,7 +212,8 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
     # endif
 
     # count summary subform
-    SAPTotals = SAP_SOHRecs.objects.all().values('uploaded_at','Material').annotate(SAPQty=Sum('Amount')).order_by('uploaded_at', 'Material')
+    # SAPTotals = SAP_SOHRecs.objects.all().values('uploaded_at','Material').annotate(SAPQty=Sum('Amount')).order_by('uploaded_at', 'Material')
+    SAPTotals = SAP_SOHRecs.objects.filter(Material=currRec).values('uploaded_at','Material').annotate(SAPQty=Sum('Amount')).order_by('uploaded_at', 'Material')
     raw_countdata = ActualCounts.objects.filter(Material=currRec).order_by('Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
     LastMaterial = None ; LastCountDate = None
     initdata = []
@@ -217,13 +225,13 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
             r.QtyEval = 0
         if (r.Material != LastMaterial or r.CountDate != LastCountDate):
             LastMaterial = r.Material ; LastCountDate = r.CountDate
-            if SAPTotals.filter(Material=r.Material,uploaded_at__lte=r.CountDate).exists():
-                SAPDate = SAPTotals.filter(Material=r.Material,uploaded_at__lte=r.CountDate).latest()['uploaded_at']
-                SAPQty = SAPTotals.filter(Material=r.Material,uploaded_at__lte=r.CountDate).latest()['SAPQty']
+            if SAPTotals.filter(uploaded_at__lte=r.CountDate).exists():
+                SAPDate = SAPTotals.filter(uploaded_at__lte=r.CountDate).latest()['uploaded_at']
+                SAPQty = SAPTotals.filter(uploaded_at__lte=r.CountDate).latest()['SAPQty']
             else:
-                if SAPTotals.filter(Material=r.Material).exists():
-                    SAPDate = SAPTotals.filter(Material=r.Material).first()['uploaded_at']
-                    SAPQty = SAPTotals.filter(Material=r.Material).first()['SAPQty']
+                if SAPTotals.exists():
+                    SAPDate = SAPTotals.first()['uploaded_at']
+                    SAPQty = SAPTotals.first()['SAPQty']
                 else:
                     SAPDate = ''
                     SAPQty = 0

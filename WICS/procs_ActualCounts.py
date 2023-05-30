@@ -52,6 +52,9 @@ def fnUploadActCountSprsht(req):
         elif fld in \
             ['CTD_QTY_Expr', 
              ]:
+            if isinstance(val,str):
+                if val[0] == '=':
+                    val = val[1:]
             try:
                 v = evaluate(str(val))
             except (SyntaxError, NameError, TypeError, ZeroDivisionError):
