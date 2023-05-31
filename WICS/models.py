@@ -424,6 +424,7 @@ class VIEW_LastSAP(models.Model):
  
 class VIEW_MaterialLocationListWithSAP(models.Model):
     id = models.IntegerField(primary_key=True)
+    org_id = models.IntegerField()
     Material = models.CharField(max_length=100, blank=True, default='')
     Material_org = models.CharField(max_length=200)
     Description = models.CharField(max_length=250, blank=True, default='')
@@ -451,9 +452,12 @@ class VIEW_MaterialLocationListWithSAP(models.Model):
     DimensionText = models.CharField(max_length=100)
     mult = models.FloatField()
     ValueUnrestricted = models.FloatField(blank=True)
+    BlockedAmount = models.FloatField(blank=True)
+    ValueBlocked = models.FloatField(blank=True)
     Currency = models.CharField(max_length=20)
     SpecialStock = models.CharField(max_length=20)
     Batch = models.CharField(max_length=20)
+    Vendor = models.CharField(max_length=20, blank=True)
     DoNotShow = models.BooleanField()
 
     class Meta:
@@ -462,6 +466,7 @@ class VIEW_MaterialLocationListWithSAP(models.Model):
 
 class VIEW_MaterialLocationListWithLastSAP(models.Model):
     id = models.IntegerField(primary_key=True)
+    org_id = models.IntegerField()
     Material = models.CharField(max_length=100, blank=True, default='')
     Material_org = models.CharField(max_length=200)
     Description = models.CharField(max_length=250, blank=True, default='')
@@ -484,14 +489,17 @@ class VIEW_MaterialLocationListWithLastSAP(models.Model):
     StorageLocation = models.CharField(max_length=20)
     Amount = models.FloatField()
     BaseUnitofMeasure = models.CharField(max_length=20)
-    Currency = models.CharField(max_length=20)
     ValueUnrestricted = models.FloatField(blank=True)
+    BlockedAmount = models.FloatField(blank=True)
+    ValueBlocked = models.FloatField(blank=True)
+    Currency = models.CharField(max_length=20)
     UOM = models.CharField(max_length=50)
     UOMText = models.CharField(max_length=100)
     DimensionText = models.CharField(max_length=100)
     mult = models.FloatField()
     SpecialStock = models.CharField(max_length=20)
     Batch = models.CharField(max_length=20)
+    Vendor = models.CharField(max_length=20, blank=True)
     DoNotShow = models.BooleanField()
 
     class Meta:

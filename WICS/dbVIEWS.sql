@@ -289,6 +289,7 @@ CREATE OR REPLACE
 ALGORITHM = UNDEFINED VIEW `VIEW_MaterialLocationListWithSAP` AS
 select
     `MATL`.`id` AS `id`,
+    `matl`.`org_id` as `org_id`,
     `MATL`.`Material` AS `Material`,
     `MATL`.`Material_org` AS `Material_org`,
     `MATL`.`Description` AS `Description`,
@@ -316,9 +317,12 @@ select
     `SAP`.`DimensionText` AS `DimensionText`,
     `SAP`.`mult` AS `mult`,
     `SAP`.`ValueUnrestricted` AS `ValueUnrestricted`,
+    `SAP`.`BlockedAmount` AS `BlockedAmount`,
+    `SAP`.`ValueBlocked` AS `ValueBlocked`,
     `SAP`.`Currency` AS `Currency`,
     `SAP`.`SpecialStock` AS `SpecialStock`,
     `SAP`.`Batch` AS `Batch`,
+    `SAP`.`Vendor` AS `Vendor`,
     (isnull(`SAP`.`id`)
     and (ifnull(`LFA`.`CountDate`, 0) < (curdate() - interval cast((select `PARM`.`ParmValue` from `cMenu_cparameters` `PARM` where (`PARM`.`ParmName` = 'LOCRPT-COUNTDAYS-IFNOSAP')) as unsigned) day))) AS `DoNotShow`
 from
@@ -331,7 +335,7 @@ left join `VIEW_SAP` `SAP` on
 -- wicsv3dev.view_materiallocationlistwithlastsap source
 
 create or replace
-algorithm = UNDEFINED view `wicsv3dev`.`VIEW_MaterialLocationListWithLastSAP` as
+algorithm = UNDEFINED view `VIEW_MaterialLocationListWithLastSAP` as
 select
     `matl`.`id` as `id`,
     `matl`.`org_id` as `org_id`,
@@ -362,14 +366,17 @@ select
     `sap`.`DimensionText` as `DimensionText`,
     `sap`.`mult` as `mult`,
     `sap`.`ValueUnrestricted` as `ValueUnrestricted`,
-    `sap`.`Currency` as `Currency`,
-    `sap`.`SpecialStock` as `SpecialStock`,
-    `sap`.`Batch` as `Batch`,
+    `SAP`.`BlockedAmount` AS `BlockedAmount`,
+    `SAP`.`ValueBlocked` AS `ValueBlocked`,
+    `SAP`.`Currency` AS `Currency`,
+    `SAP`.`SpecialStock` AS `SpecialStock`,
+    `SAP`.`Batch` AS `Batch`,
+    `SAP`.`Vendor` AS `Vendor`,
     `sap`.`id` is null
-    and ifnull(`lfa`.`CountDate`, 0) < curdate() - interval cast((select `parm`.`ParmValue` from `wicsv3dev`.`cmenu_cparameters` `parm` where `parm`.`ParmName` = 'LOCRPT-COUNTDAYS-IFNOSAP') as unsigned) day as `DoNotShow`
+    and ifnull(`lfa`.`CountDate`, 0) < curdate() - interval cast((select `parm`.`ParmValue` from `cMenu_cparameters` `parm` where `parm`.`ParmName` = 'LOCRPT-COUNTDAYS-IFNOSAP') as unsigned) day as `DoNotShow`
 from
-    ((`wicsv3dev`.`view_materials` `matl`
-left join `wicsv3dev`.`view_lastfoundat` `lfa` on
+    ((`VIEW_materials` `matl`
+left join `VIEW_lastfoundat` `lfa` on
     (`matl`.`id` = `lfa`.`Material_id`))
-left join `wicsv3dev`.`view_lastsap` `sap` on
+left join `VIEW_lastsap` `sap` on
     (`matl`.`id` = `sap`.`Material_id`));
