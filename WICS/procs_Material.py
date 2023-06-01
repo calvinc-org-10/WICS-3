@@ -213,7 +213,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
 
     # count summary subform
     # SAPTotals = SAP_SOHRecs.objects.all().values('uploaded_at','Material').annotate(SAPQty=Sum('Amount')).order_by('uploaded_at', 'Material')
-    SAPTotals = SAP_SOHRecs.objects.filter(Material=currRec).values('uploaded_at','Material').annotate(SAPQty=Sum('Amount')).order_by('uploaded_at', 'Material')
+    SAPTotals = VIEW_SAP.objects.filter(Material_id=currRec.pk).values('uploaded_at','Material').annotate(SAPQty=Sum('Amount')).order_by('uploaded_at', 'Material')
     raw_countdata = ActualCounts.objects.filter(Material=currRec).order_by('Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
     LastMaterial = None ; LastCountDate = None
     initdata = []
@@ -226,8 +226,8 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
         if (r.Material != LastMaterial or r.CountDate != LastCountDate):
             LastMaterial = r.Material ; LastCountDate = r.CountDate
             if SAPTotals.filter(uploaded_at__lte=r.CountDate).exists():
-                SAPDate = SAPTotals.filter(uploaded_at__lte=r.CountDate).latest()['uploaded_at']
-                SAPQty = SAPTotals.filter(uploaded_at__lte=r.CountDate).latest()['SAPQty']
+                SAPDate = SAPTotals.filter(uploaded_at__lte=r.CountDate).latest('uploaded_at')['uploaded_at']
+                SAPQty = SAPTotals.filter(uploaded_at__lte=r.CountDate).latest('uploaded_at')['SAPQty']
             else:
                 if SAPTotals.exists():
                     SAPDate = SAPTotals.first()['uploaded_at']
