@@ -185,7 +185,7 @@ def fnUploadActCountSprsht(req):
                         # check/correct problematic data types
                         usefld, V = cleanupfld(fldName, row[colNum]).values()
                         if (V is not None):
-                            if usefld: 
+                            if usefld:
                                 if   fldName == 'CountDate': 
                                     setattr(SRec, fldName, V) 
                                     requiredFields['CountDate'] = True
@@ -213,8 +213,15 @@ def fnUploadActCountSprsht(req):
                                 else:
                                     if hasattr(SRec, fldName): setattr(SRec, fldName, V)
                             else:
-                                UplResults.append({'error':str(V)+' is invalid for '+fldName, 'rowNum':SprshtRowNum})
-                                
+                                if fldName!='CTD_QTY_Expr':
+                                    UplResults.append({'error':str(V)+' is invalid for '+fldName, 'rowNum':SprshtRowNum})
+                    # we have to suspend judgement on CTD_QTY_Expr until last, because this could be a LocationOnly count
+                    if not requiredFields['Both LocationOnly and CTD_QTY']:
+                            fldName = 'CTD_QTY_Expr'
+                            V = row[CountSprshtcolmnMap[fldName]]
+                            UplResults.append({'error':
+                                                    'record is not marked LocationOnly and '+str(V)+' is invalid for '+fldName,
+                                                'rowNum':SprshtRowNum})
 
                     # are all required fields present?
                     AllRequiredPresent = True
