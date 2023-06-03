@@ -28,7 +28,7 @@ def LoadMenu(req, menuGroup, menuNum):
     mnItem_qset = menuItems.objects.filter(MenuGroup = menuGroup, MenuID = menuNum).values('OptionNumber','OptionText','Command','Argument')
     mnuName = mnItem_qset.get(OptionNumber=0)['OptionText']
 
-    mnItem_list = ['' for i in range(20)]
+    mnItem_list = ['<span class="btn btn-lg btn-outline-transparent mx-auto"></span>' for i in range(20)]
     for m in mnItem_qset:
         if m['OptionNumber']==0: continue
         mHTML = "<a href="
@@ -41,7 +41,8 @@ def LoadMenu(req, menuGroup, menuNum):
             if m['Command'] != MENUCOMMAND.ExitApplication.value:
                 mHTML = mHTML + " target=" + WrapInQuotes("_blank")
         # endif
-        mHTML = mHTML + " class=" + WrapInQuotes("btn btn-lg bd-btn-lg btn-outline-secondary mx-auto") + ">" + m['OptionText'] + "</a>"
+        # mHTML = mHTML + " class=" + WrapInQuotes("btn btn-lg bd-btn-lg btn-outline-secondary mx-auto") + ">" + m['OptionText'] + "</a>"
+        mHTML = mHTML + " class=" + WrapInQuotes("btn btn-lg btn-outline-secondary mx-auto") + ">" + m['OptionText'] + "</a>"
         mnItem_list[m['OptionNumber']-1] = mHTML
 
     fullMenuHTML = ""
@@ -284,27 +285,33 @@ def EditMenu(req, menuGroup, menuNum):
 
         fullMenuHTML += "<div class='row'>"
         fullMenuHTML += "<div class='col m-1'> Command: "
-        fullMenuHTML += "<select style='width:15em' name='Command-" + istr + "'>"
+        fullMenuHTML += "<select style='width:10em' name='Command-" + istr + "'>"
         fullMenuHTML += commandchoiceHTML(mnItem_list[i_0based]['Command'])
         fullMenuHTML += "</select>"
+        fullMenuHTML += " Argument: <input type='text' size='20' name='Argument-" + istr + "'"
+        if mnItem_list[i_0based]['Argument']: fullMenuHTML += " value = '" + mnItem_list[i_0based]['Argument'] + "'"
+        fullMenuHTML += "></input>"
         fullMenuHTML += "</div>"
         fullMenuHTML += "<div class='col m-1'> Command: "
-        fullMenuHTML += "<select style='width:15em' name='Command-" + i2str + "'>"
+        fullMenuHTML += "<select style='width:10em' name='Command-" + i2str + "'>"
         fullMenuHTML += commandchoiceHTML(mnItem_list[i_0based+10]['Command'])
         fullMenuHTML += "</select>"
+        fullMenuHTML += " Argument: <input type='text' size='20' name='Argument-" + i2str + "'"
+        if mnItem_list[i_0based+10]['Argument']: fullMenuHTML += " value = '" + mnItem_list[i_0based+10]['Argument'] + "'"
+        fullMenuHTML += "></input>"
         fullMenuHTML += "</div>"
         fullMenuHTML += "</div>"
 
-        fullMenuHTML += "<div class='row'>"
-        fullMenuHTML += "<div class='col m-1'> Argument: "
-        fullMenuHTML += "<input type='text' size='20' name='Argument-" + istr + "'"
-        if mnItem_list[i_0based]['Argument']: fullMenuHTML += " value = '" + mnItem_list[i_0based]['Argument'] + "'"
-        fullMenuHTML += "></input></div>"
-        fullMenuHTML += "<div class='col m-1'> Argument: "
-        fullMenuHTML += "<input type='text' size='20' name='Argument-" + i2str + "'"
-        if mnItem_list[i_0based+10]['Argument']: fullMenuHTML += " value = '" + mnItem_list[i_0based+10]['Argument'] + "'"
-        fullMenuHTML += "></input></div>"
-        fullMenuHTML += "</div>"
+        # fullMenuHTML += "<div class='row'>"
+        # fullMenuHTML += "<div class='col m-1'> Argument: "
+        # fullMenuHTML += "<input type='text' size='20' name='Argument-" + istr + "'"
+        # if mnItem_list[i_0based]['Argument']: fullMenuHTML += " value = '" + mnItem_list[i_0based]['Argument'] + "'"
+        # fullMenuHTML += "></input></div>"
+        # fullMenuHTML += "<div class='col m-1'> Argument: "
+        # fullMenuHTML += "<input type='text' size='20' name='Argument-" + i2str + "'"
+        # if mnItem_list[i_0based+10]['Argument']: fullMenuHTML += " value = '" + mnItem_list[i_0based+10]['Argument'] + "'"
+        # fullMenuHTML += "></input></div>"
+        # fullMenuHTML += "</div>"
 
         fullMenuHTML += "<div class='row'>"
         fullMenuHTML += "<div class='col m-1'>"
@@ -312,6 +319,7 @@ def EditMenu(req, menuGroup, menuNum):
         fullMenuHTML += " Copy<input type='radio' name='CopyTo-" + istr + "' value='copy'>"
         fullMenuHTML += " Move<input type='radio' name='CopyTo-" + istr + "' value='move'>"
         fullMenuHTML += " to <input type='text' name='CopyTarget-" + istr + "' size='5'>"
+        fullMenuHTML += " | "
         fullMenuHTML += " Remove:<input type='checkbox' name='Remove-" + istr + "'>"
         fullMenuHTML += "</div>"
         fullMenuHTML += "<div class='col m-1'>"
@@ -319,6 +327,7 @@ def EditMenu(req, menuGroup, menuNum):
         fullMenuHTML += " Copy<input type='radio' name='CopyTo-" + i2str + "' value='copy'>"
         fullMenuHTML += " Move<input type='radio' name='CopyTo-" + i2str + "' value='move'>"
         fullMenuHTML += " to <input type='text' name='CopyTarget-" + i2str + "' size='5'>"
+        fullMenuHTML += " | "
         fullMenuHTML += " Remove: <input type='checkbox' name='Remove-" + i2str + "'>"
         fullMenuHTML += "</div>"
         fullMenuHTML += "</div>"

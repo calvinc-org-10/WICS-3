@@ -61,9 +61,13 @@
     
     </div>
     <!-- menu body -->
+    <br>
     <form method="post" id="menueditForm">
     {% csrf_token %}
-    <div class="container" style="height:350px;overflow:auto">
+    {% comment %}
+        <div class="container" style="height:350px;overflow:auto">
+    {% endcomment %}
+    <div class="container">
         {{ menuContents|safe }}
     </div>
     <br>
