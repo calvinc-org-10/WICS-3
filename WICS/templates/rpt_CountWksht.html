@@ -71,6 +71,7 @@
             </div>
         {% endif %}
 
+        <div style="break-inside: avoid;">  <!-- avoid page breaks for a single Material sheet -->
         <div class="row g-0 max-width=100%">
             <div class="col-6">
                 {% if itm.NewMat3char or itm.NewCounter %}
@@ -136,8 +137,9 @@
             Reason Scheduled: {{ itm.ReasonScheduled }} | Notes: {{ itm.Notes }} | SAP Qty: {{ itm.SAPQty }}
             </div>
         </div>
-    <hr>
-    {% if forloop.last %}<hr></div>{% endif %}
+        <hr>
+        {% if forloop.last %}<hr></div>{% endif %}
+    </div>  <!-- style="break-inside: avoid;">  {!-- avoid page breaks for a single Material sheet -->
     {% endfor %}
 </div>
 
