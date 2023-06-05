@@ -1,12 +1,15 @@
 import datetime
 from datetime import MINYEAR
 from operator import attrgetter
+from attr import fields
 from django import forms, urls
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import models
 from django.db.models import Value, Sum
+from django.db.models import F, Case, When, Exists, Subquery, OuterRef
+from django.db.models.functions import Concat
 from django.db.models.query import QuerySet
 from django.forms import inlineformset_factory, formset_factory
 from django.http import HttpResponse, HttpRequest, HttpResponseRedirect
@@ -414,8 +417,8 @@ class PartTypesForm(forms.ModelForm):
     class Meta:
         model = WhsePartTypes
         fields = ['WhsePartType', 'PartTypePriority', 'InactivePartType']
-
 MatlSubFm_fldlist = ['id','org','Material', 'Description', 'PartType', 'Price', 'PriceUnit', 'TypicalContainerQty', 'TypicalPalletQty', 'Notes']
+
 
 # later -- check for uniqueness of (org, WhsePartType), (org,PartTypePriority)
 @login_required
@@ -451,9 +454,23 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
     }
     chgd_dat = {'main':None, 'matl': None, }
 
+    # we cannot use VIEW_materials because inlineformset_factory needs a real FK to PartTypes
+    # but I want Material_org to present to the user, so...
+    # 2023-06-04 - not used right now, but keep for later
+    MaterialList_withOrg = MaterialList.objects.all()\
+        .annotate(Material_org=
+                  Case(
+                    When(Exists(Subquery(MaterialList.objects.exclude(org=OuterRef('org')))),then=Concat(F('org__orgname'),Value(' '),F('Material'),output_field=models.CharField())),
+                    default=F('Material'),
+                    )
+                )\
+        .order_by('Material_org')
+    # change MaterialList_qs to be MaterialList_withOrg once I get it to work
+    MaterialList_qs = MaterialList.objects.all().order_by('org_id','Material')
+    
     if req.method == 'POST':
         # changed data is being submitted.  process and save it
-        # process PTypFm AND subforms.
+    # process PTypFm AND subforms.
 
         # process main form
         #if currRec:
@@ -468,7 +485,7 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
                     extra=0,can_delete=False)
         # MaterialSubFm_class.PartType.queryset=WhsePartTypes.objects.filter(org=_userorg).order_by('WhsePartType').all() - rendered manually
         #if currRec:
-        MaterialSubFm = MaterialSubFm_class(req.POST, instance=currRec, prefix=prefixes['matl'], initial=initvals['matl'], queryset=MaterialList.objects.all().order_by('Material'))
+        MaterialSubFm = MaterialSubFm_class(req.POST, instance=currRec, prefix=prefixes['matl'], initial=initvals['matl'], queryset=MaterialList_qs)
         #else:
         #    countSet = countSubFm_class(req.POST, prefix='countset', initial={'org': _userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
 
@@ -492,12 +509,12 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
             PtTypFm = PartTypesForm(initial=initvals['main'], prefix=prefixes['main'])
 
         # Material subform
-        MaterialSubFm_class = forms.inlineformset_factory(WhsePartTypes,MaterialList,
+        MaterialSubFm_class = forms.inlineformset_factory(WhsePartTypes,MaterialList, 
                     fields=MatlSubFm_fldlist,
                     extra=0,can_delete=False)
         # MaterialSubFm_class.PartType.queryset=WhsePartTypes.objects.filter(org=_userorg).order_by('WhsePartType').all() - rendered manually
         #if currRec:
-        MaterialSubFm = MaterialSubFm_class(instance=currRec, prefix=prefixes['matl'], initial=initvals['matl'], queryset=MaterialList.objects.all().order_by('Material'))
+        MaterialSubFm = MaterialSubFm_class(instance=currRec, prefix=prefixes['matl'], initial=initvals['matl'], queryset=MaterialList_qs)
         #else:
         #    countSet = countSubFm_class(req.POST, prefix='countset', initial={'org': _userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
 

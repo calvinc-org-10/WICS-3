@@ -101,7 +101,7 @@
                 <li>
                 <div class="row">
                     {{ ff.id }}{{ff.id.value }}
-                    <div class="col-2">{% render_field ff.Material_org %}</div>
+                    <div class="col-2">({{ ff.org.value }}) {{ ff.Material.value }}</div>
                     <div class="col-3"> {% render_field ff.Price style="width:6em;" %}  {% render_field ff.PriceUnit style="width:6em;" %} </div>
                     <div class="col-3"> {% render_field ff.TypicalContainerQty style="width:6em;" %}  {% render_field ff.TypicalPalletQty style="width:6em;" %} </div>
                 </div>
