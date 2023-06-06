@@ -402,7 +402,8 @@ def _fnCountSchedRecViewCommon(req, variation,
         matlchoiceForm['gotoItem'] = matlRec        # the template pulls Material from this record
     else:
         if MatlNum==None: MatlNum = 0
-        matlchoiceForm['gotoItem'] = {'Material':''}
+        ## matlchoiceForm['gotoItem'] = {'Material':MatlNum}
+        matlchoiceForm['gotoItem'] = ''
     matlchoiceForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
 
     # display the form
