@@ -83,7 +83,7 @@ class CountScheduleListForm(LoginRequiredMixin, ListView):
 #####################################################################
 
 class CountWorksheetReport(LoginRequiredMixin, ListView):
-    ordering = ['Counter', 'Material']
+    ordering = ['Counter', 'Material__Material']
     context_object_name = 'CtSchd'
     template_name = 'rpt_CountWksht.html'
     

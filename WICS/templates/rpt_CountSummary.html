@@ -93,7 +93,7 @@
             </div>
             {% elif ent.type == 'Summary' %}
             <div>
-                <b>SAP:</b>
+                <b>SAP</b> {{SAPDate}}:
                 {% for s in ent.SAPNum %}{{ s }}{% endfor %}, 
                 Typical Container Qty = {{ ent.TypicalContainerQty }}, 
                 Typical Pallet Qty = {{ ent.TypicalPalletQty }}
