@@ -20,7 +20,7 @@ from cMenu.utils import calvindate
 from mathematical_expressions_parser.eval import evaluate
 from userprofiles.models import WICSuser
 from WICS.globals import _defaultOrg
-from WICS.models import VIEW_SAP, MaterialList, ActualCounts, CountSchedule, SAP_SOHRecs, VIEW_LastFoundAt, VIEW_materials, \
+from WICS.models import VIEW_SAP, MaterialList, ActualCounts, CountSchedule, SAP_SOHRecs, UnitsOfMeasure, VIEW_LastFoundAt, VIEW_materials, \
                         WhsePartTypes, LastFoundAt, FoundAt
 from WICS.procs_SAP import fnSAPList
 from typing import Any, Dict
@@ -215,8 +215,12 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
     # endif
 
     # count summary subform
-    # SAPTotals = SAP_SOHRecs.objects.all().values('uploaded_at','Material').annotate(SAPQty=Sum('Amount')).order_by('uploaded_at', 'Material')
-    SAPTotals = VIEW_SAP.objects.filter(Material_id=currRec.pk).values('uploaded_at','Material','mult').annotate(SAPQty=Sum('Amount')).order_by('uploaded_at', 'Material')
+    # much as I'd like to use the view, it slows the prod db to a crawl
+    # SAPTotals = VIEW_SAP.objects.filter(Material_id=currRec.pk).values('uploaded_at','Material','mult').annotate(SAPQty=Sum('Amount')).order_by('uploaded_at', 'Material')
+    SAPTotals = SAP_SOHRecs.objects.filter(org=currRec.org,Material=currRec.Material)\
+        .values('uploaded_at','Material')\
+        .annotate(SAPQty=Sum('Amount')).annotate(mult=Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1]))\
+        .order_by('uploaded_at', 'Material')
     raw_countdata = ActualCounts.objects.filter(Material=currRec).order_by('Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
     LastMaterial = None ; LastCountDate = None
     initdata = []
