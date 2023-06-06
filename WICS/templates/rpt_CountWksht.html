@@ -83,7 +83,7 @@
                 {{ itm.MaterialBarCode|safe }}
             </div>
             <div class="col-4">
-                {{ itm.Material.Material }}
+                {{ itm.Material_org }}
             </div>
             <!--
             <div class="col-9">
@@ -133,7 +133,7 @@
         </div>
         <div class="row g-0 calvin-smalltext">
             <div class="col-12">
-            Requestor: {{ itm.Requestor }} | RequestFilled: {{ itm.RequestFilled|yesno }} |
+            Requestor: {{ itm.Requestor }} | RequestFilled: {{ itm.RequestFilled|yesno:"yes,no,---" }} |
             Reason Scheduled: {{ itm.ReasonScheduled }} | Notes: {{ itm.Notes }} | SAP Qty: {{ itm.SAPQty }}
             </div>
         </div>

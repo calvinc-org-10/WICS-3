@@ -98,11 +98,14 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
         SAP_SOH = fnSAPList(self.CountDate)
         self.SAPDate = SAP_SOH['SAPDate']
         qs = CountSchedule.objects.filter(CountDate=self.CountDate).order_by(*self.ordering).select_related('Material','Material__PartType')
-        qs = qs.annotate(LastFoundAt=Value(''), SAPQty=Value(0), MaterialBarCode=Value(''))
+        qs = qs.annotate(LastFoundAt=Value(''), SAPQty=Value(0), MaterialBarCode=Value(''), Material_org=Value(''))
         Mat3char = None
         lastCtr = None
         for rec in qs:
             strMatlNum = rec.Material.Material
+            if MaterialList.objects.filter(Material=rec.Material.Material).exclude(pk=rec.Material.pk).exists():
+                 strMatlNum += ' (' + str(rec.Material.org) + ')'
+            rec.Material_org = strMatlNum
             if strMatlNum[0:3] != Mat3char:
                 rec.NewMat3char = True
                 Mat3char = strMatlNum[0:3]
