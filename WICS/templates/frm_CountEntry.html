@@ -63,7 +63,8 @@ button:focus {
     </div><!-- container -->
     <hr>
 
-   {{ recNum }} / {{ frmMain.id.value }}
+    {{ recNum }} / {{ frmMain.id.value }}
+    <span class="col-5 bg-secondary text-warning">Count Date, Material, Actual Counter, Building and either LocOnly or Ctd Qty are required before Saving the form</span>
 
     <form id="CEForm" class="trackformchanges" method="post">
         {% csrf_token %}
@@ -71,23 +72,18 @@ button:focus {
         {% if frmMain.errors %}{{ frmMain.errors }}{% endif %}
         {{ frmMain.id }}
         <input type="hidden" id="RecPK" name="RecPK" value={{ recNum }} required></input>
-        <div class="container">
-            <div class="row">
-                <div class="col-5 bg-secondary text-warning">Fields in <span class="bg-danger fw-bold">RED</span> are required before Saving the form</div>
-            </div>
-        </div>
         <!-- main part of form -->
         <!-- put initial focus on Material and/or init CountDate to today(local), skip CycCtID -->
         <!-- div class="container-fluid m-1" -->
         <div class="container m-1">
             <div class="row g-0">
-            <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" class="bg-danger fw-bold" tabindex="-1" size="8" onchange="loadExtraInfo();" required=True %}</div>
+            <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" class="border border-5 border-danger fw-bold" tabindex="-1" style="width:8em;" onchange="loadExtraInfo();" required=True %}</div>
             <div class="col-2">CycCt ID: {% render_field frmMain.CycCtID tabindex="-1" size="8" %}</div>
             <div class="col-4">Material:
                 {# {% render_field frmMain.Material onchange="loadExtraInfo()" %}</div> #}
                 <input list="Material-list"
                     id="{{frmMain.Material.id_for_label}}" name="{{frmMain.Material.html_name}}"
-                    class="bg-danger fw-bold"
+                    class="border border-5 border-danger fw-bold"
                     tabindex="1" autofocus
                     onfocus="$(this).select();"
                     onchange="loadExtraInfo();"
@@ -113,18 +109,18 @@ button:focus {
                     {% endfor %}
                 </datalist>
             </div>
-            <div class="col-3">Actual Ctr: {% render_field frmMain.Counter class="need-Matl-Dt bg-danger fw-bold" size="12" %}</div>
+            <div class="col-3">Actual Ctr: {% render_field frmMain.Counter class="need-Matl-Dt border border-5 border-danger  fw-bold" size="12" %}</div>
             <div class="col-1">LocOnly:{% render_field frmMain.LocationOnly class="need-Matl-Dt" onchange="SkipCountIfLocationOnly();" %}
                 {# onchange="" #}  <!-- skip CTD_QTY if clicked -->
             </div>
         </div>
         <div class="row g-0">
             <div class="col-5">Ctd Qty:
-                {% render_field frmMain.CTD_QTY_Expr class="need-Matl-Dt" size="35" onchange="sCE();" autocomplete="off" %}
+                {% render_field frmMain.CTD_QTY_Expr class="need-Matl-Dt border border-3" size="35" onchange="sCE();" autocomplete="off" %}
                 <span class="container-md" id="EvalExpr">????</span>
             </div>
             <div class="col-2">Building: 
-                {% render_field frmMain.BLDG class="need-Matl-Dt bg-danger fw-bold" size="8" %}
+                {% render_field frmMain.BLDG class="need-Matl-Dt border border-5 border-danger fw-bold" size="8" %}
             </div>
             <div class="col-2">Location: 
                 {% render_field frmMain.LOCATION class="need-Matl-Dt" size="8" %}

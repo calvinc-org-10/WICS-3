@@ -102,8 +102,6 @@ def fnCountEntryView(req,
                 matlSubFm = FormSubs[0](matlRec.pk, instance=matlRec, prefix=prefixvals['matl'])
             else:
                 matlSubFm = FormSubs[0](None, initial=initialvals['matl'], prefix=prefixvals['matl'])
-
-
     else:
         currRec = modelMain(CountDate=reqDate,Counter=req.user.get_short_name())
         matlRec = modelSubs[0].objects.none()
