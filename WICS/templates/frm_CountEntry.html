@@ -119,15 +119,15 @@ button:focus {
             </div>
         </div>
         <div class="row g-0">
-            <div class="col-5">Ctd Qty:
-                {% render_field frmMain.CTD_QTY_Expr class="need-Matl-Dt" size="35" onchange="sCE();" autocomplete="off" %}
-                <span class="container-md" id="EvalExpr">????</span>
-            </div>
             <div class="col-2">Building: 
                 {% render_field frmMain.BLDG class="need-Matl-Dt bg-danger fw-bold" size="8" %}
             </div>
             <div class="col-2">Location: 
                 {% render_field frmMain.LOCATION class="need-Matl-Dt" size="8" %}
+            </div>
+            <div class="col-5">Ctd Qty:
+                {% render_field frmMain.CTD_QTY_Expr class="need-Matl-Dt" size="35" onchange="sCE();" autocomplete="off" %}
+                <span class="container-md" id="EvalExpr">????</span>
             </div>
             <div class="col">
                 Possibly Not Rcvd: {% render_field frmMain.FLAG_PossiblyNotRecieved class="need-Matl-Dt" %}
