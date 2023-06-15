@@ -134,6 +134,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
         'counts': {},
         'schedule': {},
         }
+    if currRec:  initialvals['main']['org'] = currRec.org_id
 
     changes_saved = {
         'main': False,
