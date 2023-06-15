@@ -262,12 +262,12 @@ def fnUpdateMatlListfromSAP(req):
             # later, save (FileMatList - MaterialList) and (MaterialList - FileMatList)
             # TODO: ??ask permission to correct each to the other
 
-            MustKeepMatlsSQL = "(SELECT MaterialLink_id AS Material_id FROM WICS_tmpmateriallistupdate WHERE MaterialLink_id IS NOT NULL)"
-            MustKeepMatlsSQL += " UNION (SELECT Material_id FROM WICS_actualcounts)"
-            MustKeepMatlsSQL += " UNION (SELECT Material_id FROM WICS_countschedule)"
+            MustKeepMatlsCond = " (id NOT IN (SELECT DISTINCT MaterialLink_id AS Material_id FROM WICS_tmpmateriallistupdate WHERE MaterialLink_id IS NOT NULL))"
+            MustKeepMatlsCond += " AND (id NOT IN (SELECT DISTINCT Material_id FROM WICS_actualcounts))"
+            MustKeepMatlsCond += " AND (id NOT IN (SELECT DISTINCT Material_id FROM WICS_countschedule))"
 
-            DeleteMatlsSelectSQL = "SELECT id, (SELECT orgname FROM WICS_organizations WHERE id=org_id) AS org, Material, Description, Plant FROM WICS_materiallist WHERE id NOT IN"
-            DeleteMatlsSelectSQL += " (" + MustKeepMatlsSQL + ")"
+            DeleteMatlsSelectSQL = "SELECT id, (SELECT orgname FROM WICS_organizations WHERE id=org_id) AS org, Material, Description, Plant FROM WICS_materiallist"
+            DeleteMatlsSelectSQL += " WHERE (" + MustKeepMatlsCond + ")"
             with connection.cursor() as cursor:
                 cursor.execute(DeleteMatlsSelectSQL)
                 RemvdMatlsList = dictfetchall(cursor)
