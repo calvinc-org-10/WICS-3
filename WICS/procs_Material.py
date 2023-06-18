@@ -6,7 +6,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import models
-from django.db.models import Value, Sum
+from django.db.models import Value, Sum, Max
 from django.db.models import F, Case, When, Exists, Subquery, OuterRef
 from django.db.models.functions import Concat
 from django.db.models.query import QuerySet
@@ -20,7 +20,7 @@ from mathematical_expressions_parser.eval import evaluate
 from userprofiles.models import WICSuser
 from WICS.globals import _defaultOrg
 from WICS.models import VIEW_SAP, MaterialList, ActualCounts, CountSchedule, SAP_SOHRecs, UnitsOfMeasure, VIEW_LastFoundAt, VIEW_materials, \
-                        WhsePartTypes, LastFoundAt, FoundAt
+                        WhsePartTypes, LastFoundAt, FoundAt, VIEW_FoundAt
 from WICS.procs_SAP import fnSAPList
 from typing import Any, Dict
 
@@ -296,6 +296,7 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
     template_name = 'frm_MatlListing.html'
 
     SAPSums = {}
+    LastFoundAt_dict = {}
 
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
@@ -304,13 +305,27 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
         # it's more efficient to pull this all now and store it for the upcoming qs request
         SAP = fnSAPList()
         self.SAPDate = SAP['SAPDate']
-        rawsums = SAP['SAPTable'].values('Material','mult','Currency').annotate(TotalAmount=Sum('Amount',default=0), TotalValue=Sum('ValueUnrestricted',default=0))
+        rawsums = SAP['SAPTable'].values('Material_id','mult','Currency').annotate(TotalAmount=Sum('Amount',default=0), TotalValue=Sum('ValueUnrestricted',default=0))
         for x in rawsums:
-            self.SAPSums[x['Material']] = {
+            self.SAPSums[x['Material_id']] = {
                 'Qty': x['TotalAmount']*x['mult'],
                 'Value': x['TotalValue'],
                 'Currency': x['Currency'],
                 }
+        
+        # LastCountDates = ActualCounts.objects.values('Material_id').annotate(LFADate=Max('CountDate'))
+        LastFoundAtSQL  = "SELECT `VIEW_FoundAt`.`id`, `VIEW_FoundAt`.`Material_id`, `VIEW_FoundAt`.`Material`,"
+        LastFoundAtSQL += " `VIEW_FoundAt`.`Material_org`, `VIEW_FoundAt`.`CountDate`, `VIEW_FoundAt`.`FoundAt`"
+        LastFoundAtSQL += " FROM `VIEW_FoundAt`"
+        LastFoundAtSQL += " WHERE `VIEW_FoundAt`.`CountDate` ="
+        LastFoundAtSQL += "   (SELECT MAX(U0.`CountDate`) AS `LFADate`"
+        LastFoundAtSQL += "   FROM `WICS_actualcounts` U0"
+        LastFoundAtSQL += "   WHERE U0.`Material_id` = (`VIEW_FoundAt`.`Material_id`)"
+        LastFoundAtSQL += "   GROUP BY U0.`Material_id`)"
+        # self.LastFoundAt_qs = VIEW_FoundAt.objects.filter(CountDate=Subquery(LastCountDates.filter(Material_id=OuterRef('Material_id')).values('LFADate')))
+        LastFoundAt_qs = VIEW_FoundAt.objects.raw(LastFoundAtSQL)
+        for rec in LastFoundAt_qs:
+            self.LastFoundAt_dict[rec.Material_id] = rec
 
         return super().setup(req, *args, **kwargs)
 
@@ -318,17 +333,18 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
     def get_queryset(self) -> QuerySet[Any]:
         qs = super().get_queryset()
         for rec in qs:
-            L = LastFoundAt(rec)
-            if L['lastCountDate']:
-                rec.LFADate = L['lastCountDate']
+            if rec.id in self.LastFoundAt_dict:
+                L = self.LastFoundAt_dict[rec.id]
+                rec.LFADate = L.CountDate
+                rec.LFALocation = L.FoundAt
             else:
                 rec.LFADate = datetime.date(MINYEAR,1,1)
-            rec.LFALocation = L['lastFoundAt']
+            # rec.LFALocation = L['lastFoundAt']
             rec.SAPQty = 0
-            if rec.Material in self.SAPSums:
-                rec.SAPQty = self.SAPSums[rec.Material]['Qty']
-                rec.SAPValue = self.SAPSums[rec.Material]['Value']
-                rec.SAPCurrency = self.SAPSums[rec.Material]['Currency']
+            if rec.id in self.SAPSums:
+                rec.SAPQty = self.SAPSums[rec.id]['Qty']
+                rec.SAPValue = self.SAPSums[rec.id]['Value']
+                rec.SAPCurrency = self.SAPSums[rec.id]['Currency']
                 rec.HasSAPQty = True
 
         return qs
@@ -343,7 +359,7 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
 #####################################################################
 
 class MaterialByPartType(MaterialListCommonView):
-    ordering = ['PartType__PartTypePriority', 'PartType__WhsePartType', 'Material']
+    ordering = ['PartType__WhsePartType', 'Material']
     rptName = 'Material By Part Type'
 
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:

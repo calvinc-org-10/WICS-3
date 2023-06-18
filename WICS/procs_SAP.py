@@ -8,6 +8,7 @@ from openpyxl import load_workbook
 from cMenu.models import getcParm
 from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
+import WICS.globals
 from WICS.models import ActualCounts, CountSchedule
 from WICS.models import VIEW_SAP, SAP_SOHRecs, SAPPlants_org
 from WICS.models import WhsePartTypes, MaterialList, tmpMaterialListUpdate
@@ -133,7 +134,7 @@ def fnUploadSAP(req):
 # read the last SAP list before for_date into a list of SAP_SOHRecs
 def fnSAPList(for_date = calvindate().today(), matl = None):
     """
-    coming: allow matl to be a MaterialList object or an id
+    finally done!: allow matl to be a MaterialList object or an id
     matl is a Material (string, NOT object!), or list, tuple or queryset of Materials to list, or None if all records are to be listed
     the SAPDate returned is the last one prior or equal to for_date
     """
@@ -155,7 +156,7 @@ def fnSAPList(for_date = calvindate().today(), matl = None):
     # else:
     #     SAPDate = SAP_SOHRecs.objects.filter(org=_userorg).order_by('uploaded_at').first().uploaded_at
 
-    SList = {'reqDate': for_date, 'SAPDate': SAPLatest[0].uploaded_at, 'SAPTable':[]}
+    SList = {'reqDate': for_date, 'SAPDate': LatestSAPDate, 'SAPTable':[]}
 
     if not matl:
         # STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate).order_by('Material')
@@ -173,9 +174,7 @@ def fnSAPList(for_date = calvindate().today(), matl = None):
 
     # yea, building SList is sorta wasteful, but a lot of existing code depends on it
     # won't be changing it until a total revamp of WICS
-    if STable:
-        SList['SAPDate'] = STable[0].uploaded_at
-    else:
+    if not STable:
         SList['SAPDate'] = None
     SList['SAPTable'] = STable
 
@@ -282,13 +281,14 @@ def fnUpdateMatlListfromSAP(req):
             with connection.cursor() as cursor:
                 cursor.execute(DeleteMatlsDoitSQL)
 
-            UnknownTypeID = WhsePartTypes.objects.get(WhsePartType='UNKNOWN')
+            UnknownTypeID = WhsePartTypes.objects.get(WhsePartType=WICS.globals._PartTypeName_UNKNOWN)
             # first pass, for presentation in results - orgname rather than org
             AddMatlsSelectSQL = "SELECT"
             AddMatlsSelectSQL += " (SELECT orgname FROM WICS_organizations WHERE id=org_id) AS orgname, Material,"
             AddMatlsSelectSQL += " Description, Plant, " + str(UnknownTypeID.pk) + " AS PartType_id,"
             AddMatlsSelectSQL += " SAPMaterialType, SAPMaterialGroup, Price, PriceUnit, Currency,"
-            AddMatlsSelectSQL += " '' AS TypicalContainerQty, '' AS TypicalPalletQty, '' AS Notes"
+            AddMatlsSelectSQL += " '' AS TypicalContainerQty, '' AS TypicalPalletQty, '' AS Notes,"
+            AddMatlsSelectSQL += " 0 AS new_MaterialLink_id"
             AddMatlsSelectSQL += " FROM WICS_tmpmateriallistupdate WHERE MaterialLink_id IS NULL"
             with connection.cursor() as cursor:
                 cursor.execute(AddMatlsSelectSQL)
@@ -309,6 +309,8 @@ def fnUpdateMatlListfromSAP(req):
             AddMatlsDoitSQL += " " + AddMatlsSelectSQL
             with connection.cursor() as cursor:
                 cursor.execute(AddMatlsDoitSQL)
+
+            #TODO: (issue #53) update AddedMatlsList field new_MaterialLink_id with the new MaterialLink_id
 
             # delete the temporary table and the temporary file
             tmpMaterialListUpdate.objects.all().delete()
