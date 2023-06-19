@@ -75,9 +75,11 @@ button:focus {
             <span class="bi-caret-down-square" style="position:relative;top:+0px;font-size:45px;left:-59px;" onclick="$gotoTextBox.focus();"></span>
         </h1>
             <datalist id="Material-list">
+                {% comment %}
                 {% for itm in gotoForm.choicelist %}
                     <option value="{{itm}}">
                 {% endfor %}
+                {% endcomment %}
             </datalist>
         </div>
     </div>
@@ -334,12 +336,11 @@ button:focus {
     var thisMtlID = {{frmMain.showPK.value|default_if_none:0}}, thisMtlGPN = "{{frmMain.Material.value}}"
     var CloseItFlag = false
     // set up MatlMap for verifying if an entered Material # is valid
-    var MatlMap = new Map(
-    [
+    var MatlMap = new Map()
     {% for itm in gotoForm.choicelist %}
-        ['{{itm}}', {{itm.id}}],
+        MatlMap.set('{{itm}}', {{itm.id}})
+        document.getElementById("Material-list").insertAdjacentHTML("beforeend","<option value='{{itm}}'>")
     {% endfor %}
-    ]    )
 
 
     //------------------
