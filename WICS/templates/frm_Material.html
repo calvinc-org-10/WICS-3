@@ -76,7 +76,7 @@ button:focus {
         </h1>
             <datalist id="Material-list">
                 {% for itm in gotoForm.choicelist %}
-                    <option value="{{itm.Material_org}}">
+                    <option value="{{itm}}">
                 {% endfor %}
             </datalist>
         </div>
@@ -88,14 +88,15 @@ button:focus {
     {% csrf_token %}
     <!-- form header -->
     {% if frmMain.errors %}{{ frmMain.errors }}{% endif %}
-    {% render_field frmMain.org hidden="true" %}
+    {# django does this field wrong - when it presents it as a <select>, it makes the selected value the initial value, not the actual #}
+    <input type="hidden" name="material-org" id="id_material-org" value="{{ frmMain.instance.org_id }}">
     <hr>
 
     <!-- main part of form -->
     <div class="container-fluid">
         <div class="row">
             <div class="col-7">
-                {{ matlorg }}
+                {{ frmMain.instance.org }}
                 Material: {% render_field frmMain.Material size="15" %} 
                 Description: {% render_field frmMain.Description size="50" %}
                 <input type="hidden" name="OrigMaterial" value="{{ frmMain.Material.value }}"></input>
@@ -163,7 +164,9 @@ button:focus {
             <div class="card">
                 <div class="card-header">
                     {{ countset.management_form }}
-                    {% if countset.errors %}{{ countset.errors|default:'' }}<br>{% endif %}
+                    {% for err in countset.errors %}
+                        {% if err %}{{ err|default:'' }}<br>{% endif %}
+                    {% endfor %}
                     <div class="container">
                     <div class="row">
                         <div class="col-2"><button type="button" id="AddCount" {% if userReadOnly %}disabled{%endif%}>Add Count</button></div>
@@ -243,7 +246,9 @@ button:focus {
             <div class="card">
                 <div class="card-header">
                     {{ scheduleset.management_form }}
-                    {% if scheduleset.errors %}{{ scheduleset.errors }}{% endif %}
+                    {% for err in scheduleset.errors %}
+                        {% if err %}{{ err }}{% endif %}
+                    {% endfor %}
                     <div class="container"><div class="row">
                         <div class="col-4">
                             Count Date - Counter - Priority
@@ -332,7 +337,7 @@ button:focus {
     var MatlMap = new Map(
     [
     {% for itm in gotoForm.choicelist %}
-        ['{{itm.Material_org}}', {{itm.id}}],
+        ['{{itm}}', {{itm.id}}],
     {% endfor %}
     ]    )
 
@@ -382,8 +387,6 @@ button:focus {
     
     function setPOSTAction(event) {
         newRec = "{% url 'MatlForm' %}";
-        // newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
-        // newRec = newRec.replace("/passedCountDate","/"+dVal);
         fmMain.action = newRec;
         CloseItFlag = true;
         }
@@ -434,8 +437,6 @@ button:focus {
         
         newRec = "{% url 'CountEntryForm' 0 'passedCountDate' 'matl' %}"
         newRec = newRec.replace("passedCountDate",dVal)
-        // mtlnmID = $('#{{frmMain.Material.id_for_label}}');
-        // mNum="None"; if (mtlnmID.val() != "") {mNum = mtlnmID.val()}
         mNum = thisMtlID
         newRec = newRec.replace("/matl","/"+mNum)
         window.open(newRec,'_blank')

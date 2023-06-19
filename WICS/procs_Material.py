@@ -14,6 +14,7 @@ from django.forms import inlineformset_factory, formset_factory
 from django.http import HttpResponse, HttpRequest, HttpResponseRedirect
 from django.shortcuts import render
 from django.views.generic import ListView
+from flask_sqlalchemy import models_committed
 from cMenu.models import getcParm
 from cMenu.utils import calvindate
 from mathematical_expressions_parser.eval import evaluate
@@ -95,34 +96,43 @@ class MaterialCountSummary(forms.Form):
 
 @login_required
 def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
+    
+    FormMain = MaterialForm
+    #DIE: FormMain = CountEntryForm
+    #DIE: FormSubs = [S for S in [RelatedMaterialInfo, RelatedScheduleInfo]]
+
+    modelMain = FormMain.Meta.model
+    modelSubs = [S for S in [ActualCounts, CountSchedule]]
+    abs_max_forms = 150
+
+    FormFieldsSubs = [
+        # 0 = ActualCounts Subform
+        ('id', 'CountDate', 'CycCtID', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'PKGID_Desc', 'TAGQTY', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',),    
+        # 1 = CountSchedule SubForm
+        ('id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'Notes',),
+    ]
 
     # get current record
     currRec = None
     if req.method == 'POST':
-        currRec = MaterialList.objects.filter(pk=req.POST['MatlPK']).first()
-
-    ## this block of code and the next block are suspect.  Go through it with coffee and patience
-    if not currRec:
+        currRec = modelMain.objects.filter(pk=req.POST['MatlPK']).first()
+    else:
         if newRec:
             # provide new record
-            currRec = MaterialList(org=_defaultOrg)
+            currRec = modelMain(org=_defaultOrg)
         elif recNum <= 0:
-            currRec = MaterialList.objects.first()
+            currRec = modelMain.objects.first()
         else:
             try:
-                currRec = MaterialList.objects.get(pk=recNum)
+                currRec = modelMain.objects.get(pk=recNum)
             except:
                 pass    # currRec remains None
         # endif newRec, recNum
-    #endif not currRec
+    #endif set currRec
 
-    if not currRec: #there are no MaterialList records!!
-        thisPK = 0
-    else:
-        if newRec:
-            thisPK = 0
-        else:
-            thisPK = currRec.pk
+    thisPK = 0
+    if not newRec and currRec:
+        thisPK = currRec.pk
 
     prefixvals = {
         'main': 'material',
@@ -134,7 +144,6 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
         'counts': {},
         'schedule': {},
         }
-    if currRec:  initialvals['main']['org'] = currRec.org_id
 
     changes_saved = {
         'main': False,
@@ -149,29 +158,27 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
         SAP_SOH = fnSAPList(matl=currRec)
 
     gotoForm = {}
-    gotoForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
-    gotoForm['gotoItem'] = gotoForm['choicelist'].get(id=currRec.pk)['Material_org']
-
-    CountSubFormFields = ('id', 'CountDate', 'CycCtID', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'PKGID_Desc', 'TAGQTY', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',)
-    ScheduleSubFormFields = ('id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'Notes',)
+    #DIE: gotoForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
+    gotoForm['choicelist'] = MaterialList.objects.all()
+    gotoForm['gotoItem'] = currRec
 
     if req.method == 'POST':
         # changed data is being submitted.  process and save it
         # process mtlFm AND subforms.
 
         # process forms
-        mtlFm = MaterialForm(req.POST, instance=currRec,  initial=initialvals['main'],  prefix=prefixvals['main'])
-        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.all().order_by('WhsePartType').all()
-        countSubFm_class = inlineformset_factory(MaterialList,ActualCounts,
-                    fields=CountSubFormFields,
-                    extra=0,can_delete=False)
+        mtlFm = FormMain(req.POST, instance=currRec,  initial=initialvals['main'],  prefix=prefixvals['main'])
+        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.all().order_by('WhsePartType')
+        countSubFm_class = inlineformset_factory(modelMain,modelSubs[0],
+                    fields=FormFieldsSubs[0],
+                    max_num = abs_max_forms,absolute_max=abs_max_forms,extra=0,can_delete=False)
         countSet = countSubFm_class(req.POST, instance=currRec, prefix=prefixvals['counts'], initial=initialvals['counts'],
-                    queryset=ActualCounts.objects.order_by('-CountDate'))
-        SchedSubFm_class = inlineformset_factory(MaterialList,CountSchedule,
-                    fields=ScheduleSubFormFields,
-                    extra=0,can_delete=False)
+                    queryset=modelSubs[0].objects.order_by('-CountDate'))
+        SchedSubFm_class = inlineformset_factory(modelMain,modelSubs[1],
+                    fields=FormFieldsSubs[1],
+                    max_num = abs_max_forms,absolute_max=abs_max_forms,extra=0,can_delete=False)
         schedSet = SchedSubFm_class(req.POST, instance=currRec, prefix=prefixvals['schedule'], initial=initialvals['schedule'],
-                    queryset=CountSchedule.objects.order_by('-CountDate'))
+                    queryset=modelSubs[1].objects.order_by('-CountDate'))
 
         if mtlFm.is_valid() and countSet.is_valid() and schedSet.is_valid():
             if mtlFm.has_changed():
@@ -198,20 +205,20 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
 
         # count summary form is r/o.  It will not be changed
     else: # request.method == 'GET' or something else
-        mtlFm = MaterialForm(instance=currRec, initial=initialvals['main'], prefix=prefixvals['main'])
+        mtlFm = FormMain(instance=currRec, initial=initialvals['main'], prefix=prefixvals['main'])
         mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.all().order_by('WhsePartType')
 
-        CountSubFm_class = inlineformset_factory(MaterialList,ActualCounts,
-                    fields=CountSubFormFields,
-                    extra=0,can_delete=False)
+        CountSubFm_class = inlineformset_factory(modelMain,modelSubs[0],
+                    fields=FormFieldsSubs[0],
+                    max_num = abs_max_forms,absolute_max=abs_max_forms,extra=0,can_delete=False)
         countSet = CountSubFm_class(instance=currRec, prefix=prefixvals['counts'], initial=initialvals['counts'],
-                    queryset=ActualCounts.objects.order_by('-CountDate'))
+                    queryset=modelSubs[0].objects.order_by('-CountDate'))
 
-        SchedSubFm_class = inlineformset_factory(MaterialList,CountSchedule,
-                    fields=ScheduleSubFormFields,
-                    extra=0,can_delete=False)
+        SchedSubFm_class = inlineformset_factory(modelMain,modelSubs[1],
+                    fields=FormFieldsSubs[1],
+                    max_num = abs_max_forms,absolute_max=abs_max_forms,extra=0,can_delete=False)
         schedSet = SchedSubFm_class(instance=currRec, prefix=prefixvals['schedule'], initial=initialvals['schedule'],
-                    queryset=CountSchedule.objects.order_by('-CountDate'))
+                    queryset=modelSubs[1].objects.order_by('-CountDate'))
     # endif
 
     # count summary subform
@@ -262,12 +269,12 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
     summarySet = subFm_class(initial=initdata, prefix='summaryset')
 
     # historical SAP SOH
-    SAPHist = VIEW_SAP.objects.filter(Material_id=recNum).order_by('-uploaded_at')
+    #DIE: SAPHist = VIEW_SAP.objects.filter(Material_id=recNum).order_by('-uploaded_at')
 
     # display the form
     cntext = {
             'frmMain': mtlFm,
-            'matlorg': currRec.org.orgname,
+            #DIE: 'matlorg': currRec.org.orgname,
             'userReadOnly': req.user.has_perm('WICS.Material_onlyview') and not req.user.has_perm('WICS.SuperUser'),
             'lastFoundAt': LastFoundAt(currRec),
             'FoundAt': FoundAt(currRec),
@@ -276,10 +283,10 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
             'scheduleset': schedSet,
             'countsummset': summarySet,
             'SAPSet': SAP_SOH,
-            'SAPHist':SAPHist,
+            #DIE: 'SAPHist':SAPHist,
             'changes_saved': changes_saved,
             'changed_data': chgd_dat,
-            'recNum': recNum,
+            #DIE: 'recNum': recNum,
             }
     templt = 'frm_Material.html'
     return render(req, templt, cntext)
