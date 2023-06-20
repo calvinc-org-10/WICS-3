@@ -60,11 +60,13 @@ class CountScheduleRecordForm(forms.ModelForm):
     Counter = forms.CharField(required=False)
     Priority = forms.CharField(max_length=50, required=False)
     ReasonScheduled = forms.CharField(max_length=250, required=False)
+    Requestor = forms.CharField(max_length=100, required=False)
+    RequestFilled = forms.BooleanField(required=False, initial=False)
     Notes  = forms.CharField(required=False)
 
     class Meta:
         model = CountSchedule
-        fields = ['id', 'CountDate', 'Counter', 'Priority', 'ReasonScheduled', 'Notes']
+        fields = ['id', 'CountDate', 'Counter', 'Priority', 'ReasonScheduled', 'Requestor', 'RequestFilled', 'Notes']
     def save(self):
         if not self.is_valid():
             return None

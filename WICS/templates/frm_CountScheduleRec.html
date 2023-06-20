@@ -106,12 +106,17 @@ button:focus {
         </div>
         <div class="row g-0">
             <div class="col-8">Schedule Notes: {% render_field frmMain.Notes class="need-Matl-Dt" size="60" %}</div>
+        </div>
+        <div class="row g-0">
+            <div class="col-3">Requestor: {% render_field frmMain.Requestor class="need-Matl-Dt" size="12" %}</div>
+            <div class="col-3">Request Filled: {% render_field frmMain.RequestFilled class="need-Matl-Dt" %}</div>
             <div class="col-2">
-                <button id="save_btn" type="button" form="CSchForm" class="need-Matl-Dt" onclick="SubmMainFm();" >
-                    <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
-                    Save changes
-                </button>
+            <button id="save_btn" type="button" form="CSchForm" class="need-Matl-Dt" onclick="SubmMainFm();" >
+                <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                Save changes
+            </button>
             </div>
+        </div>
         </div>
         <hr>
         <div class="row g-0">
