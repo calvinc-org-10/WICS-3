@@ -152,6 +152,7 @@ function loadDate() {
 
     newRec = "{% url 'CountWorksheet' 'passedDate' %}"
     newRec = newRec.replace("/passedDate","/"+dVal);
+    document.getElementById("wait_spinner").style.display = "block";
     window.location = newRec;
 
 };
