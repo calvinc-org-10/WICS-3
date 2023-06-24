@@ -2,28 +2,38 @@
 {% load widget_tweaks %}
 {% load static %}
 
-{% block tTitle %}Upload SAP File Successful{% endblock %}
+{% block tTitle %}Upload Count Schedule Results{% endblock %}
 
 {% block boddy %}
     <div class="container text-center mx-auto">
     <div class="row">
         <div class="col-10 fs-1">
-            <img src={% static 'WICS-Logo.png' %} width="200" height="100">
+            Upload Count Schedule Results
         </div>
         <div class="col-2 text-end"> {{ user.get_full_name }} </div>
     </div>
     </div>
     <hr>
 
-    <h4>{{ nRows }} SAP SOH spreadsheet records successfully uploaded with date {{ uploaded_at|date:'Y-m-d' }}!</h4>
-    {% if UplProblems %}
-    <h4><u>Problems:</u></h4>
+    <h4>
+        {{ nRowsRead }} spreadsheet rows read <br>
+        {{ nRowsAdded }} Count Entry records successfully uploaded
+    </h4>
+
+    <br>
     <ul>
-    {% for prob in UplProblems %}
-        <li>{{ prob }}</li>
+    {% for res in UplResults %}
+        <li>
+            {% if not res.error %}
+                Sprsht row {{ res.rowNum }}, 
+                Count Record {{ res.id }}: {{ res.CountDate|date:'Y-m-d '}} | {{ res.MaterialNum }} |
+                    {{ res.Counter }} | {{ res.Priority }} | {{ res.ReasonScheduled }} |
+                    added
+            {% else %}
+                <b>{{ res }}</b>
+            {% endif %}
+        </li>
     {% endfor %}
-    </ul>
-    {% endif %}
     </ul>
 
     <!-- form footer -->

@@ -1,6 +1,5 @@
 import datetime
 import os, uuid
-from tkinter import NO
 from django import forms
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -310,7 +309,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
             outputline = dict()
             outputline['type'] = 'Summary'
             outputline['SAPNum'] = []
-            for SAProw in SAP_SOH['SAPTable'].filter(Material_id=lastrow['Material_id']): 
+            for SAProw in SAP_SOH['SAPTable'].filter(MatlRec_id=lastrow['Material_id']): 
                 outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount, SAProw.BaseUnitofMeasure))
                 SAPTot += SAProw.Amount*SAProw.mult
             outputline['TypicalContainerQty'] = lastrow['TypicalContainerQty']

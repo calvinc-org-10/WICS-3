@@ -1,16 +1,23 @@
+import datetime
+import os, uuid
 import re as regex
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Value
 from django.db.models.query import QuerySet
 from django.http import HttpResponse, HttpRequest
+from django.shortcuts import render
 from django.views.generic import ListView
 from barcode import Code128
 from userprofiles.models import WICSuser
+from cMenu.models import getcParm
+from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate
 from WICS.models import MaterialList, CountSchedule, VIEW_countschedule
 from WICS.models import LastFoundAt, WorksheetZones, Location_WorksheetZone
 from WICS.procs_SAP import fnSAPList
 from typing import *
+from openpyxl import load_workbook
+from openpyxl.utils.datetime import from_excel, WINDOWS_EPOCH
 # below: skip Sat, Sun using dateutil, dateutil.rrule, dateutil.rruleset
 # implement skipping holidays
 from cMenu.utils import calvindate
@@ -49,6 +56,205 @@ def fnCountScheduleRecordExists(CtDate, Matl):
         rec = CountSchedule.objects.none()
 
     return rec
+
+#####################################################################
+#####################################################################
+#####################################################################
+
+@login_required
+def fnUploadCountSchedSprsht(req):
+
+    SprshtDateEpoch = WINDOWS_EPOCH
+
+    def cleanupfld(fld, val):
+        """
+        fld is the name of the field in the ActualCount or MaterialList table
+        val is the value to be cleaned for insertion into the fld
+        Returns  {'usefld':usefld, 'cleanval': cleanval}
+            usefld is a boolean indicating that val could/not be cleaned to the correct type
+            cleanval is val in the correct type (if usefld==True)
+        """
+        cleanval = None
+
+        if   fld == 'CountDate': 
+            if isinstance(val,(calvindate, datetime.date, datetime.datetime)):
+                usefld = True
+                cleanval = calvindate(val).as_datetime()
+            elif isinstance(val,int):
+                usefld = True
+                cleanval = from_excel(val,SprshtDateEpoch)
+            else:
+                usefld = isDate(val) 
+                if (usefld != False):
+                    cleanval = calvindate(usefld).as_datetime()
+                    usefld = True
+        elif fld in \
+            ['org_id', 
+            ]:
+            try:
+                cleanval = int(val)
+                usefld = True
+            except:
+                usefld = False
+        elif fld in \
+            ['Material', 
+             'Counter', 
+             'Notes', 
+             'Priority'
+             'ReasonScheduled',
+            ]:
+            usefld = (val is not None)
+            if usefld: cleanval = str(val)
+        else:
+            usefld = True
+            cleanval = val
+        
+        return {'usefld':usefld, 'cleanval': cleanval}
+    #end def cleanupfld
+
+    if req.method == 'POST':
+        UplResults = []
+        nRowsAdded = 0
+        SprshtRowNum = 0
+
+        # save the file so we can open it as an excel file
+        SprshtFile = req.FILES['SchdFile']
+        svdir = getcParm('SAP-FILELOC')
+        fName = svdir+"tmpSchd"+str(uuid.uuid4())+".xlsx"
+        with open(fName, "wb") as destination:
+            for chunk in SprshtFile.chunks():
+                destination.write(chunk)
+
+        wb = load_workbook(filename=fName, read_only=True)
+        SprshtDateEpoch = wb.epoch
+        if 'Schedule' in wb:
+            ws = wb['Schedule']
+        else:
+            UplResults.append({'error':'This workbook does not contain a sheet named Schedule in the correct format'})
+            ws = None
+
+        if ws:
+            SprshtcolmnNames = ws[1]
+            SprshtREQUIREDFLDS = ['org_id','Material','CountDate']     
+            SprshtcolmnMap = {}
+            Sprsht_SSName_TableName_map = {
+                    'org_id': 'org_id',         # org_id and Material will be converted to a Material_id
+                    'Material': 'Material',     # org_id and Material will be converted to a Material_id
+                    
+                    'CountDate': 'CountDate',
+                    'Counter': 'Counter',
+                    'Priority': 'Priority',
+                    'ReasonScheduled': 'ReasonScheduled',
+                    'Notes': 'Notes',
+                    }
+            for col in SprshtcolmnNames:
+                if col.value in Sprsht_SSName_TableName_map:
+                    SprshtcolmnMap[Sprsht_SSName_TableName_map[col.value]] = col.column - 1
+            
+            HeaderGood = True
+            for reqFld in SprshtREQUIREDFLDS:
+                HeaderGood = HeaderGood and (reqFld in SprshtcolmnMap)
+            if not HeaderGood:
+                UplResults.append({'error':'The Schedule worksheet in this workbook has bad header row'})
+                ws = None
+
+        if ws:
+            SprshtRowNum=1
+            MAX_COUNT_ROWS = 5000
+            for row in ws.iter_rows(min_row=SprshtRowNum+1, max_row=MAX_COUNT_ROWS, values_only=True):
+                SprshtRowNum += 1
+
+                # if no org given, check that Material unique.
+                if 'org_id' not in SprshtcolmnMap:
+                    spshtorg = None
+                else:
+                    spshtorg = cleanupfld('org_id', row[SprshtcolmnMap['org_id']])['cleanval']
+                matlnum = cleanupfld('Material', row[SprshtcolmnMap['Material']])['cleanval']
+                MatlKount =  MaterialList.objects.filter(Material=matlnum).count() 
+                MatObj = None
+                err_already_handled = False
+                if spshtorg is None:
+                    if MatlKount > 1:
+                        UplResults.append({'error':matlnum+" is in multiple org_id's, but no org_id given ", 'rowNum':SprshtRowNum})
+                        err_already_handled = True
+                if MatlKount == 1:
+                    MatObj = MaterialList.objects.get(Material=matlnum)
+                    spshtorg = MatObj.org_id
+                if MatlKount > 1:
+                    MatObj = MaterialList.objects.get(org_id=spshtorg, Material=matlnum)
+
+                if matlnum and not MatObj:
+                    if not err_already_handled:
+                        UplResults.append({'error':'either ' + matlnum + ' does not exist in MaterialList or incorrect org_id (' + str(spshtorg) + ') given', 'rowNum':SprshtRowNum})
+                elif matlnum and MatObj:
+                    requiredFields = {reqFld: False for reqFld in SprshtREQUIREDFLDS}
+
+                    SRec = CountSchedule()
+                    for fldName, colNum in SprshtcolmnMap.items():
+                        # check/correct problematic data types
+                        usefld, V = cleanupfld(fldName, row[colNum]).values()
+                        if (V is not None):
+                            if usefld:
+                                if   fldName == 'CountDate': 
+                                    setattr(SRec, fldName, V) 
+                                    requiredFields['CountDate'] = True
+                                elif fldName == 'Material': 
+                                    setattr(SRec, fldName, MatObj)
+                                    requiredFields['Material'] = True
+                                elif fldName == 'Counter': 
+                                    setattr(SRec, fldName, V)
+                                    requiredFields['Counter'] = True
+                                else:
+                                    if hasattr(SRec, fldName): setattr(SRec, fldName, V)
+                                #endif fldName == ...
+                            else:
+                                UplResults.append({'error':str(V)+' is invalid for '+fldName, 'rowNum':SprshtRowNum})
+                            #endif usefld
+                        #endif (V is not None)
+                    #endfor fldName, colNum
+
+                    # are all required fields present?
+                    AllRequiredPresent = True
+                    for keyname, Prsnt in requiredFields.items():
+                        AllRequiredPresent = AllRequiredPresent and Prsnt
+                        if not Prsnt:
+                            UplResults.append({'error':keyname+' missing', 'rowNum':SprshtRowNum})
+
+                    if AllRequiredPresent:
+                        if fnCountScheduleRecordExists(SRec.CountDate, MatObj):
+                            UplResults.append({'error':'Count alreaqdy scheduled for ' + str(MatObj) +' on '+ str(SRec.CountDate), 'rowNum':SprshtRowNum})
+                        else:
+                            SRec.save()
+                            qs = type(SRec).objects.filter(pk=SRec.pk).values().first()
+                            res = {'error': False, 'rowNum':SprshtRowNum, 'MaterialNum': str(MatObj) }
+                            res.update(qs)      # tack the new record (along with its new pk) onto res
+                                #QUESTION:  can I do this directly with SRec??
+                            UplResults.append(res)
+                            nRowsAdded += 1
+                #endif matlnum and MatObj/not MatObj
+
+            if SprshtRowNum >= MAX_COUNT_ROWS:
+                UplResults.insert(0,{'error':f'Data in spreadsheet rows {MAX_COUNT_ROWS+1} and beyond are being ignored.'})
+        #endif ws
+
+        # close and kill temp files
+        wb.close()
+        os.remove(fName)
+
+        cntext = {
+            'UplResults':UplResults, 
+            'nRowsRead':SprshtRowNum, 
+            'nRowsAdded':nRowsAdded,
+                }
+        templt = 'frm_uploadSchedCount_Success.html'
+    else:
+        cntext = {
+                }
+        templt = 'frm_UploadSchedCountSprdsht.html'
+    #endif
+
+    return render(req, templt, cntext)
+
 
 #####################################################################
 #####################################################################

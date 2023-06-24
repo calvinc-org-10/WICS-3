@@ -34,8 +34,8 @@
     <ul>
     {% for SAProw in SAPSet %}
     <li>
-        {{ SAProw.OrgName }}
-        {{ SAProw.Material }} | 
+        {{ SAProw.MatlRec.org }}
+        {{ SAProw.MatlRec }} | 
         {{ SAProw.Description }} |
         {{ SAProw.StorageLocation }} | 
         {{ SAProw.Amount }}  {{ SAProw.BaseUnitofMeasure }} |

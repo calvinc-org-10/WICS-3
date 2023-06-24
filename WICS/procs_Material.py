@@ -14,7 +14,6 @@ from django.forms import inlineformset_factory, formset_factory
 from django.http import HttpResponse, HttpRequest, HttpResponseRedirect
 from django.shortcuts import render
 from django.views.generic import ListView
-from flask_sqlalchemy import models_committed
 from cMenu.models import getcParm
 from cMenu.utils import calvindate
 from mathematical_expressions_parser.eval import evaluate

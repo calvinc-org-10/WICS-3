@@ -10,7 +10,7 @@ from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
 import WICS.globals
 from WICS.models import ActualCounts, CountSchedule
-from WICS.models import VIEW_SAP, SAP_SOHRecs, SAPPlants_org
+from WICS.models import VIEW_SAP, SAP_SOHRecs, SAPPlants_org, UnitsOfMeasure
 from WICS.models import WhsePartTypes, MaterialList, tmpMaterialListUpdate
 
 ExcelWorkbook_fileext = ".XLSX"
@@ -51,6 +51,10 @@ class UploadSAPForm(forms.Form):
 def fnUploadSAP(req):
 
     if req.method == 'POST':
+        UplResults = []
+        nRowsAdded = 0
+        SprshtRowNum = 0
+
         form = UploadSAPForm(req.POST, req.FILES)
         if form.is_valid():
             # save the file so we can open it as an excel file
@@ -65,9 +69,9 @@ def fnUploadSAP(req):
             ws = wb.active
 
             SAPcolmnNames = ws[1]
-            SAPcolmnMap = {'Material': None}
+            SAPcolmnMap = {'Material': None, 'Plant': None}
             SAP_SSName_TableName_map = {
-                    'Material': 'Material', 
+                    'Material': 'Material',  # Material+org will translate to a Material_id
                     'Material description': 'Description', 
                     'Plant': 'Plant',
                     'Material type': 'MaterialType',
@@ -85,7 +89,7 @@ def fnUploadSAP(req):
             for col in SAPcolmnNames:
                 if col.value in SAP_SSName_TableName_map:
                     SAPcolmnMap[SAP_SSName_TableName_map[col.value]] = col.column - 1
-            if (SAPcolmnMap['Material'] == None):   # or SAPcol['StorageLocation'] == None or SAPcol['Amount'] == None):
+            if (SAPcolmnMap['Material'] is None) or (SAPcolmnMap['Plant'] is None):   # or SAPcol['StorageLocation'] == None or SAPcol['Amount'] == None):
                 raise Exception('SAP Spreadsheet has bad header row.  See Calvin to fix this.')
 
             # if SAP SOH records exist for this date, kill them; only one set of SAP SOH records per day
@@ -93,28 +97,44 @@ def fnUploadSAP(req):
             UplDate = calvindate(req.POST['uploaded_at']).as_datetime()
             SAP_SOHRecs.objects.filter(uploaded_at=UplDate).delete()
 
-            nRows = 0
-            for row in ws.iter_rows(min_row=2, values_only=True):
-                if row[SAPcolmnMap['Material']]==None: MatNum = ''
-                else: MatNum = row[SAPcolmnMap['Material']]
-                if len(str(MatNum)):
+            SprshtRowNum = 1
+            for row in ws.iter_rows(min_row=SprshtRowNum+1, values_only=True):
+                SprshtRowNum += 1
+                if row[SAPcolmnMap['Material']]==None: MatlNum = ''
+                else: MatlNum = row[SAPcolmnMap['Material']]
+                if len(str(MatlNum)):
                     _org = SAPPlants_org.objects.filter(SAPPlant=row[SAPcolmnMap['Plant']])[0].org
-                    SRec = SAP_SOHRecs(
-                                org = _org,
-                                uploaded_at = UplDate
+                    try:
+                        MatlRec = MaterialList.objects.get(org=_org,Material=MatlNum)
+                    except:
+                        MatlRec = None
+                    if not MatlRec:
+                        UplResults.append({'error':'either ' + MatlNum + ' does not exist in MaterialList or incorrect Plant (' + str(row[SAPcolmnMap['Plant']]) + ') given', 'rowNum':SprshtRowNum})
+                    else:
+                        SRec = SAP_SOHRecs(
+                                org = _org,     # will be going away
+                                uploaded_at = UplDate,
+                                MatlRec = MatlRec
                                 )
-                    for fldName, colNum in SAPcolmnMap.items():
-                        if row[colNum]==None: setval = ''
-                        else: setval = row[colNum]
-                        setattr(SRec, fldName, setval)
-                    SRec.save()
-                    nRows += 1
+                        for fldName, colNum in SAPcolmnMap.items():
+                            if fldName == 'Material':
+                                pass    # will become continue
+                            if row[colNum]==None: setval = ''
+                            else: setval = row[colNum]
+                            setattr(SRec, fldName, setval)
+                        SRec.save()
+                        nRowsAdded += 1
+                    # endif MatlRec
+                # endif len(str(MatlNum))
 
             # close and kill temp files
             wb.close()
             os.remove(fName)
 
-            cntext = {'uploaded_at':UplDate, 'nRows':nRows,
+            cntext = {
+                'uploaded_at':UplDate, 
+                'nRows':nRowsAdded,
+                'UplProblems': UplResults,
                     }
             templt = 'frm_upload_SAP_Success.html'
     else:
@@ -149,28 +169,25 @@ def fnSAPList(for_date = calvindate().today(), matl = None):
         LatestSAPDate = SAP_SOHRecs.objects.filter(uploaded_at__lte=dateObj).latest().uploaded_at
     else:
         LatestSAPDate = SAP_SOHRecs.objects.earliest().uploaded_at
-    SAPLatest = VIEW_SAP.objects.filter(uploaded_at=LatestSAPDate).order_by('org_id', 'Material', 'StorageLocation')
-
-    # if SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__lte=dateObj).exists():
-    #     SAPDate = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at__lte=dateObj).latest().uploaded_at
-    # else:
-    #     SAPDate = SAP_SOHRecs.objects.filter(org=_userorg).order_by('uploaded_at').first().uploaded_at
+    # SAPLatest = VIEW_SAP.objects.filter(uploaded_at=LatestSAPDate).order_by('org_id', 'Material', 'StorageLocation')
+    SAPLatest = SAP_SOHRecs.objects\
+        .filter(uploaded_at=LatestSAPDate)\
+        .annotate(mult=Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1]))\
+        .order_by('MatlRec__org', 'MatlRec__Material', 'StorageLocation')
 
     SList = {'reqDate': for_date, 'SAPDate': LatestSAPDate, 'SAPTable':[]}
 
     if not matl:
-        # STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate).order_by('Material')
         STable = SAPLatest
     else:
         if isinstance(matl,str):
-            # STable = SAP_SOHRecs.objects.filter(org=_userorg, uploaded_at=SAPDate, Material=matl).order_by('Material')
-            STable = SAPLatest.filter(Material=matl)
+            raise Exception('fnSAPList by Matl string is deprecated')
         elif isinstance(matl,MaterialList):  # handle case matl is a MaterialList instance here
-            STable = SAPLatest.filter(Material_id=matl.id)
+            STable = SAPLatest.filter(MatlRec=matl)
         elif isinstance(matl,int):  # handle case matl is a MaterialList id here
-            STable = SAPLatest.filter(Material_id=matl)
+            STable = SAPLatest.filter(MatlRec_id=matl)
         else:   # it better be an iterable!
-            STable = SAPLatest.filter(Material__in=matl)
+            STable = SAPLatest.filter(MatlRec__in=matl)
 
     # yea, building SList is sorta wasteful, but a lot of existing code depends on it
     # won't be changing it until a total revamp of WICS

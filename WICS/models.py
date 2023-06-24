@@ -1,3 +1,4 @@
+from typing import Any
 from django.db import models
 from userprofiles.models import WICSuser        
 
@@ -74,6 +75,12 @@ class tmpMaterialListUpdate(models.Model):
     PriceUnit = models.PositiveIntegerField(null=True, blank=True)
     Currency = models.CharField(max_length=20, blank=True)
 
+def fnMaterial_id(org_id:int,Material:str) -> Any (str):
+    try:
+        return MaterialList.objects.get(org_id=org_id, Material=Material).pk
+    except:
+        return None
+    
 
 class CountSchedule(models.Model):
     CountDate = models.DateField(null=False)
@@ -153,6 +160,7 @@ class SAP_SOHRecs(models.Model):
     uploaded_at = models.DateField()
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
     Material = models.CharField(max_length=100)
+    MatlRec = models.ForeignKey(MaterialList,on_delete=models.SET_NULL,null=True)
     Description = models.CharField(max_length=250, blank=True)
     Plant = models.CharField(max_length=20, blank=True)
     MaterialType = models.CharField(max_length=50, blank=True)
