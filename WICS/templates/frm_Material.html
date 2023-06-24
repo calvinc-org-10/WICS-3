@@ -87,6 +87,7 @@ button:focus {
 <form id="FmMain" class="trackformchanges" method="post">
     {% csrf_token %}
     <!-- form header -->
+    {% if frmMain.non_form_errors %}{{ frmMain.non_form_errors }}{% endif %}
     {% if frmMain.errors %}{{ frmMain.errors }}{% endif %}
     {# django does this field wrong - when it presents it as a <select>, it makes the selected value the initial value, not the actual #}
     <input type="hidden" name="material-org" id="id_material-org" value="{{ frmMain.instance.org_id }}">
@@ -164,6 +165,7 @@ button:focus {
             <div class="card">
                 <div class="card-header">
                     {{ countset.management_form }}
+                    {{ countset.non_form_errors }}
                     {% for err in countset.errors %}
                         {% if err %}{{ err|default:'' }}<br>{% endif %}
                     {% endfor %}
@@ -246,6 +248,7 @@ button:focus {
             <div class="card">
                 <div class="card-header">
                     {{ scheduleset.management_form }}
+                    {{ scheduleset.non_form_errors }}
                     {% for err in scheduleset.errors %}
                         {% if err %}{{ err }}{% endif %}
                     {% endfor %}

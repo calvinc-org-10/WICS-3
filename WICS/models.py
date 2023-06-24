@@ -75,7 +75,7 @@ class tmpMaterialListUpdate(models.Model):
     PriceUnit = models.PositiveIntegerField(null=True, blank=True)
     Currency = models.CharField(max_length=20, blank=True)
 
-def fnMaterial_id(org_id:int,Material:str) -> Any (str):
+def fnMaterial_id(org_id:int,Material:str) -> str | None:
     try:
         return MaterialList.objects.get(org_id=org_id, Material=Material).pk
     except:

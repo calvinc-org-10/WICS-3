@@ -102,7 +102,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
 
     modelMain = FormMain.Meta.model
     modelSubs = [S for S in [ActualCounts, CountSchedule]]
-    abs_max_forms = 150
+    abs_max_forms = None
 
     FormFieldsSubs = [
         # 0 = ActualCounts Subform
