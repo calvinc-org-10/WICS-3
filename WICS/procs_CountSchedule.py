@@ -311,9 +311,7 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
         Mat3char = None
         lastCtr = None
         for rec in qs:
-            strMatlNum = rec.Material.Material
-            if MaterialList.objects.filter(Material=rec.Material.Material).exclude(pk=rec.Material.pk).exists():
-                 strMatlNum += ' (' + str(rec.Material.org) + ')'
+            strMatlNum = str(rec.Material)
             rec.Material_org = strMatlNum
             if strMatlNum[0:3] != Mat3char:
                 rec.NewMat3char = True
