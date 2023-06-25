@@ -188,6 +188,9 @@ def fnUploadCountSchedSprsht(req):
                         UplResults.append({'error':'either ' + matlnum + ' does not exist in MaterialList or incorrect org_id (' + str(spshtorg) + ') given', 'rowNum':SprshtRowNum})
                 elif matlnum and MatObj:
                     requiredFields = {reqFld: False for reqFld in SprshtREQUIREDFLDS}
+                    # org_id and Material must be present, else there'd be no MatObj
+                    requiredFields['org_id'] = True
+                    requiredFields['Material'] = True
 
                     SRec = CountSchedule()
                     for fldName, colNum in SprshtcolmnMap.items():
@@ -222,13 +225,13 @@ def fnUploadCountSchedSprsht(req):
 
                     if AllRequiredPresent:
                         if fnCountScheduleRecordExists(SRec.CountDate, MatObj):
-                            UplResults.append({'error':'Count alreaqdy scheduled for ' + str(MatObj) +' on '+ str(SRec.CountDate), 'rowNum':SprshtRowNum})
+                            UplResults.append({'error': f'Count already scheduled for {MatObj}  on {SRec.CountDate:%Y-%m-%d}', 'rowNum':SprshtRowNum})
                         else:
                             SRec.save()
                             qs = type(SRec).objects.filter(pk=SRec.pk).values().first()
                             res = {'error': False, 'rowNum':SprshtRowNum, 'MaterialNum': str(MatObj) }
                             res.update(qs)      # tack the new record (along with its new pk) onto res
-                                #QUESTION:  can I do this directly with SRec??
+                            # res.update(SRec)      #QUESTION:  can I do this directly with SRec?? - NO. This line does not work. SRec is not iterable
                             UplResults.append(res)
                             nRowsAdded += 1
                 #endif matlnum and MatObj/not MatObj

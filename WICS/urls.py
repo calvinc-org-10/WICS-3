@@ -113,6 +113,8 @@ urlpatterns = [
 
     path('UpldActCtSprsht', procs_ActualCounts.fnUploadActCountSprsht, name='UploadActualCountSprsht'),
 
+    path('UpldCtSchedSprsht', procs_CountSchedule.fnUploadCountSchedSprsht, name='UploadCountSchedSprsht'),
+
     path('UpdateMatlListfromSAP',procs_SAP.fnUpdateMatlListfromSAP, name='UpdateMatlListfromSAP'),
 
     path('UpldSAPSprsht',procs_SAP.fnUploadSAP, name='UploadSAPSprSht'),

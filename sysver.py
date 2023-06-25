@@ -1,4 +1,5 @@
+_base_ver='3.06'
 sysver = {
-    'DEV': 'DEV3.05', 
-    'PROD':'3.05',
+    'DEV': 'DEV'+_base_ver, 
+    'PROD':_base_ver,
     } 

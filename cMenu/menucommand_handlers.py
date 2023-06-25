@@ -19,124 +19,18 @@ class MENUCOMMAND(Enum):
     ExitApplication = 200
 
 
-# should the url be the Argument rather than the formname?
-def FormBrowse_orig(req, formname, recNum = -1):
-    theForm = 'Form ' + formname + ' is not built yet.  Calvin needs more coffee.'
-    theForm = None
-    if formname.lower() == 'l10-wics-uadmin'.lower():
-        theForm = fnWICSuserForm(req)
-    elif formname.lower() == 'l6-wics-uadmin'.lower():
-        theForm = fnWICSuserForm(req)
-    elif formname.lower() == 'frmcount-schedulehistory-by-counterdate'.lower(): 
-        url = 'CountScheduleList'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'frmcountentry'.lower():
-        url = 'CountEntryForm'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'frmUploadCountEntry'.lower():
-        url = 'UploadActualCountSprsht'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'frmcountsummarypreview'.lower(): 
-        url = 'CountSummaryReport'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'frmrequestedcountsummary'.lower(): 
-        url = 'CountSummaryReport-v-init'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'frmExportCMCounts': 
-        pass
-    elif formname.lower() == 'frmimportsap'.lower():
-        url = 'UploadSAPSprSht'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'frmmaterial'.lower():
-        url = 'MatlForm'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'frmParts-By-Type-with-LastCounts'.lower():
-        url = 'MatlByPartType'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'rptMaterialByLastCount'.lower():
-        url = 'MatlByLastCountDate'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'rptMaterialByDESCValue'.lower():
-        url = 'MatlByDESCValue'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'frmRandCountScheduler'.lower(): 
-        pass
-    elif formname.lower() == 'matllistupdt'.lower(): 
-        url = 'UpdateMatlListfromSAP'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'frmCountScheduleEntry'.lower():
-        url = 'CountScheduleForm'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'frmRequestCountScheduleEntry'.lower():
-        url = 'RequestCountScheduleForm'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'frmRequestedCountListEdit'.lower():
-        url = 'RequestCountListEdit'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'rptCountWorksheet'.lower():
-        url = 'CountWorksheet'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'rptMaterialLocations'.lower():
-        url = 'MaterialLocations'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'LocationList'.lower():
-        url = 'LocationList'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'zutilShowColor'.lower(): 
-        pass
-    elif formname.lower() == 'sap'.lower():
-        url = 'showtable-SAP'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'tblActualCounts'.lower():
-        url = 'ActualCountList'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    elif formname.lower() == 'PartTypeFm'.lower():
-        url = 'PartTypeForm'
-        theView = resolve(reverse(url)).func
-        theForm = theView(req)
-    else: pass
-
-    if not theForm:
-        templt = "UnderConstruction.html"
-        cntext = {
-            'formname': formname, 
-            }
-        theForm = render(req, templt, cntext)
-
-
-    # must be rendered if theForm came from a class-based-view
-    if hasattr(theForm,'render'): theForm = theForm.render()
-    return theForm
-
 def FormBrowse(req, formname):
     FormNameToURL_Map = {}
     urlIndex = 0
     viewIndex = 1
 
+    # FormNameToURL_Map['menu Argument'.lower()] = (url, view)
     FormNameToURL_Map['l10-wics-uadmin'.lower()] = (None, fnWICSuserForm)
     FormNameToURL_Map['l6-wics-uadmin'.lower()] = FormNameToURL_Map['l10-wics-uadmin']
     FormNameToURL_Map['frmcount-schedulehistory-by-counterdate'.lower()] = ('CountScheduleList', None)
     FormNameToURL_Map['frmcountentry'.lower()] = ('CountEntryForm', None)
     FormNameToURL_Map['frmUploadCountEntry'.lower()] = ('UploadActualCountSprsht', None)
+    FormNameToURL_Map['frmUploadCountSched'.lower()] = ('UploadCountSchedSprsht', None)
     FormNameToURL_Map['frmcountsummarypreview'.lower()] = ('CountSummaryReport', None)
     FormNameToURL_Map['frmrequestedcountsummary'.lower()] = ('CountSummaryReport-v-init', None)
     FormNameToURL_Map['frmimportsap'.lower()] = ('UploadSAPSprSht', None)
