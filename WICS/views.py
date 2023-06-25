@@ -230,7 +230,7 @@ def fnCountEntryView(req,
 
 def _fnCountSchedRecViewCommon(req, variation,
             recNum = 0, MatlNum = 0, reqDate = calvindate().today(),
-            gotoCommand = None
+            gotoCommand = None, **kwargs
             ):
     requser = WICSuser.objects.get(user=req.user)
 
@@ -252,11 +252,13 @@ def _fnCountSchedRecViewCommon(req, variation,
         'matl': 'matl',
     }
     initialvals = {
-        'main': {'CountDate': calvindate(reqDate).as_datetime(),},
+        'main': {'CountDate': calvindate(reqDate).as_datetime(), 'RequestFilled': None},
         'matl': {},
     }
     if variation == 'REQ':
         initialvals['main']['Requestor'] = req.user.get_short_name()
+    else:
+        initialvals['main']['Requestor'] = None
 
     changes_saved = {
         'main': False,
@@ -305,7 +307,11 @@ def _fnCountSchedRecViewCommon(req, variation,
                 changes_saved['matl'] = True
 
             # prep new record to present
-            currRec = modelMain(CountDate=reqDate, Requestor=req.user.get_short_name())
+            currRec = modelMain(
+                CountDate=reqDate, 
+                Requestor=req.user.get_short_name() if variation=='REQ' else None,
+                RequestFilled=None
+                )
             recNum=0
             MatlNum = 0
             matlRec = getattr(currRec,'Material', '')
@@ -320,7 +326,11 @@ def _fnCountSchedRecViewCommon(req, variation,
                 matlSubFm = FormSubs[0](None, initial=initialvals['matl'], prefix=prefixvals['matl'])
 
     else:
-        currRec = modelMain(CountDate=reqDate, Requestor=req.user.get_short_name())
+        currRec = modelMain(
+            CountDate=reqDate, 
+            Requestor=req.user.get_short_name() if variation=='REQ' else None,
+            RequestFilled=None
+            )
         matlRec = modelSubs[0].objects.none()
 
         # TODO: add protection against no records
@@ -440,161 +450,6 @@ def fnCountScheduleRecView(req,
             recNum, MatlNum, reqDate,
             gotoCommand
             )
-    ### this is the code that used to be fnCountScheduleRecView
-    # # the string 'None' is not the same as the value None
-    # if MatlNum=='None': MatlNum=0
-    # if gotoCommand=='None': gotoCommand=None
-
-    # FormMain = CountScheduleRecordForm
-    # FormSubs = [S for S in [RelatedMaterialInfo]]
-
-    # modelMain = FormMain.Meta.model
-    # modelSubs = [S.Meta.model for S in FormSubs]
-
-    # prefixvals = {
-    #     'main': 'counts',
-    #     'matl': 'matl',
-    # }
-    # initialvals = {
-    #     'main': {'CountDate': calvindate(reqDate).as_datetime()},
-    #     'matl': {},
-    # }
-
-    # changes_saved = {
-    #     'main': False,
-    #     'matl': False,
-    #     }
-    # chgd_dat = {
-    #     'main':None, 
-    #     'matl': None, 
-    #     }
-
-    # msgDupSched = ''
-
-    # if req.method == 'POST':
-    #     R = req.POST[prefixvals['main']+'-id']
-    #     recNum = int(R) if R.isnumeric() else 0
-    #     try:
-    #         currRec = modelMain.objects.get(pk=recNum)
-    #     except:
-    #         currRec = modelMain()
-    #     matlRec = modelSubs[0].objects.get(id=req.POST['MatlPK'])
-
-    #     # process main form
-    #     if currRec: mainFm = FormMain(req.POST, instance=currRec,  prefix=prefixvals['main'])   # do I need to pass in intial?
-    #     else: mainFm = FormMain(req.POST, initial=initialvals['main'],  prefix=prefixvals['main']) 
-    #     matlSubFm = FormSubs[0](matlRec.pk, req.POST, instance=matlRec, prefix=prefixvals['matl'])
-
-    #     s = modelMain.objects.none()
-
-    #     # if mainFm.is_valid() and matlSubFm.is_valid() and schedFm.is_valid():
-    #     if mainFm.is_valid() and matlSubFm.is_valid():
-    #         if mainFm.has_changed():
-    #             s = mainFm.save()
-    #             chgd_dat['main'] = []
-    #             for chgdfld in mainFm.changed_data:
-    #                 chgd_dat['main'].append(chgdfld+'='+str(mainFm.cleaned_data[chgdfld]))
-    #             changes_saved['main'] = s.id
-    #         # material info subform
-    #         if matlSubFm.has_changed():
-    #             matlSubFm.save()
-    #             chgd_dat['matl'] = []
-    #             for chgdfld in matlSubFm.changed_data:
-    #                 chgd_dat['matl'].append(chgdfld+'='+str(matlSubFm.cleaned_data[chgdfld]))
-    #             changes_saved['matl'] = True
-
-    #         # prep new record to present
-    #         currRec = modelMain(CountDate=reqDate)
-    #         recNum=0
-    #         MatlNum = 0
-    #         matlRec = getattr(currRec,'Material', '')
-
-    #         if currRec: 
-    #             mainFm = FormMain(instance=currRec, prefix=prefixvals['main'])
-    #         else:       
-    #             mainFm = FormMain(initial=initialvals['main'],  prefix=prefixvals['main'])
-    #         if matlRec:
-    #             matlSubFm = FormSubs[0](matlRec.pk, instance=matlRec, prefix=prefixvals['matl'])
-    #         else:
-    #             matlSubFm = FormSubs[0](None, initial=initialvals['matl'], prefix=prefixvals['matl'])
-
-    # else:
-    #     currRec = modelMain(CountDate=reqDate)
-    #     matlRec = modelSubs[0].objects.none()
-    #     # TODO: later, do try..except blocks
-    #     if gotoCommand == 'First':
-    #         # TODO: add protection against no records
-    #         recNum = modelMain.objects.all().order_by('id').first().pk
-    #     elif gotoCommand == 'Last':
-    #         # TODO: add protection against no records
-    #         recNum = modelMain.objects.all().order_by('id').last().pk
-    #     elif gotoCommand == 'Prev':
-    #         try:
-    #             recNum = modelMain.objects.filter(pk__lt=recNum).order_by('id').last().pk
-    #         except: # assume it's because we're already at first record.  don't go anywhere
-    #             pass
-    #     elif gotoCommand == 'Next':
-    #         try:
-    #             recNum = modelMain.objects.filter(pk__gt=recNum).order_by('id').first().pk
-    #         except:
-    #             pass
-    #     else:
-    #         pass
-        
-    #     incomingMatlRec = matlRec   # in case it's trying to be changed to an existing scheduled count
-    #     if recNum:
-    #         currRec = modelMain.objects.get(pk=recNum)
-    #         matlRec = currRec.Material  # subject to change
-
-    #     if gotoCommand == 'ChgKey':
-    #         #finally, if this is a new rec, and a rec already exists for this CountDate and Material, the Material must be rejected
-    #         MatlNum = int(MatlNum)
-    #         exstSchdRec = getattr(fnCountScheduleRecordExists(reqDate,MatlNum),'id', False)
-    #         if exstSchdRec:
-    #             # if its not THIS record, reject
-    #             if (currRec and currRec.id != exstSchdRec):
-    #                 matlRec = VIEW_materials.objects.get(id=MatlNum)
-    #                 msgDupSched = 'A count for ' + str(matlRec.Material_org) + ' is already scheduled for ' + str(reqDate)
-    #                 matlRec = incomingMatlRec
-    #                 MatlNum = getattr(matlRec,'Material',None)
-    #         else:
-    #             currRec.CountDate = reqDate
-    #             matlRec = modelSubs[0].objects.get(pk=MatlNum)
-    #             currRec.Material = matlRec
-
-    #     # at this point, currRec and matlRec s/b correct
-
-    #     if currRec: 
-    #         mainFm = FormMain(instance=currRec, prefix=prefixvals['main'])
-    #     else:       
-    #         mainFm = FormMain(initial=initialvals['main'],  prefix=prefixvals['main'])
-    #     if matlRec:
-    #         matlSubFm = FormSubs[0](matlRec.pk, instance=matlRec, prefix=prefixvals['matl'])
-    #     else:
-    #         matlSubFm = FormSubs[0](None, initial=initialvals['matl'], prefix=prefixvals['matl'])
-
-    # # CountEntryForm MaterialList dropdown
-    # matlchoiceForm = {}
-    # if matlRec:
-    #     matlchoiceForm['gotoItem'] = matlRec        # the template pulls Material from this record
-    # else:
-    #     if MatlNum==None: MatlNum = 0
-    #     matlchoiceForm['gotoItem'] = ''
-    # matlchoiceForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
-
-    # # display the form
-    # cntext = {'frmMain': mainFm,
-    #         'frmMatlInfo': matlSubFm,
-    #         'matlchoiceForm':matlchoiceForm,
-    #         'changes_saved': changes_saved,
-    #         'changed_data': chgd_dat,
-    #         'recNum': recNum,
-    #         'matlnum_changed': MatlNum,
-    #         'msgDupSched': msgDupSched,
-    #         }
-    # templt = 'frm_CountScheduleRec.html'
-    # return render(req, templt, cntext)
-
 
 ##########################################################################
 
