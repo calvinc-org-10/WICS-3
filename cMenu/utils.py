@@ -3,6 +3,7 @@ import datetime
 from datetime import date, timedelta
 from dateutil.parser import parse
 from dateutil.rrule import *
+from collections import namedtuple
 
 
 class calvindate(date):
@@ -130,5 +131,23 @@ def isDate(testdate):
     except:
         td = False
     return td
+
+
+def dictfetchall(cursor):
+    """
+    Return all rows from a cursor as a dict.
+    Assume the column names are unique.
+    """
+    columns = [col[0] for col in cursor.description]
+    return [
+        dict(zip(columns, row))
+        for row in cursor.fetchall()
+    ]
+
+def namedtuplefetchall(cursor, ResultName = 'Result'):
+    "Return all rows from a cursor as a namedtuple"
+    desc = cursor.description
+    nt_result = namedtuple(ResultName, [col[0] for col in desc])
+    return [nt_result(*row) for row in cursor.fetchall()]
 
 

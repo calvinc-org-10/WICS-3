@@ -6,7 +6,7 @@ from django.db.models import Max, OuterRef, Subquery
 from django.shortcuts import render
 from openpyxl import load_workbook
 from cMenu.models import getcParm
-from cMenu.utils import calvindate
+from cMenu.utils import calvindate, dictfetchall
 from userprofiles.models import WICSuser
 import WICS.globals
 from WICS.models import ActualCounts, CountSchedule
@@ -197,15 +197,6 @@ def fnSAPList(for_date = calvindate().today(), matl = None):
 
     return SList
 
-
-#TODO: promote this to a utility
-def dictfetchall(cursor):
-    """
-    Return all rows from a cursor as a dict.
-    Assume the column names are unique.
-    """
-    columns = [col[0] for col in cursor.description]
-    return [dict(zip(columns, row)) for row in cursor.fetchall()]
 
 @login_required
 def fnUpdateMatlListfromSAP(req):

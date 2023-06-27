@@ -415,21 +415,6 @@ def MenuRemove(req, menuGroup, menuNum):
     return HttpResponseRedirect(reverse('EditMenu_init'))
 
 
-from collections import namedtuple
-
-def dictfetchall(cursor):
-    "Return all rows from a cursor as a dict"
-    columns = [col[0] for col in cursor.description]
-    return [
-        dict(zip(columns, row))
-        for row in cursor.fetchall()
-    ]
-def namedtuplefetchall(cursor, ResultName = 'Result'):
-    "Return all rows from a cursor as a namedtuple"
-    desc = cursor.description
-    nt_result = namedtuple(ResultName, [col[0] for col in desc])
-    return [nt_result(*row) for row in cursor.fetchall()]
-
 class fm_cRawSQL(forms.Form):
     inputSQL = forms.CharField(widget=forms.Textarea(attrs={'cols':120}))
 
