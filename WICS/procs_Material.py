@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import models
 from django.db.models import Value, Sum, Max
-from django.db.models import F, Case, When, Exists, Subquery, OuterRef
+from django.db.models import F, Value, Case, When, Exists, Subquery, OuterRef
 from django.db.models.functions import Concat
 from django.db.models.query import QuerySet
 from django.forms import inlineformset_factory, formset_factory
@@ -94,15 +94,13 @@ class MaterialCountSummary(forms.Form):
 
 
 @login_required
-def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
-    
+def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffDate=None):
+    _DEFAULTHISTORYDAYS = -60   # default number of history days to provide for subforms
+
     FormMain = MaterialForm
-    #DIE: FormMain = CountEntryForm
-    #DIE: FormSubs = [S for S in [RelatedMaterialInfo, RelatedScheduleInfo]]
 
     modelMain = FormMain.Meta.model
     modelSubs = [S for S in [ActualCounts, CountSchedule]]
-    abs_max_forms = None
 
     FormFieldsSubs = [
         # 0 = ActualCounts Subform
@@ -110,6 +108,12 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
         # 1 = CountSchedule SubForm
         ('id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'Notes',),
     ]
+
+    #DIE?: I thought this would help -- mebbe not
+    # if HistoryCutoffDate is None:
+    #     HistoryCutoffDate = calvindate().daysfrom(_DEFAULTHISTORYDAYS)
+    # else:
+    #     HistoryCutoffDate = calvindate(HistoryCutoffDate)
 
     # get current record
     currRec = None
@@ -157,8 +161,14 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
         SAP_SOH = fnSAPList(matl=currRec)
 
     gotoForm = {}
-    #DIE: gotoForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
-    gotoForm['choicelist'] = MaterialList.objects.all()
+    gotoForm['choicelist'] = \
+    MaterialList.objects.all().annotate(Material_org=Case(
+        When(Exists(MaterialList.objects.filter(Material=OuterRef('Material')).exclude(org=OuterRef('org'))), 
+             then=Concat(F('Material'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
+             ),
+        default=F('Material')
+        )   
+        ).values('id','Material_org')
     gotoForm['gotoItem'] = currRec
 
     if req.method == 'POST':
@@ -170,14 +180,16 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
         mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.all().order_by('WhsePartType')
         countSubFm_class = inlineformset_factory(modelMain,modelSubs[0],
                     fields=FormFieldsSubs[0],
-                    max_num = abs_max_forms,absolute_max=abs_max_forms,extra=0,can_delete=False)
+                    extra=0,can_delete=False)
         countSet = countSubFm_class(req.POST, instance=currRec, prefix=prefixvals['counts'], initial=initialvals['counts'],
                     queryset=modelSubs[0].objects.order_by('-CountDate'))
+                    # queryset=modelSubs[0].objects.filter(CountDate__gte=HistoryCutoffDate).order_by('-CountDate'))
         SchedSubFm_class = inlineformset_factory(modelMain,modelSubs[1],
                     fields=FormFieldsSubs[1],
-                    max_num = abs_max_forms,absolute_max=abs_max_forms,extra=0,can_delete=False)
+                    extra=0,can_delete=False)
         schedSet = SchedSubFm_class(req.POST, instance=currRec, prefix=prefixvals['schedule'], initial=initialvals['schedule'],
                     queryset=modelSubs[1].objects.order_by('-CountDate'))
+                    # queryset=modelSubs[1].objects.filter(CountDate__gte=HistoryCutoffDate).order_by('-CountDate'))
 
         if mtlFm.is_valid() and countSet.is_valid() and schedSet.is_valid():
             if mtlFm.has_changed():
@@ -209,25 +221,30 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
 
         CountSubFm_class = inlineformset_factory(modelMain,modelSubs[0],
                     fields=FormFieldsSubs[0],
-                    max_num = abs_max_forms,absolute_max=abs_max_forms,extra=0,can_delete=False)
+                    extra=0,can_delete=False)
         countSet = CountSubFm_class(instance=currRec, prefix=prefixvals['counts'], initial=initialvals['counts'],
                     queryset=modelSubs[0].objects.order_by('-CountDate'))
+                    # queryset=modelSubs[0].objects.filter(CountDate__gte=HistoryCutoffDate).order_by('-CountDate'))
 
         SchedSubFm_class = inlineformset_factory(modelMain,modelSubs[1],
                     fields=FormFieldsSubs[1],
-                    max_num = abs_max_forms,absolute_max=abs_max_forms,extra=0,can_delete=False)
+                    extra=0,can_delete=False)
         schedSet = SchedSubFm_class(instance=currRec, prefix=prefixvals['schedule'], initial=initialvals['schedule'],
                     queryset=modelSubs[1].objects.order_by('-CountDate'))
+                    # queryset=modelSubs[1].objects.filter(CountDate__gte=HistoryCutoffDate).order_by('-CountDate'))
     # endif
 
     # count summary subform
     # much as I'd like to use the view, it slows the prod db to a crawl
     # SAPTotals = VIEW_SAP.objects.filter(Material_id=currRec.pk).values('uploaded_at','Material','mult').annotate(SAPQty=Sum('Amount')).order_by('uploaded_at', 'Material')
-    SAPTotals = SAP_SOHRecs.objects.filter(org=currRec.org,Material=currRec.Material)\
+    # add another 30 days to the SAP cutoff in case the earliest Count records don't have an SAP count from the same day
+    # SAPTotals = SAP_SOHRecs.objects.filter(MatlRec=currRec, uploaded_at__gte=HistoryCutoffDate.daysfrom(-30))\
+    SAPTotals = SAP_SOHRecs.objects.filter(MatlRec=currRec)\
         .values('uploaded_at','Material')\
         .annotate(SAPQty=Sum('Amount')).annotate(mult=Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1]))\
         .order_by('uploaded_at', 'Material')
-    raw_countdata = ActualCounts.objects.filter(Material=currRec).order_by('Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
+    # raw_countdata = ActualCounts.objects.filter(Material=currRec, CountDate__gte=HistoryCutoffDate).order_by('Material__Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
+    raw_countdata = ActualCounts.objects.filter(Material=currRec).order_by('Material__Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
     LastMaterial = None ; LastCountDate = None
     initdata = []
     for r in raw_countdata:
@@ -273,11 +290,12 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
     # display the form
     cntext = {
             'frmMain': mtlFm,
-            #DIE: 'matlorg': currRec.org.orgname,
             'userReadOnly': req.user.has_perm('WICS.Material_onlyview') and not req.user.has_perm('WICS.SuperUser'),
             'lastFoundAt': LastFoundAt(currRec),
+            # 'FoundAt': FoundAt(currRec).filter(CountDate__gte=HistoryCutoffDate),
             'FoundAt': FoundAt(currRec),
             'gotoForm': gotoForm,
+            # 'HistoryCutoffDate': HistoryCutoffDate.as_datetime(),
             'countset': countSet,
             'scheduleset': schedSet,
             'countsummset': summarySet,
@@ -285,7 +303,6 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False):
             #DIE: 'SAPHist':SAPHist,
             'changes_saved': changes_saved,
             'changed_data': chgd_dat,
-            #DIE: 'recNum': recNum,
             }
     templt = 'frm_Material.html'
     return render(req, templt, cntext)

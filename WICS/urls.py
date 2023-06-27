@@ -17,13 +17,16 @@ from django.urls import path, reverse
 from django.shortcuts import redirect
 from WICS import userinit
 from WICS import procs_ActualCounts, procs_CountSchedule, procs_Material, procs_SAP, views
+from WICS import phptest
 from userprofiles import logout
 
 urlpatterns = [
     path('', lambda request: redirect(reverse('login'),permanent=False), name='WICSlogin'),       # this is actually the entry point to WICS
-    # path('test00', testmodal.fnTestModal, name='test00'),
     path('inituser', userinit.inituser , name='initWICSuser'),
     path('logout',logout.WICSlogout, name='WICSlogout'),
+
+    path('phptest00', phptest.showtestAjax , name='phptest00'),
+    path('phptest01', phptest.testAjax , name='phptest01'),
 
     path('ActualCountList',
             procs_ActualCounts.ActualCountListForm.as_view(), name='ActualCountList'),
@@ -85,6 +88,8 @@ urlpatterns = [
             procs_Material.fnMaterialForm, {'gotoRec':False, 'newRec':True}, name='NewMatlForm'),
     path('MaterialForm/recnum/<int:recNum>',
             procs_Material.fnMaterialForm, name='MatlFormRecNum'),
+    path('MaterialForm/histcutoff/<int:recNum>/<str:HistoryCutoffDate>',
+            procs_Material.fnMaterialForm, name='MatlFormChgHistCutoffDate'),
 
     path('MatlByPartType',
             procs_Material.MaterialByPartType.as_view(), name='MatlByPartType'),

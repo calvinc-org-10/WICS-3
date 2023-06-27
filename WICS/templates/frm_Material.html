@@ -76,13 +76,15 @@ button:focus {
         </h1>
             <datalist id="Material-list">
                 {% for itm in gotoForm.choicelist %}
-                    <option value="{{itm}}">
+                    <option value="{{itm.Material_org}}">
                 {% endfor %}
             </datalist>
         </div>
     </div>
 </div>
 <!-- </form> -->
+
+<form id="dumdummyform"></form>
 
 <form id="FmMain" class="trackformchanges" method="post">
     {% csrf_token %}
@@ -125,7 +127,7 @@ button:focus {
         <hr>
         <div class="container">
             <div class="row">
-                <div class="col-10 text-start">
+                <div class="col-8 text-start">
                     SAP Date: {{ SAPSet.SAPDate }}
                     {% if SAPSet.SAPTable %}
                         {% for s in SAPSet.SAPTable %}({{ s.Material }}, {{ s.StorageLocation }}, {{ s.Amount }}, {{s.BaseUnitofMeasure}}){% endfor %}
@@ -135,9 +137,22 @@ button:focus {
                     <br>
                     Last Found At {{ lastFoundAt.lastFoundAt }} on {{ lastFoundAt.lastCountDate }}
                 </div>
-                <div class="col-2 text-end">
+                <div class="col-2">
                     <button id="SchedCount" type="button" {% if userReadOnly %}disabled{%endif%}>Schedule Count</button>
                 </div>
+                {% comment %}
+                NOTE: if this goes back, it needs to be moved outside the form, else it makes the form dirty for exit
+                <div class="col text-end">
+                HistoryCutoffDate 
+                <input type="date" 
+                    name="HistoryCutoffDate" 
+                    id="HistoryCutoffDate" 
+                    form="dumdummyform"
+                    value="{{HistoryCutoffDate|date:"Y-m-d"}}"
+                    onchange="chgHistoryCutoffDate();"
+                    >
+                </div>
+                {% endcomment %}
             </div>
         </div>
     </div>
@@ -158,7 +173,7 @@ button:focus {
         <li class="nav-item">
         <a class="nav-link" data-bs-toggle="pill" href="#FoundAt">Found At</a>
         </li>
-        </ul>
+    </ul>
     <!-- Tab panes -->
     <div class="tab-content">
         <div class="tab-pane container-fluid active" id="CountDetail">
@@ -339,7 +354,7 @@ button:focus {
     // set up MatlMap for verifying if an entered Material # is valid
     var MatlMap = new Map([
         {% for itm in gotoForm.choicelist %}
-        ['{{itm}}', {{itm.id}}],
+        ['{{itm.Material_org}}', {{itm.id}}],
         {% endfor %}
         ]);
     {% comment %}
@@ -426,7 +441,15 @@ button:focus {
 
     //-------------------
 
-    
+    function chgHistoryCutoffDate() {
+        HistDateInput = $("#HistoryCutoffDate")
+        newRec="{% url 'MatlFormChgHistCutoffDate' 0 'offdate' %}"
+        newRec = newRec.replace("/0","/"+thisMtlID);
+        newRec = newRec.replace("/offdate","/"+HistDateInput.val());
+        document.getElementById("wait_spinner").style.display = "block";
+        window.location = newRec;
+    };
+
     //-------------------
 
     document.getElementById("SchedCount").addEventListener("click", function() {
