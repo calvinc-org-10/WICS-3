@@ -114,6 +114,7 @@
     </div>
     <div class="row g-0 calvin-smalltext">
         <div class="col-12">
+        dbid {{ itm.instance.pk }} |
         Requestor: {{ itm.Requestor }} | RequestFilled: {{ itm.RequestFilled|yesno:"yes,no,---" }} |
         Reason Scheduled: {{ itm.ReasonScheduled }} | Notes: {{ itm.Notes }} | SAP Qty: {{ itm.SAPQty }}
         </div>

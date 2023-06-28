@@ -190,17 +190,21 @@ def Excelfile_fromqs(qset, flName, freezecols = 0):
 
 import uuid
 from WICS.models import MaterialList
+from django.shortcuts import render
 from django.http import HttpResponse, FileResponse
 from cMenu.models import getcParm
 def test00(req):
-    SQLResultPrefix = "SQLResults"
-    svdir = getcParm('SAP-FILELOC')
-    fName = svdir+SQLResultPrefix+'-'+str(uuid.uuid4())
-    Excelfile_fromqs(MaterialList.objects.all()[5:15], fName)
+    if req.method == 'POST':
+        SQLResultPrefix = "SQLResults"
+        svdir = getcParm('SAP-FILELOC')
+        fName = svdir+SQLResultPrefix+'-'+str(uuid.uuid4())
+        Excelfile_fromqs(MaterialList.objects.all()[5:15], fName)
 
-    resp = FileResponse(open(fName+ExcelWorkbook_fileext, 'rb'),
-                        as_attachment=True) #,
-    #                    content_type='application/vnd.ms-excel'
-    #                    )
-    # resp['Content-Disposition'] = 'attachment; filename='+SQLResultPrefix+ExcelWorkbook_fileext
-    return resp
+        resp = FileResponse(open(fName+ExcelWorkbook_fileext, 'rb'))
+        resp['Content-Disposition'] = 'attachment; filename="' + fName_base+ExcelWorkbook_fileext + '"'
+        resp['Content-Type'] = 'application/vnd.ms-excel'
+        return resp
+    else:
+        cntext = {}
+        templt = '00test00.html'
+        return render(req, templt, cntext)
