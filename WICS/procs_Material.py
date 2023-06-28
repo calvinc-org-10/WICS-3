@@ -26,9 +26,6 @@ from typing import Any, Dict
 
 
 
-ExcelWorkbook_fileext = ".XLSX"
-
-
 class MaterialLocationsList(LoginRequiredMixin, ListView):
     #login_url = reverse('WICSlogin')
     ordering = ['org_id','Material']

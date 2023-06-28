@@ -11,7 +11,7 @@ from django.views.generic import ListView
 from barcode import Code128
 from userprofiles.models import WICSuser
 from cMenu.models import getcParm
-from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate
+from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate, ExcelWorkbook_fileext
 from WICS.models import MaterialList, CountSchedule, VIEW_countschedule
 from WICS.models import LastFoundAt, WorksheetZones, Location_WorksheetZone
 from WICS.procs_SAP import fnSAPList
@@ -120,7 +120,7 @@ def fnUploadCountSchedSprsht(req):
         # save the file so we can open it as an excel file
         SprshtFile = req.FILES['SchdFile']
         svdir = getcParm('SAP-FILELOC')
-        fName = svdir+"tmpSchd"+str(uuid.uuid4())+".xlsx"
+        fName = svdir+"tmpSchd"+str(uuid.uuid4())+ExcelWorkbook_fileext
         with open(fName, "wb") as destination:
             for chunk in SprshtFile.chunks():
                 destination.write(chunk)

@@ -3,7 +3,11 @@ import datetime
 from datetime import date, timedelta
 from dateutil.parser import parse
 from dateutil.rrule import *
+from django.db.models import QuerySet
 from collections import namedtuple
+from openpyxl import Workbook
+
+ExcelWorkbook_fileext = ".XLSX"
 
 
 class calvindate(date):
@@ -150,4 +154,53 @@ def namedtuplefetchall(cursor, ResultName = 'Result'):
     nt_result = namedtuple(ResultName, [col[0] for col in desc])
     return [nt_result(*row) for row in cursor.fetchall()]
 
+def Excelfile_fromqs(qset, flName, freezecols = 0):
 
+    # far easier to process a list of dictionaries, so...
+    if isinstance(qset,QuerySet):
+        qlist = qset.values()
+    else:
+        qlist = qset
+
+    
+    wb = Workbook()
+    ws = wb.active
+
+    # header row is names of columns
+    fields = list(qlist[0])
+    ws.append(fields)
+
+    # append each row
+    for row in qlist:
+        ws.append(list(row.values()))
+
+    # make header row bold, shade it grey, freeze it
+
+
+    # if freezecols passed, freeze them, too
+
+    # save the workbook
+    wb.save(flName+ExcelWorkbook_fileext)
+
+    # close the workbook
+    wb.close()
+
+    # and return success code to the caller
+    return True
+
+import uuid
+from WICS.models import MaterialList
+from django.http import HttpResponse, FileResponse
+from cMenu.models import getcParm
+def test00(req):
+    SQLResultPrefix = "SQLResults"
+    svdir = getcParm('SAP-FILELOC')
+    fName = svdir+SQLResultPrefix+'-'+str(uuid.uuid4())
+    Excelfile_fromqs(MaterialList.objects.all()[5:15], fName)
+
+    resp = FileResponse(open(fName+ExcelWorkbook_fileext, 'rb'),
+                        as_attachment=True) #,
+    #                    content_type='application/vnd.ms-excel'
+    #                    )
+    # resp['Content-Disposition'] = 'attachment; filename='+SQLResultPrefix+ExcelWorkbook_fileext
+    return resp

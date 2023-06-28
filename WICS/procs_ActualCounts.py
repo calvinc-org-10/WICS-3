@@ -9,7 +9,7 @@ from django.shortcuts import render
 from django.views.generic import ListView
 from typing import *
 from cMenu.models import getcParm
-from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate
+from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate, ExcelWorkbook_fileext
 from mathematical_expressions_parser.eval import evaluate
 from openpyxl import load_workbook
 from openpyxl.utils.datetime import from_excel, WINDOWS_EPOCH
@@ -99,7 +99,7 @@ def fnUploadActCountSprsht(req):
         # save the file so we can open it as an excel file
         CountSprshtFile = req.FILES['CEFile']
         svdir = getcParm('SAP-FILELOC')
-        fName = svdir+"tmpCE"+str(uuid.uuid4())+".xlsx"
+        fName = svdir+"tmpCE"+str(uuid.uuid4())+ExcelWorkbook_fileext
         with open(fName, "wb") as destination:
             for chunk in CountSprshtFile.chunks():
                 destination.write(chunk)

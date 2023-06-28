@@ -6,14 +6,12 @@ from django.db.models import Max, OuterRef, Subquery
 from django.shortcuts import render
 from openpyxl import load_workbook
 from cMenu.models import getcParm
-from cMenu.utils import calvindate, dictfetchall
+from cMenu.utils import calvindate, dictfetchall, ExcelWorkbook_fileext
 from userprofiles.models import WICSuser
 import WICS.globals
 from WICS.models import ActualCounts, CountSchedule
 from WICS.models import VIEW_SAP, SAP_SOHRecs, SAPPlants_org, UnitsOfMeasure
 from WICS.models import WhsePartTypes, MaterialList, tmpMaterialListUpdate
-
-ExcelWorkbook_fileext = ".XLSX"
 
 
 @login_required
