@@ -197,7 +197,8 @@ def test00(req):
     if req.method == 'POST':
         SQLResultPrefix = "SQLResults"
         svdir = getcParm('SAP-FILELOC')
-        fName = svdir+SQLResultPrefix+'-'+str(uuid.uuid4())
+        fName_base = SQLResultPrefix+'-'+str(uuid.uuid4())
+        fName = svdir + fName_base
         Excelfile_fromqs(MaterialList.objects.all()[5:15], fName)
 
         resp = FileResponse(open(fName+ExcelWorkbook_fileext, 'rb'))
