@@ -6,6 +6,7 @@ from dateutil.rrule import *
 from django.db.models import QuerySet
 from collections import namedtuple
 from openpyxl import Workbook
+from openpyxl.styles import PatternFill, Font
 
 ExcelWorkbook_fileext = ".XLSX"
 
@@ -154,6 +155,18 @@ def namedtuplefetchall(cursor, ResultName = 'Result'):
     nt_result = namedtuple(ResultName, [col[0] for col in desc])
     return [nt_result(*row) for row in cursor.fetchall()]
 
+def rgb_to_int(red,green,blue):
+    rgb = red
+    rgb = (rgb << 8) + green
+    rgb = (rgb << 8) + blue
+    return rgb
+def int_to_rgb(rgb_int):
+    red = (rgb_int >> 16) & 0xFF
+    green = (rgb_int >> 8) & 0xFF
+    blue = rgb_int & 0xFF
+    return (red,green,blue)
+
+from openpyxl.styles import PatternFill, fills, colors
 def Excelfile_fromqs(qset, flName, freezecols = 0):
 
     # far easier to process a list of dictionaries, so...
@@ -162,7 +175,7 @@ def Excelfile_fromqs(qset, flName, freezecols = 0):
     else:
         qlist = qset
 
-    
+
     wb = Workbook()
     ws = wb.active
 
@@ -175,9 +188,16 @@ def Excelfile_fromqs(qset, flName, freezecols = 0):
         ws.append(list(row.values()))
 
     # make header row bold, shade it grey, freeze it
-
-
-    # if freezecols passed, freeze them, too
+    # ws.show_gridlines
+    for cell in ws[1]:
+        cell.font = Font(bold=True)
+        cell.fill = PatternFill(fill_type=fills.FILL_SOLID,
+                        start_color=colors.Color("00969696"),    # rgb_to_int(0x96,0x96,0x96),
+                        end_color=colors.Color("00969696")  # rgb_to_int(0x96,0x96,0x96)
+                        )
+    #TODO: convert row1 and cols:freezecols to an address (A=0, B=1, C=2 etc) for line below
+    ws.freeze_panes ='A2'
+    #TODO: if freezecols passed, freeze them, too
 
     # save the workbook
     wb.save(flName+ExcelWorkbook_fileext)
@@ -201,9 +221,9 @@ def test00(req):
         fName = svdir + fName_base
         Excelfile_fromqs(MaterialList.objects.all()[5:15], fName)
 
-        resp = FileResponse(open(fName+ExcelWorkbook_fileext, 'rb'))
-        resp['Content-Disposition'] = 'attachment; filename="' + fName_base+ExcelWorkbook_fileext + '"'
-        resp['Content-Type'] = 'application/vnd.ms-excel'
+        resp = FileResponse(open(fName+ExcelWorkbook_fileext, 'rb'),
+                            as_attachment=True,
+                            filename=SQLResultPrefix+ExcelWorkbook_fileext)
         return resp
     else:
         cntext = {}

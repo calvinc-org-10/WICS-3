@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.forms import formset_factory, modelformset_factory, CharField
 from django.shortcuts import render
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import HttpResponseBase, HttpResponse, HttpResponseRedirect
 from django.urls import reverse, resolve
 from django.utils.text import slugify
 from django.views.generic import ListView
@@ -67,7 +67,7 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
     # if CommandNum == MENUCOMMAND.LoadMenu.value :
     #     WUsrMenuGroup = WICSuser.objects.get(user=req.user).menuGroup_id
     #     retHTTP = LoadMenu(req, WUsrMenuGroup,int(CommandArg))
-    # el
+    # else
     if CommandNum == MENUCOMMAND.FormBrowse.value :
         retHTTP = menucommand_handlers.FormBrowse(req, CommandArg)  # replace this with the url reverse
     elif CommandNum == MENUCOMMAND.OpenTable.value :
@@ -93,7 +93,10 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
     else:
         pass
 
-    return HttpResponse(retHTTP)
+    if isinstance(retHTTP, HttpResponseBase):
+        return retHTTP
+    else:
+        return HttpResponse(retHTTP)
 
 
 @permission_required('SUPERUSER', raise_exception=True)
