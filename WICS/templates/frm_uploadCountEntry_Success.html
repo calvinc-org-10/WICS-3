@@ -16,7 +16,7 @@
     <hr>
 
     <h4>
-        {{ nRowsRead }} spreadsheet rows read <br>
+        {{ nRowsRead|add:"-1" }} spreadsheet rows read <br> {# subtract 1 for the header row #}
         {{ nRowsAdded }} Count Entry records successfully uploaded
     </h4>
 

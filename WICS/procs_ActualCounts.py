@@ -1,6 +1,7 @@
 import datetime
 import os, uuid
 from django import forms
+from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models.query import QuerySet
@@ -9,7 +10,7 @@ from django.shortcuts import render
 from django.views.generic import ListView
 from typing import *
 from cMenu.models import getcParm
-from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate, ExcelWorkbook_fileext
+from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate, ExcelWorkbook_fileext, Excelfile_fromqs
 from mathematical_expressions_parser.eval import evaluate
 from openpyxl import load_workbook
 from openpyxl.utils.datetime import from_excel, WINDOWS_EPOCH
@@ -300,6 +301,9 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
     dtobj_pDate = isDate(passedCountDate)
     if not dtobj_pDate: dtobj_pDate = calvindate().as_datetime()
     SAP_SOH = fnSAPList(dtobj_pDate)
+
+    # prep Excel_qdict.  It's up here so that the functions below have access to it
+    Excel_qdict = []
     
     def CreateOutputRows(raw_qs, Eval_CTDQTY=True):
         def SummaryLine(lastrow):
@@ -314,9 +318,12 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
                 SAPTot += SAProw.Amount*SAProw.mult
             outputline['TypicalContainerQty'] = lastrow['TypicalContainerQty']
             outputline['TypicalPalletQty'] = lastrow['TypicalPalletQty']
+            outputline['OrgName'] = lastrow['OrgName']
             outputline['Material'] = lastrow['Material']
             outputline['Material_id'] = lastrow['Material_id']
+            outputline['Description'] = lastrow['Description']
             outputline['SchedCounter'] = lastrow['SchedCounter']
+            outputline['Counters'] = lastrow['Counters']
             outputline['Requestor'] = lastrow['Requestor']
             outputline['RequestFilled'] = lastrow['RequestFilled']
             outputline['PartType'] = lastrow['PartType']
@@ -336,9 +343,12 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
 
         def CreateLastrow(rawrow):
             lastrow = dict()
+            lastrow['OrgName'] = rawrow.OrgName
             lastrow['Material'] = rawrow.Matl_PartNum
             lastrow['Material_id'] = rawrow.matl_id
+            lastrow['Description'] = rawrow.Description
             lastrow['SchedCounter'] = rawrow.cs_Counter
+            lastrow['Counters'] = rawrow.ac_Counter if rawrow.ac_Counter is not None else ''
             lastrow['Requestor'] = rawrow.Requestor
             lastrow['RequestFilled'] = rawrow.RequestFilled
             lastrow['PartType'] = rawrow.PartType
@@ -361,6 +371,8 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
             outputline['org_id'] = rawrow.org_id
             outputline['orgName'] = rawrow.OrgName
             outputline['ActCounter'] = rawrow.ac_Counter
+            if rawrow.ac_Counter is not None and rawrow.ac_Counter not in lastrow['Counters']:
+                lastrow['Counters'] += ', ' + rawrow.ac_Counter
             outputline['BLDG'] = rawrow.ac_BLDG
             outputline['LOCATION'] = rawrow.ac_LOCATION
             outputline['PKGID'] = rawrow.ac_PKGID_Desc
@@ -389,7 +401,12 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
         for rawrow in raw_qs:
             if rawrow.matl_id != lastrow['Material_id']:     # new Matl
                 if outputrows:
-                    outputrows.append(SummaryLine(lastrow))
+                    SmLine = SummaryLine(lastrow)
+                    outputrows.append(SmLine)
+                    Excel_qdict.append(
+                        {key:SmLine[key] 
+                          for key in ['OrgName','Material','PartType','Description','CountTotal','SAPTotal','Diff','Accuracy','Counters']
+                        })
                 # no else -  if outputrows is empty, this is the first row, so keep going
 
                 # this new material is now the "old" one; save values for when it switches, and we do the above block
@@ -405,7 +422,12 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
         # need to do the summary on the last row
         if outputrows:
             # summarize last Matl
-            outputrows.append(SummaryLine(lastrow))
+            SmLine = SummaryLine(lastrow)
+            outputrows.append(SmLine)
+            Excel_qdict.append(
+                {key:SmLine[key] 
+                    for key in ['OrgName','Material','PartType','Description','CountTotal','SAPTotal','Diff','Accuracy','Counters']
+                })
         
         return outputrows
     #end def CreateOutputRows
@@ -415,6 +437,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
     SummaryReport = []
 
     for org in Organizations.objects.all():
+        #TODO: Move away from the VIEWs
         # group by org_id
         fldlist = "0 as id, cs.id as cs_id, cs.CountDate as cs_CountDate , cs.Counter as cs_Counter" \
             ", cs.Priority as cs_Priority, cs.ReasonScheduled as cs_ReasonScheduled" \
@@ -505,6 +528,14 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
                 'WARNING': float(getcParm('ACCURACY-WARNING')),
                 }
 
+
+    ExcelFileNamePrefix = "CountSummary "
+    svdir = django_settings.STATICFILES_DIRS[0]
+    fName_base = '\\tmpdl\\'+ExcelFileNamePrefix + f'{dtobj_pDate:%Y-%m-%d}'
+    fName = svdir + fName_base
+    ExcelFileName = Excelfile_fromqs(Excel_qdict, fName)
+    print(fName, '/', ExcelFileName)
+
     # display the form
     cntext = {
             'variation': Rptvariation,
@@ -512,6 +543,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
             'SAPDate': SAP_SOH['SAPDate'],
             'AccuracyCutoff': AccuracyCutoff,
             'SummaryReport': SummaryReport,
+            'ExcelFileName': fName_base+ExcelWorkbook_fileext, 
             }
     templt = 'rpt_CountSummary.html'
     return render(req, templt, cntext)

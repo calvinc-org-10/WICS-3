@@ -6,7 +6,7 @@ from dateutil.rrule import *
 from django.db.models import QuerySet
 from collections import namedtuple
 from openpyxl import Workbook
-from openpyxl.styles import PatternFill, Font
+from openpyxl.styles import PatternFill, Font, fills, colors
 
 ExcelWorkbook_fileext = ".XLSX"
 
@@ -166,8 +166,15 @@ def int_to_rgb(rgb_int):
     blue = rgb_int & 0xFF
     return (red,green,blue)
 
-from openpyxl.styles import PatternFill, fills, colors
 def Excelfile_fromqs(qset, flName, freezecols = 0):
+    """
+    qset: a queryset or list of dictionaries
+    flName: the name of the file to be built (WITHOUT extension!).  It's stored on the server.  If it's to be dl'd, the caller does that
+    freezecols = 0: the number of columns to freeze to the left
+    The top row contains the field names, is always frozen, is bold and is shaded grey
+
+    Returns the name of the Workbook file (with extension).  Once I start building in errorchecking and exceptions, other returns may be possible
+    """
 
     # far easier to process a list of dictionaries, so...
     if isinstance(qset,QuerySet):
@@ -175,7 +182,7 @@ def Excelfile_fromqs(qset, flName, freezecols = 0):
     else:
         qlist = qset
 
-
+    # create empty workbook with an empty worksheet
     wb = Workbook()
     ws = wb.active
 
@@ -188,12 +195,12 @@ def Excelfile_fromqs(qset, flName, freezecols = 0):
         ws.append(list(row.values()))
 
     # make header row bold, shade it grey, freeze it
-    # ws.show_gridlines
+    # ws.show_gridlines = True  #TODO: Find out how to do this
     for cell in ws[1]:
         cell.font = Font(bold=True)
         cell.fill = PatternFill(fill_type=fills.FILL_SOLID,
-                        start_color=colors.Color("00969696"),    # rgb_to_int(0x96,0x96,0x96),
-                        end_color=colors.Color("00969696")  # rgb_to_int(0x96,0x96,0x96)
+                        start_color=colors.Color("00969696"),
+                        end_color=colors.Color("00969696")
                         )
     #TODO: convert row1 and cols:freezecols to an address (A=0, B=1, C=2 etc) for line below
     ws.freeze_panes ='A2'
@@ -206,8 +213,9 @@ def Excelfile_fromqs(qset, flName, freezecols = 0):
     wb.close()
 
     # and return success code to the caller
-    return True
+    return flName+ExcelWorkbook_fileext
 
+#DIE: for testing only
 import uuid
 from WICS.models import MaterialList
 from django.shortcuts import render
