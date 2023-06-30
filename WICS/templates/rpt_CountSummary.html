@@ -172,8 +172,10 @@
         <div class="row mx-auto max-width=100%">
             <div class="col-6"></div>
             <div class="col-4">
-                <button id="download_btn" type="button">
-                    <a href="{% static ExcelFileName %}" download>D/L sprdsht</a>
+                <button id="download_btn" type="button" class="d-print-none btn btn-light btn-outline-secondary">
+                    <a href="{% static ExcelFileName %}" download>
+                        D/L sprdsht
+                    </a>
                 </button>
                 <button id="swap_detail_disp_btn" type="button" class="d-print-none" onclick="swap_detail_disp();">Hide Detail</button>
                 <button id="swap_prt_disp_btn" type="button" class="d-print-none" onclick="swap_prt_disp();">Print Version</button>

@@ -1,4 +1,7 @@
+from datetime import datetime
+import zoneinfo
 from django import forms, db
+from django.conf import settings as django_settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -10,7 +13,7 @@ from django.utils.text import slugify
 from django.views.generic import ListView
 from django.views.generic.edit import FormView
 from typing import Any
-from cMenu.utils import WrapInQuotes
+from cMenu.utils import WrapInQuotes, Excelfile_fromqs, ExcelWorkbook_fileext
 from cMenu import menucommand_handlers
 from cMenu.menucommand_handlers import MENUCOMMAND
 from cMenu.models import menuCommands, menuItems, menuGroups, cParameters
@@ -444,10 +447,21 @@ def fn_cRawSQL(req):
                 cntext['colNames'] = colNames
                 cntext['nRecs'] = cursor.rowcount
                 cntext['SQLresults'] = cursor
+
+                Excel_qdict = [{colNames[x]:cRec[x] for x in range(len(colNames))} for cRec in cursor]
+                ExcelFileNamePrefix = "SQLresults "
+                svdir = django_settings.STATIC_ROOT
+                noww = datetime.now(zoneinfo.ZoneInfo('US/Central'))
+                fName_base = '/tmpdl/'+ExcelFileNamePrefix + f'{noww:%Y-%m-%d-%X}'
+                fName = svdir + fName_base
+                cntext['SavedAt'] = Excelfile_fromqs(Excel_qdict, fName)
+                cntext['ExcelFileName'] = fName_base + ExcelWorkbook_fileext
             else:
                 cntext['colNames'] = 'NO RECORDS RETURNED; ' + str(cursor.rowcount) + ' records affected'
                 cntext['nRecs'] = cursor.rowcount
                 cntext['SQLresults'] = cursor
+                cntext['SavedAt'] = None
+                cntext['ExcelFileName'] = None
 
             cntext['OrigSQL'] = SForm.cleaned_data['inputSQL']
 

@@ -50,8 +50,15 @@
 </div>
 <div class="row mx-auto max-width=100%">
     <div class="col-4"></div>
-    <div class="col-6"></div>
+    <div class="col-5"></div>
     <div class="col">
+        {% if ExcelFileName %}
+        <button id="download_btn" type="button" class="d-print-none btn btn-light btn-outline-secondary">
+            <a href="{% static ExcelFileName %}" download>
+                D/L results
+            </a>
+        </button>
+        {% endif %}
         <button id="close_btn" type="button">
             <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
             Close

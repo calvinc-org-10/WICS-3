@@ -528,13 +528,11 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
                 'WARNING': float(getcParm('ACCURACY-WARNING')),
                 }
 
-
     ExcelFileNamePrefix = "CountSummary "
-    svdir = django_settings.STATICFILES_DIRS[0]
-    fName_base = '\\tmpdl\\'+ExcelFileNamePrefix + f'{dtobj_pDate:%Y-%m-%d}'
+    svdir = django_settings.STATIC_ROOT
+    fName_base = '/tmpdl/'+ExcelFileNamePrefix + f'{dtobj_pDate:%Y-%m-%d}'
     fName = svdir + fName_base
     ExcelFileName = Excelfile_fromqs(Excel_qdict, fName)
-    print(fName, '/', ExcelFileName)
 
     # display the form
     cntext = {
@@ -543,6 +541,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
             'SAPDate': SAP_SOH['SAPDate'],
             'AccuracyCutoff': AccuracyCutoff,
             'SummaryReport': SummaryReport,
+            'FilSavLoc': ExcelFileName,
             'ExcelFileName': fName_base+ExcelWorkbook_fileext, 
             }
     templt = 'rpt_CountSummary.html'
