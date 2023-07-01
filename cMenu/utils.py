@@ -187,24 +187,25 @@ def Excelfile_fromqs(qset, flName, freezecols = 0):
     ws = wb.active
 
     # header row is names of columns
-    fields = list(qlist[0])
-    ws.append(fields)
+    if qlist:
+        fields = list(qlist[0])
+        ws.append(fields)
 
-    # append each row
-    for row in qlist:
-        ws.append(list(row.values()))
+        # append each row
+        for row in qlist:
+            ws.append(list(row.values()))
 
-    # make header row bold, shade it grey, freeze it
-    # ws.show_gridlines = True  #TODO: Find out how to do this
-    for cell in ws[1]:
-        cell.font = Font(bold=True)
-        cell.fill = PatternFill(fill_type=fills.FILL_SOLID,
-                        start_color=colors.Color("00808080"),
-                        end_color=colors.Color("00808080")
-                        )
-    #TODO: convert row1 and cols:freezecols to an address (A=0, B=1, C=2 etc) for line below
-    ws.freeze_panes ='A2'
-    #TODO: if freezecols passed, freeze them, too
+        # make header row bold, shade it grey, freeze it
+        # ws.show_gridlines = True  #TODO: Find out how to do this
+        for cell in ws[1]:
+            cell.font = Font(bold=True)
+            cell.fill = PatternFill(fill_type=fills.FILL_SOLID,
+                            start_color=colors.Color("00808080"),
+                            end_color=colors.Color("00808080")
+                            )
+        #TODO: convert row1 and cols:freezecols to an address (A=0, B=1, C=2 etc) for line below
+        ws.freeze_panes ='A2'
+        #TODO: if freezecols passed, freeze them, too
 
     # save the workbook
     wb.save(flName+ExcelWorkbook_fileext)
