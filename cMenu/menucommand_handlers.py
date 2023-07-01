@@ -26,7 +26,6 @@ def FormBrowse(req, formname):
     viewIndex = 1
 
     # FormNameToURL_Map['menu Argument'.lower()] = (url, view)
-    FormNameToURL_Map['testWriteExcel'.lower()] = (None,utils.test00)
     FormNameToURL_Map['l10-wics-uadmin'.lower()] = (None, fnWICSuserForm)
     FormNameToURL_Map['l6-wics-uadmin'.lower()] = FormNameToURL_Map['l10-wics-uadmin']
     FormNameToURL_Map['frmcount-schedulehistory-by-counterdate'.lower()] = ('CountScheduleList', None)

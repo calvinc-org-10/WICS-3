@@ -199,8 +199,8 @@ def Excelfile_fromqs(qset, flName, freezecols = 0):
     for cell in ws[1]:
         cell.font = Font(bold=True)
         cell.fill = PatternFill(fill_type=fills.FILL_SOLID,
-                        start_color=colors.Color("00969696"),
-                        end_color=colors.Color("00969696")
+                        start_color=colors.Color("00808080"),
+                        end_color=colors.Color("00808080")
                         )
     #TODO: convert row1 and cols:freezecols to an address (A=0, B=1, C=2 etc) for line below
     ws.freeze_panes ='A2'
@@ -215,25 +215,3 @@ def Excelfile_fromqs(qset, flName, freezecols = 0):
     # and return success code to the caller
     return flName+ExcelWorkbook_fileext
 
-#DIE: for testing only
-import uuid
-from WICS.models import MaterialList
-from django.shortcuts import render
-from django.http import HttpResponse, FileResponse
-from cMenu.models import getcParm
-def test00(req):
-    if req.method == 'POST':
-        SQLResultPrefix = "SQLResults"
-        svdir = getcParm('SAP-FILELOC')
-        fName_base = SQLResultPrefix+'-'+str(uuid.uuid4())
-        fName = svdir + fName_base
-        Excelfile_fromqs(MaterialList.objects.all()[5:15], fName)
-
-        resp = FileResponse(open(fName+ExcelWorkbook_fileext, 'rb'),
-                            as_attachment=True,
-                            filename=SQLResultPrefix+ExcelWorkbook_fileext)
-        return resp
-    else:
-        cntext = {}
-        templt = '00test00.html'
-        return render(req, templt, cntext)
