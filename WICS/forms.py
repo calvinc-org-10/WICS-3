@@ -204,3 +204,35 @@ class RelatedScheduleInfo(forms.ModelForm):
         
         rec.save()
         return rec
+
+############################################################
+############################################################
+############################################################
+
+class MaterialForm(forms.ModelForm):
+    showPK = forms.IntegerField(label='ID', disabled=True, required=False)
+    class Meta:
+        model = MaterialList
+        fields = ['id', 'org', 'Material', 'Description','PartType',
+                'SAPMaterialType', 'SAPMaterialGroup', 'Price',
+                'TypicalContainerQty', 'TypicalPalletQty', 'PriceUnit', 'Notes']
+        # fields = '__all__'
+
+class MaterialCountSummary(forms.Form):
+    Material = forms.CharField(max_length=100, disabled=True)
+    CountDate = forms.DateField(required=False, disabled=True)
+    CountQTY_Eval = forms.IntegerField(required=False, disabled=True)
+    SAPDate = forms.DateField(required=False, disabled=True)
+    SAPQty = forms.CharField(max_length=20, required=False, disabled=True)
+    Diff = forms.CharField(max_length=20, required=False, disabled=True)
+    Accuracy = forms.CharField(max_length=20, required=False, disabled=True)
+
+############################################################
+############################################################
+############################################################
+
+class PartTypesForm(forms.ModelForm):
+    class Meta:
+        model = WhsePartTypes
+        fields = ['WhsePartType', 'PartTypePriority', 'InactivePartType']
+#MatlSubFm_fldlist = ['id','org','Material', 'Description', 'PartType', 'Price', 'PriceUnit', 'TypicalContainerQty', 'TypicalPalletQty', 'Notes']
