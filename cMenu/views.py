@@ -452,7 +452,7 @@ def fn_cRawSQL(req):
                 ExcelFileNamePrefix = "SQLresults "
                 svdir = django_settings.STATIC_ROOT
                 noww = datetime.now(zoneinfo.ZoneInfo('US/Central'))
-                fName_base = '/tmpdl/'+ExcelFileNamePrefix + f'{noww:%Y-%m-%d-%X}'
+                fName_base = '/tmpdl/'+ExcelFileNamePrefix + f'{noww:%Y-%m-%d (%H-%M-%S)}'
                 fName = svdir + fName_base
                 cntext['SavedAt'] = Excelfile_fromqs(Excel_qdict, fName)
                 cntext['ExcelFileName'] = fName_base + ExcelWorkbook_fileext

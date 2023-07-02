@@ -63,7 +63,7 @@ button:focus {
 </div>
 <hr>
 
-{{ frmMain.showPK.value }}
+{{ frmMain.instance.pk }}
 
 <!-- GoTo -->
 <!-- <form id="gotoForm"> -->
@@ -91,6 +91,7 @@ button:focus {
     <!-- form header -->
     {% if frmMain.non_form_errors %}{{ frmMain.non_form_errors }}{% endif %}
     {% if frmMain.errors %}{{ frmMain.errors }}{% endif %}
+
     {# django does this field wrong - when it presents it as a <select>, it makes the selected value the initial value, not the actual #}
     <input type="hidden" name="material-org" id="id_material-org" value="{{ frmMain.instance.org_id }}">
     <hr>
@@ -103,7 +104,7 @@ button:focus {
                 Material: {% render_field frmMain.Material size="15" %} 
                 Description: {% render_field frmMain.Description size="50" %}
                 <input type="hidden" name="OrigMaterial" value="{{ frmMain.Material.value }}"></input>
-                <input type="hidden" name="MatlPK" value="{{ frmMain.showPK.value }}"></input>
+                <input type="hidden" name="MatlPK" value="{{ frmMain.instance.pk }}"></input>
             </div>
             <div class="col-5">
                 Part Type:  {% render_field frmMain.PartType style="width:10em" %}
@@ -349,7 +350,7 @@ button:focus {
     var initialState
     var $gotoTextBox = document.getElementById("gotoID");
     // record the ID and GPN of current record (it's used often!)
-    var thisMtlID = {{frmMain.showPK.value|default_if_none:0}}, thisMtlGPN = "{{frmMain.Material.value}}"
+    var thisMtlID = {{frmMain.instance.pk|default_if_none:0}}, thisMtlGPN = "{{frmMain.instance.Material}}"
     var CloseItFlag = false
     // set up MatlMap for verifying if an entered Material # is valid
     var MatlMap = new Map([
@@ -357,13 +358,6 @@ button:focus {
         ['{{itm.Material_org}}', {{itm.id}}],
         {% endfor %}
         ]);
-    {% comment %}
-    // this code doesn't seem to speed anything up.  Abandoning.
-    {% for itm in gotoForm.choicelist %}
-        MatlMap.set('{{itm}}', {{itm.id}})
-        document.getElementById("Material-list").insertAdjacentHTML("beforeend","<option value='{{itm}}'>")
-    {% endfor %}
-    {% endcomment %}
 
 
     //------------------

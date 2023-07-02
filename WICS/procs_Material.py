@@ -84,9 +84,10 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
 
     FormFieldsSubs = [
         # 0 = ActualCounts Subform
-        ('id', 'CountDate', 'CycCtID', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'PKGID_Desc', 'TAGQTY', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',),    
+        #DIE: ['id', 'CountDate', 'CycCtID', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'PKGID_Desc', 'TAGQTY', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',],    
+        ['id', 'CountDate', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',],    
         # 1 = CountSchedule SubForm
-        ('id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'Notes',),
+        ['id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'Notes',],
     ]
 
     #DIE?: I thought this would help -- mebbe not
@@ -156,7 +157,8 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
         # process mtlFm AND subforms.
 
         # process forms
-        mtlFm = FormMain(req.POST, instance=currRec,  initial=initialvals['main'],  prefix=prefixvals['main'])
+        # mtlFm = FormMain(req.POST, instance=currRec,  initial=initialvals['main'],  prefix=prefixvals['main'])
+        mtlFm = FormMain(req.POST, instance=currRec,  prefix=prefixvals['main'])
         mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.all().order_by('WhsePartType')
         countSubFm_class = inlineformset_factory(modelMain,modelSubs[0],
                     fields=FormFieldsSubs[0],
