@@ -7,7 +7,7 @@ from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.forms import formset_factory, modelformset_factory, CharField
 from django.shortcuts import render
-from django.http import HttpResponseBase, HttpResponse, HttpResponseRedirect
+from django.http.response import HttpResponseBase, HttpResponse, HttpResponseRedirect
 from django.urls import reverse, resolve
 from django.utils.text import slugify
 from django.views.generic import ListView
