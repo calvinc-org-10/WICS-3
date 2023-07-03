@@ -16,11 +16,12 @@
     <hr>
 
     <h4>
-        {{ nRowsRead|add:"-1" }} spreadsheet rows read <br> {# subtract 1 for the header row #}
-        {{ nRowsAdded }} Count Entry records successfully uploaded
+        {{ ResultStats.nRowsRead }} spreadsheet rows read <br>
+        {{ ResultStats.nRowsNoMaterial }} rows skipped - no Material given <br> 
+        {{ ResultStats.nRowsErrors }}  rows with errors <br>
+        {{ ResultStats.nRowsAdded }} Count Entry records successfully uploaded <br>
     </h4>
 
-    <br>
     <ul>
     {% for res in UplResults %}
         <li>

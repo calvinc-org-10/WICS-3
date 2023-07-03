@@ -94,8 +94,6 @@ def fnUploadActCountSprsht(req):
 
     if req.method == 'POST':
         UplResults = []
-        nRowsAdded = 0
-        SprshtRowNum = 0
 
         # save the file so we can open it as an excel file
         CountSprshtFile = req.FILES['CEFile']
@@ -145,9 +143,14 @@ def fnUploadActCountSprsht(req):
             if not HeaderGood:
                 UplResults.append({'error':'The Counts worksheet in this workbook has bad header row'})
                 ws = None
+        #endif ws
 
+        SprshtRowNum=1
+        nRowsAdded = 0
+        nRowsNoMaterial = 0
+        nRowsErrors = 0
+        
         if ws:
-            SprshtRowNum=1
             # SprshtRowNum = 2  # skip row 2 because it holds hints for the kids, not a count - nope, let old spreadsheet work, too
             MAX_COUNT_ROWS = 5000
             for row in ws.iter_rows(min_row=SprshtRowNum+1, max_row=MAX_COUNT_ROWS, values_only=True):
@@ -165,6 +168,7 @@ def fnUploadActCountSprsht(req):
                 if spshtorg is None:
                     if MatlKount > 1:
                         UplResults.append({'error':matlnum+" in in multiple org_id's, but no org_id given ", 'rowNum':SprshtRowNum})
+                        nRowsErrors += 1
                         err_already_handled = True
                 if MatlKount == 1:
                     MatObj = MaterialList.objects.get(Material=matlnum)
@@ -174,8 +178,10 @@ def fnUploadActCountSprsht(req):
 
                 if matlnum and not MatObj:
                     if not err_already_handled:
+                        nRowsErrors += 1
                         UplResults.append({'error':'either ' + matlnum + ' does not exist in MaterialList or incorrect org_id (' + str(spshtorg) + ') given', 'rowNum':SprshtRowNum})
                 elif matlnum and MatObj:
+                    rowErrs = False
                     requiredFields = {reqFld: False for reqFld in CountSprshtREQUIREDFLDS}
                     requiredFields['Both LocationOnly and CTD_QTY'] = False
 
@@ -212,25 +218,34 @@ def fnUploadActCountSprsht(req):
                                         MatChanged = True
                                 else:
                                     if hasattr(SRec, fldName): setattr(SRec, fldName, V)
+                                # endif fldname
                             else:
                                 if fldName!='CTD_QTY_Expr':
+                                    # we have to suspend judgement on CTD_QTY_Expr until last, because this could be a LocationOnly count
+                                    rowErrs = True
                                     UplResults.append({'error':str(V)+' is invalid for '+fldName, 'rowNum':SprshtRowNum})
-                    # we have to suspend judgement on CTD_QTY_Expr until last, because this could be a LocationOnly count
+                            #endif usefld
+                        #endif (V is not None)
+                    # for each column
+                    
+                    # now we determine if one of LocationOnly or CTD_QTY was given
                     if not requiredFields['Both LocationOnly and CTD_QTY']:
-                            fldName = 'CTD_QTY_Expr'
-                            V = row[CountSprshtcolmnMap[fldName]]
-                            UplResults.append({'error':
-                                                    'record is not marked LocationOnly and '+str(V)+' is invalid for '+fldName,
-                                                'rowNum':SprshtRowNum})
+                        fldName = 'CTD_QTY_Expr'
+                        V = row[CountSprshtcolmnMap[fldName]]
+                        rowErrs = True
+                        UplResults.append({'error':
+                                                'record is not marked LocationOnly and '+str(V)+' is invalid for '+fldName,
+                                            'rowNum':SprshtRowNum})
 
                     # are all required fields present?
                     AllRequiredPresent = True
                     for keyname, Prsnt in requiredFields.items():
                         AllRequiredPresent = AllRequiredPresent and Prsnt
                         if not Prsnt:
+                            rowErrs = True
                             UplResults.append({'error':keyname+' missing', 'rowNum':SprshtRowNum})
 
-                    if AllRequiredPresent:
+                    if not rowErrs:
                         SRec.save()
                         if MatChanged: MatObj.save()
                         qs = type(SRec).objects.filter(pk=SRec.pk).values().first()
@@ -239,22 +254,37 @@ def fnUploadActCountSprsht(req):
                             #QUESTION:  can I do this directly with SRec??
                         UplResults.append(res)
                         nRowsAdded += 1
+                    else:
+                        nRowsErrors += 1
+                    # 
+                else:       # Material not given
+                    nRowsNoMaterial += 1
+                # endif matlnum and MatObj/not MatObj
+            # endfor row
 
             if SprshtRowNum >= MAX_COUNT_ROWS:
                 UplResults.insert(0,{'error':f'Data in spreadsheet rows {MAX_COUNT_ROWS+1} and beyond are being ignored.'})
+        # endif ws
 
         # close and kill temp files
         wb.close()
         os.remove(fName)
 
-        cntext = {'UplResults':UplResults, 'nRowsRead':SprshtRowNum, 'nRowsAdded':nRowsAdded,
+        cntext = {'UplResults':UplResults, 
+                  'ResultStats': {
+                        'nRowsRead': SprshtRowNum - 1,      
+                            # -1 because header doesn't count
+                        'nRowsAdded': nRowsAdded ,
+                        'nRowsNoMaterial': nRowsNoMaterial,
+                        'nRowsErrors': nRowsErrors,
+                    },
                 }
         templt = 'frm_uploadCountEntry_Success.html'
-    else:
+    else:   # req.method != 'POST'
         cntext = {
                 }
         templt = 'frm_UploadCountEntrySprdsht.html'
-    #endif
+    #endif req.method
 
     return render(req, templt, cntext)
 
