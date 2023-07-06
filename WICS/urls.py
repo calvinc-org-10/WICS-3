@@ -18,10 +18,12 @@ from django.shortcuts import redirect
 from WICS import userinit
 from WICS import procs_ActualCounts, procs_CountSchedule, procs_Material, procs_SAP, views
 from WICS import phptest
+from WICS import WICSdown
 from userprofiles import logout
 
 urlpatterns = [
-    path('', lambda request: redirect(reverse('login'),permanent=False), name='WICSlogin'),       # this is actually the entry point to WICS
+    # path('', lambda request: redirect(reverse('login'),permanent=False), name='WICSlogin'),       # this is actually the entry point to WICS
+    path('', WICSdown.WICSdown , name='WICSdown'),       # this is actually the entry point to WICS
     path('inituser', userinit.inituser , name='initWICSuser'),
     path('logout',logout.WICSlogout, name='WICSlogout'),
 

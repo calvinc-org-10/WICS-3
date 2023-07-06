@@ -1,0 +1,14 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block tTitle %}WICS Maintenance{% endblock %}
+
+{% block tHeader %}
+{% endblock %}
+
+{% block boddy %}
+<h1>WICS is down for Maintenance.  Try later.  Calvin needs more coffee.</h1>
+<img src="{% static 'maintenance '|add:randsvg|add:'.svg' %}" width="2000" height="800">
+{% endblock %}
+

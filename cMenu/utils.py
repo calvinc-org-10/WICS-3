@@ -4,6 +4,7 @@ from datetime import date, timedelta
 from dateutil.parser import parse
 from dateutil.rrule import *
 from django.db.models import QuerySet
+from django.db.models import Aggregate, CharField
 from collections import namedtuple
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, fills, colors
@@ -215,4 +216,21 @@ def Excelfile_fromqs(qset, flName, freezecols = 0):
 
     # and return success code to the caller
     return flName+ExcelWorkbook_fileext
+
+
+# From https://stackoverflow.com/questions/10340684/group-concat-equivalent-in-django
+class GroupConcat(Aggregate):
+    function = 'GROUP_CONCAT'
+    allow_distinct = True
+    template = '%(function)s(%(distinct)s%(expressions)s%(ordering)s%(separator)s)'
+
+    def __init__(self, expression, distinct=False, ordering=None, separator=None, **extra):
+        super().__init__(
+            expression,
+            distinct='DISTINCT ' if distinct else '',
+            ordering=' ORDER BY %s' % ordering if ordering is not None else '',
+            separator=' SEPARATOR "%s"' % separator if separator is not None else '',
+            output_field=CharField(),
+            **extra
+        )
 

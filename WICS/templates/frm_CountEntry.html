@@ -64,7 +64,7 @@ button:focus {
     <hr>
 
     {{ recNum }} / {{ frmMain.id.value }}
-    <span class="col-5 bg-secondary text-warning">Count Date, Material, Actual Counter, Building and either LocOnly or Ctd Qty are required before Saving the form</span>
+    <span class="col-5 bg-secondary text-warning">Count Date, Material, Actual Counter, Location and either LocOnly or Ctd Qty are required before Saving the form</span>
 
     <form id="CEForm" class="trackformchanges" method="post">
         {% csrf_token %}
@@ -115,11 +115,8 @@ button:focus {
             </div>
         </div>
         <div class="row g-0">
-            <div class="col-2">Building: 
-                {% render_field frmMain.BLDG class="need-Matl-Dt border border-5 border-danger fw-bold" size="8" %}
-            </div>
-            <div class="col-2">Location: 
-                {% render_field frmMain.LOCATION class="need-Matl-Dt" size="8" %}
+            <div class="col-3">Location: 
+                {% render_field frmMain.LOCATION class="need-Matl-Dt border border-5 border-danger fw-bold" size="10" %}
             </div>
             <div class="col-5">Ctd Qty:
                 {% render_field frmMain.CTD_QTY_Expr class="need-Matl-Dt" size="35" onchange="sCE();" autocomplete="off" %}
@@ -413,11 +410,11 @@ button:focus {
     };
 
     function SubmMainFm() {
-        if ($("#{{ frmMain.BLDG.id_for_label }}").val()) {
+        if ($("#{{ frmMain.LOCATION.id_for_label }}").val()) {
             $("#CEForm").submit()
         } else {
-            alertBox("Enter BLDG", "Please enter a BLDG");
-            $("#{{ frmMain.BLDG.id_for_label }}").focus();
+            alertBox("Enter LOCATION", "Please enter a LOCATION");
+            $("#{{ frmMain.LOCATION.id_for_label }}").focus();
         }
     }
 

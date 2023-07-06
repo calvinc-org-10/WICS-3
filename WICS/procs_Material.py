@@ -20,8 +20,9 @@ from mathematical_expressions_parser.eval import evaluate
 from userprofiles.models import WICSuser
 from WICS.globals import _defaultOrg
 from WICS.forms import MaterialForm, MaterialCountSummary, PartTypesForm
-from WICS.models import VIEW_SAP, MaterialList, ActualCounts, CountSchedule, SAP_SOHRecs, UnitsOfMeasure, VIEW_LastFoundAt, VIEW_materials, \
-                        WhsePartTypes, LastFoundAt, FoundAt, VIEW_FoundAt
+from WICS.models import MaterialList, VIEW_materials, WhsePartTypes
+from WICS.models import CountSchedule, ActualCounts, VIEW_LastFoundAt, LastFoundAt, FoundAt
+from WICS.models import VIEW_SAP, SAP_SOHRecs, UnitsOfMeasure
 from WICS.procs_SAP import fnSAPList
 from typing import Any, Dict
 
@@ -36,12 +37,13 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
 
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
+        #TODO: Lose the view in the sql below
         # get last count date (incl LocationOnly) for each Material (prefetch_related?)
         sqlLFA = "SELECT MATL.id, MATL.OrgName, MATL.Material, MATL.Description, MATL.PartType, LFA.CountDate AS LFADate, LFA.FoundAt AS LFALocation,"
         sqlLFA += " MATL.Notes, 0 AS SAPList, FALSE AS DoNotShow"
         sqlLFA += " FROM VIEW_LastFoundAt LFA JOIN VIEW_materials MATL ON LFA.Material_id = MATL.id"
         sqlLFA += " ORDER BY MATL.org_id, MATL.Material"        
-        qs = VIEW_LastFoundAt.objects.raw(sqlLFA)
+        qs = MaterialList.objects.raw(sqlLFA)
 
         # it's more efficient to pull this all now and store it for the upcoming qs request
         SAP = fnSAPList()
@@ -84,8 +86,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
 
     FormFieldsSubs = [
         # 0 = ActualCounts Subform
-        #DIE: ['id', 'CountDate', 'CycCtID', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'PKGID_Desc', 'TAGQTY', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',],    
-        ['id', 'CountDate', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'BLDG', 'LOCATION', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',],    
+        ['id', 'CountDate', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'LOCATION', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',],    
         # 1 = CountSchedule SubForm
         ['id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'Notes',],
     ]
@@ -266,9 +267,6 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
     subFm_class = formset_factory(MaterialCountSummary,extra=0)
     summarySet = subFm_class(initial=initdata, prefix='summaryset')
 
-    # historical SAP SOH
-    #DIE: SAPHist = VIEW_SAP.objects.filter(Material_id=recNum).order_by('-uploaded_at')
-
     # display the form
     cntext = {
             'frmMain': mtlFm,
@@ -318,17 +316,17 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
                 'Currency': x['Currency'],
                 }
         
-        # LastCountDates = ActualCounts.objects.values('Material_id').annotate(LFADate=Max('CountDate'))
-        LastFoundAtSQL  = "SELECT `VIEW_FoundAt`.`id`, `VIEW_FoundAt`.`Material_id`, `VIEW_FoundAt`.`Material`,"
-        LastFoundAtSQL += " `VIEW_FoundAt`.`Material_org`, `VIEW_FoundAt`.`CountDate`, `VIEW_FoundAt`.`FoundAt`"
-        LastFoundAtSQL += " FROM `VIEW_FoundAt`"
-        LastFoundAtSQL += " WHERE `VIEW_FoundAt`.`CountDate` ="
-        LastFoundAtSQL += "   (SELECT MAX(U0.`CountDate`) AS `LFADate`"
-        LastFoundAtSQL += "   FROM `WICS_actualcounts` U0"
-        LastFoundAtSQL += "   WHERE U0.`Material_id` = (`VIEW_FoundAt`.`Material_id`)"
-        LastFoundAtSQL += "   GROUP BY U0.`Material_id`)"
-        # self.LastFoundAt_qs = VIEW_FoundAt.objects.filter(CountDate=Subquery(LastCountDates.filter(Material_id=OuterRef('Material_id')).values('LFADate')))
-        LastFoundAt_qs = VIEW_FoundAt.objects.raw(LastFoundAtSQL)
+        # LastFoundAtSQL  = "SELECT `VIEW_FoundAt`.`id`, `VIEW_FoundAt`.`Material_id`, `VIEW_FoundAt`.`Material`,"
+        # LastFoundAtSQL += " `VIEW_FoundAt`.`Material_org`, `VIEW_FoundAt`.`CountDate`, `VIEW_FoundAt`.`FoundAt`"
+        # LastFoundAtSQL += " FROM `VIEW_FoundAt`"
+        # LastFoundAtSQL += " WHERE `VIEW_FoundAt`.`CountDate` ="
+        # LastFoundAtSQL += "   (SELECT MAX(U0.`CountDate`) AS `LFADate`"
+        # LastFoundAtSQL += "   FROM `WICS_actualcounts` U0"
+        # LastFoundAtSQL += "   WHERE U0.`Material_id` = (`VIEW_FoundAt`.`Material_id`)"
+        # LastFoundAtSQL += "   GROUP BY U0.`Material_id`)"
+
+        # LastFoundAt_qs = VIEW_FoundAt.objects.raw(LastFoundAtSQL)
+        LastFoundAt_qs = VIEW_LastFoundAt()
         for rec in LastFoundAt_qs:
             self.LastFoundAt_dict[rec.Material_id] = rec
 
@@ -420,13 +418,13 @@ class MaterialByDESCValue(MaterialListCommonView):
 
 def fnLocationList(req):
 
-    DoABuildSQLFunction = "SELECT DISTINCT 0 as id, Material_id, Material as strMaterial, CountDate, Description, BLDG, LOCATION"
+    DoABuildSQLFunction = "SELECT DISTINCT 0 as id, Material_id, Material as strMaterial, CountDate, Description, LOCATION"
     DoABuildSQLFunction += " FROM WICS_actualcounts act JOIN WICS_materiallist matl ON act.Material_id=matl.id"
     DoABuildSQLFunction += " WHERE ROW(Material_id, CountDate) IN ("
     DoABuildSQLFunction +=   " SELECT Material_id, Max(CountDate) as LastCountDate"
     DoABuildSQLFunction +=   " FROM WICS_actualcounts maxdate "
     DoABuildSQLFunction +=   " GROUP BY Material_id)"
-    DoABuildSQLFunction += " ORDER BY BLDG, LOCATION"
+    DoABuildSQLFunction += " ORDER BY LOCATION"
     DoABuildSQLFunction +=";"
 
     locations_qs = ActualCounts.objects.raw(DoABuildSQLFunction)

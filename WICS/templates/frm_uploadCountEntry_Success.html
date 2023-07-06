@@ -28,7 +28,7 @@
             {% if not res.error %}
                 Sprsht row {{ res.rowNum }}, 
                 Count Record {{ res.id }}: {{ res.CountDate|date:'Y-m-d '}} | {{ res.MaterialNum }} |
-                    {{ res.Counter }} | {{ res.BLDG }} | {{ res.LOCATION }} |
+                    {{ res.Counter }} | {{ res.LOCATION }} |
                     {% if res.LocationOnly %}LOCATION ONLY{% else %}{{res.CTD_QTY_Expr }}{% endif %} 
                     added
             {% else %}

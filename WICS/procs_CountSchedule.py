@@ -273,7 +273,7 @@ class CountScheduleListForm(LoginRequiredMixin, ListView):
         return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
-        return VIEW_countschedule.objects.all().order_by(*self.ordering)
+        return VIEW_countschedule().order_by(*self.ordering)
 
     # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
     #     return super().get(request, *args, **kwargs)

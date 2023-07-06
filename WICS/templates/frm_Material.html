@@ -193,8 +193,7 @@ button:focus {
                         <div class="col-1">Count Date</div>
                         <div class="col-2">Counter</div>
                         <div class="col-3">Loc Only / Physical Inventory</div>
-                        <div class="col-1">BLDG</div>
-                        <div class="col-1">LOCATION</div>
+                        <div class="col-2">LOCATION</div>
                         <div class="col-2">Pos Not Rec / Mvmnt</div>
                         <div class="col">Count Notes</div>
                     </div>
@@ -225,8 +224,7 @@ button:focus {
                             <span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
                             {% endwith %}
                         </div>
-                        <div class="col-1">{% render_field ff.BLDG size="10" %}</div>
-                        <div class="col-1">{% render_field ff.LOCATION size="10" %}</div>
+                        <div class="col-2">{% render_field ff.LOCATION size="10" %}</div>
                         <div class="col-1">{{ ff.FLAG_PossiblyNotRecieved }} {{ ff.FLAG_MovementDuringCount }}</div>
                         <div class="col-2">{% render_field ff.Notes size="30" %}</div>
                     </div>

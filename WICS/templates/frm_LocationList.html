@@ -25,9 +25,9 @@
 <div id="mainReport" class="container ">
     <ul>
     {% for itm in locations %}
-        {% ifchanged itm.BLDG itm.LOCATION %}
+        {% ifchanged itm.LOCATION %}
             {% if not forloop.first %}</small></li>{% endif %}
-            <li><b>{{ itm.BLDG }}_{{ itm.LOCATION }}: </b><small>
+            <li><b>{{ itm.LOCATION }}: </b><small>
         {% endifchanged %}
         {{ itm.strMaterial }} ({{ itm.CountDate|date:'m/d' }}), 
     {% endfor %}

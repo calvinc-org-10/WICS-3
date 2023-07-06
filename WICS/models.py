@@ -1,6 +1,9 @@
 from typing import Any
-from django.db import models
+from django.db import models, transaction
+from django.db.models import F, Exists, OuterRef, Value, Case, When, Subquery, Max
+from django.db.models.functions import Concat
 from userprofiles.models import WICSuser        
+from cMenu.utils import GroupConcat
 
 
 # I'm quite happy with automaintained pk fields, so I don't specify any
@@ -15,6 +18,8 @@ class Organizations(models.Model):
         return str(self.orgname)
         # return super().__str__()
 
+###########################################################
+###########################################################
 
 class WhsePartTypes(models.Model):
     WhsePartType = models.CharField(max_length=50)
@@ -32,6 +37,24 @@ class WhsePartTypes(models.Model):
         return self.WhsePartType.__str__()
         # return super().__str__()
 
+###########################################################
+###########################################################
+
+##### Material_org prototype construction code cannot be
+##### fn.  It involves an OuterRef, which anchors to its
+##### Subquery.  Do not actually call this fn.  Use it as
+##### a prototype for each instance.
+
+def fnMaterial_org_constr(fld_matlName, fld_org, fld_orgname):
+    return Case(
+        When(Exists(MaterialList.objects.filter(Material=OuterRef(fld_matlName)).exclude(org=OuterRef(fld_org))), 
+            then=Concat(F(fld_matlName), Value(' ('), F(fld_orgname), Value(')'), output_field=models.CharField())
+            ),
+        default=F(fld_matlName)
+        )
+    
+###########################################################
+###########################################################
 
 class MaterialList(models.Model):
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
@@ -80,7 +103,22 @@ def fnMaterial_id(org_id:int,Material:str) -> str | None:
         return MaterialList.objects.get(org_id=org_id, Material=Material).pk
     except:
         return None
+
+def VIEW_materials():
+    return MaterialList.objects.all()\
+        .annotate(
+            PrtType=F('PartType__WhsePartType'), 
+            OrgName=F('org__orgname'),
+            Material_org=Case(
+                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material')).exclude(org=OuterRef('org'))), 
+                    then=Concat(F('Material'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
+                    ),
+                default=F('Material')
+                )   
+            )
     
+###########################################################
+###########################################################
 
 class CountSchedule(models.Model):
     CountDate = models.DateField(null=False)
@@ -108,6 +146,29 @@ class CountSchedule(models.Model):
         return str(self.pk) + ": " + str(self.CountDate) + " / " + str(self.Material) + " / " + str(self.Counter)
         # return super().__str__()
 
+def VIEW_countschedule():
+    qs = CountSchedule.objects.all()
+    qs = qs.annotate(
+            Material_org = Case(
+                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))), 
+                    then=Concat(F('Material__Material'), Value(' ('), F('Material__org__orgname'), Value(')'), output_field=models.CharField())
+                    ),
+                default=F('Material__Material')
+                )
+            )
+    qs = qs.annotate(Description = F('Material__Description'))
+    qs = qs.annotate(MaterialNotes = F('Material__Notes'))
+    qs = qs.annotate(ScheduleNotes = F('Notes'))
+#                Material_org=Case(
+#                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material')).exclude(org=OuterRef('org'))), 
+#                    then=Concat(F('Material'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
+#                    ),
+
+
+    return qs
+
+###########################################################
+###########################################################
 
 class ActualCounts(models.Model):
     CountDate = models.DateField(null=False)
@@ -116,7 +177,6 @@ class ActualCounts(models.Model):
     Counter = models.CharField(max_length=250, blank=False, null=False)
     LocationOnly = models.BooleanField(blank=True, default=False)
     CTD_QTY_Expr = models.CharField(max_length=500, blank=True)
-    BLDG = models.CharField(max_length=100, blank=True)
     LOCATION = models.CharField(max_length=250, blank=True)
     PKGID_Desc = models.CharField(max_length=250, blank=True)
     TAGQTY = models.CharField(max_length=250, blank=True)
@@ -129,32 +189,114 @@ class ActualCounts(models.Model):
         indexes = [
             models.Index(fields=['CountDate','Material']),
             models.Index(fields=['Material']),
-            models.Index(fields=['BLDG','LOCATION']),
+            models.Index(fields=['LOCATION']),
         ]
 
     def __str__(self) -> str:
-        return str(self.pk) + ": " + str(self.CountDate) + " / " + str(self.Material) + " / " + str(self.Counter) + " / " + str(self.BLDG) + "_" + str(self.LOCATION)
+        return str(self.pk) + ": " + str(self.CountDate) + " / " + str(self.Material) + " / " + str(self.Counter) + " / " + str(self.LOCATION)
         # return super().__str__()
 
+
+def VIEW_actualcounts():
+    qs = ActualCounts.objects.all()
+    qs = qs.annotate(
+            Material_org=Case(
+                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))), 
+                    then=Concat(F('Material__Material'), Value(' ('), F('Material__org__orgname'), Value(')'), output_field=models.CharField())
+                    ),
+                default=F('Material__Material')
+                )
+            )
+    qs = qs.annotate(Description = F('Material__Description'))
+    qs = qs.annotate(MaterialNotes = F('Material__Notes'))
+    qs = qs.annotate(CountNotes = F('Notes'))
+
+    return qs
+
+@transaction.atomic
+def FoundAt(matl = None):
+    ActualCounts.objects.raw("SET SESSION group_concat_max_len = 4096;")
+
+    if matl is None:
+        FA_qs = ActualCounts.objects.all()
+    else:
+        FA_qs = ActualCounts.objects.filter(Material=matl)
+
+    FA_qs = FA_qs\
+            .values('Material','CountDate')\
+            .annotate(FoundAt = GroupConcat('LOCATION',distinct=True,ordering='LOCATION ASC'))\
+            .order_by('-CountDate')
+    FA_qs = FA_qs.annotate(Material_org=Case(
+                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))), 
+                    then=Concat(F('Material__Material'), Value(' ('), F('Material__org__orgname'), Value(')'), output_field=models.CharField())
+                    ),
+                default=F('Material__Material')
+                )
+            )
+
+    return FA_qs
+
+def VIEW_LastFoundAt(matl = None):
+    # return ActualCounts.objects.none()
+
+    if matl is None:
+        MaxDates = ActualCounts.objects.all().values('Material').annotate(MaxCtDt=Max('CountDate'))
+    else:
+        MaxDates = ActualCounts.objects.filter(Material=matl).values('Material').annotate(MaxCtDt=Max('CountDate'))
+
+    q = FoundAt(matl)
+    q = q.values('Material','CountDate','FoundAt')
+    q = q.filter(CountDate = Subquery(MaxDates.filter(Material=OuterRef('Material')).values('MaxCtDt')[:1]))
+    q = q.annotate(Material_org=Case(
+                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))), 
+                    then=Concat(F('Material__Material'), Value(' ('), F('Material__org__orgname'), Value(')'), output_field=models.CharField())
+                    ),
+                default=F('Material__Material')
+                )
+            )
+    q = q.order_by('Material__Material', 'Material__org', 'FoundAt')
+
+    return q
 
 def LastFoundAt(matl):
     lastCountDate = None
     LFAString = ''
-    LFAqs = VIEW_LastFoundAt.objects.filter(Material_id=matl.id)
 
-    if LFAqs: 
-        lastCountDate = LFAqs[0].CountDate
-        LFAString = LFAqs[0].FoundAt
+    if isinstance(matl,(int, MaterialList)):
+        LFAqs = VIEW_LastFoundAt(matl)
+        if LFAqs: 
+            lastCountDate = LFAqs[0]['CountDate']
+            LFAString = LFAqs[0]['FoundAt']
     
     return {'lastCountDate': lastCountDate, 'lastFoundAt': LFAString,}
 
-def FoundAt(matl):
-    # get Dict of all dates this material counted
-    FA_qs =  VIEW_FoundAt.objects.filter(Material_id=matl.id)\
-                .order_by('-CountDate')
-    
-    return FA_qs
+def VIEW_LastFoundAtList(matl=None):
 
+    if matl is None:
+        MaxDates = ActualCounts.objects.all().values('Material').annotate(MaxCtDt=Max('CountDate'))
+        FA_qs = VIEW_actualcounts()\
+                    .filter(CountDate = Subquery(MaxDates.filter(Material=OuterRef('Material')).values('MaxCtDt')[:1]))
+    else:
+        MaxDates = ActualCounts.objects.filter(Material=matl).values('Material').annotate(MaxCtDt=Max('CountDate'))
+        FA_qs = VIEW_actualcounts()\
+                    .filter(Material=matl,
+                            CountDate = Subquery(MaxDates.filter(Material=OuterRef('Material')).values('MaxCtDt')[:1]))
+
+    LFAqs = FA_qs\
+            .annotate(FoundAt = F('LOCATION'), 
+                    Material_org=Case(
+                        When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))), 
+                        then=Concat(F('Material__Material'), Value(' ('), F('Material__org__orgname'), Value(')'), output_field=models.CharField())
+                        ),
+                    default=F('Material__Material')
+                    )
+                )\
+            .order_by('Material__Material', 'Material__org', 'FoundAt')
+
+    return LFAqs
+
+###########################################################
+###########################################################
 
 class SAP_SOHRecs(models.Model):
     uploaded_at = models.DateField()
@@ -193,6 +335,24 @@ class UnitsOfMeasure(models.Model):
     DimensionText = models.CharField(max_length=100, blank=True, default='')
     Multiplier1 = models.FloatField(default=1.0)
 
+def VIEW_SAP():
+    return SAP_SOHRecs.objects.all()\
+        .annotate(
+            Material_id=F('MatlRec_id'),
+            Material_org=Case(
+                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material')).exclude(org=OuterRef('org'))), 
+                    then=Concat(F('Material'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
+                    ),
+                default=F('Material')
+                ),
+            Description = F('MatlRec__Description'),
+            Notes = F('MatlRec__Notes'),
+            mult = Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1])
+            )
+            # do I need to annotate OrgName?
+
+###########################################################
+###########################################################
 
 class WorksheetZones(models.Model):
     zone = models.IntegerField(primary_key=True)
@@ -203,7 +363,8 @@ class Location_WorksheetZone(models.Model):
     location = models.CharField(max_length=50,blank=False)
     zone = models.ForeignKey('WorksheetZones', on_delete=models.RESTRICT)
 
-
+###########################################################
+###########################################################
 
 class WICSPermissions(models.Model):
     class Meta:
@@ -215,301 +376,5 @@ class WICSPermissions(models.Model):
             ('Material_onlyview', 'For restricting Material Form to view only'),  
         ]
 
-        
-############################################################
-#####  These are implemented as VIEWS in the database 
-############################################################
-############################################################
-############################################################
-#####  SQL definitions in WICS VIEWS.sql
-############################################################
-
-class VIEW_materials(models.Model):
-    id = models.IntegerField(primary_key=True)
-    org_id = models.IntegerField()
-    Material = models.CharField(max_length=100, blank=True, default='')
-    Description = models.CharField(max_length=250, blank=True, default='')
-    Plant = models.CharField(max_length=20, blank=True, default='')
-    SAPMaterialType = models.CharField(max_length=100, blank=True, default='')
-    SAPMaterialGroup = models.CharField(max_length=100, blank=True, default='')
-    Price = models.FloatField(null=True, blank=True)
-    PriceUnit = models.PositiveIntegerField(null=True, blank=True)
-    Currency = models.CharField(max_length=20, blank=True, default='')
-    TypicalContainerQty = models.CharField(max_length=100,null=True, blank=True)
-    TypicalPalletQty = models.CharField(max_length=100,null=True, blank=True)
-    Notes = models.CharField(max_length=250, blank=True, default='')
-    PartType_id = models.IntegerField()
-    PartType = models.CharField(max_length=50)
-    PartTypePriority = models.SmallIntegerField()
-    OrgName = models.CharField(max_length=250)
-    Material_org = models.CharField(max_length=512)
-
-    class Meta:
-        db_table = 'VIEW_materials'
-        managed = False
-
-############################################
-
-class VIEW_SAP(models.Model):
-    id = models.IntegerField(primary_key=True)
-    uploaded_at = models.DateField()
-    Material_id = models.IntegerField()
-    Material = models.CharField(max_length=100)
-    Material_org = models.CharField(max_length=200)
-    Plant = models.CharField(max_length=20)
-    StorageLocation = models.CharField(max_length=20)
-    BaseUnitofMeasure = models.CharField(max_length=20)
-    Amount = models.FloatField()
-    Currency = models.CharField(max_length=20)
-    ValueUnrestricted = models.FloatField(blank=True)
-    BlockedAmount = models.FloatField(blank=True)
-    ValueBlocked = models.FloatField(blank=True)
-    UOM = models.CharField(max_length=50)
-    UOMText = models.CharField(max_length=100)
-    DimensionText = models.CharField(max_length=100)
-    mult = models.FloatField()
-    SpecialStock = models.CharField(max_length=20)
-    Batch = models.CharField(max_length=20)
-    Vendor = models.CharField(max_length=20, blank=True)
-    Description = models.CharField(max_length=250, blank=True, default='')
-    SAPMaterialType = models.CharField(max_length=100, blank=True, default='')
-    SAPMaterialGroup = models.CharField(max_length=100, blank=True, default='')
-    Price = models.FloatField(null=True, blank=True)
-    PriceUnit = models.PositiveIntegerField(null=True, blank=True)
-    TypicalContainerQty = models.CharField(max_length=100,null=True, blank=True)
-    TypicalPalletQty = models.CharField(max_length=100,null=True, blank=True)
-    Notes = models.CharField(max_length=250, blank=True, default='')
-    PartType_id = models.IntegerField()
-    PartType = models.CharField(max_length=50)
-    PartTypePriority = models.SmallIntegerField()
-    org_id = models.IntegerField()
-    OrgName = models.CharField(max_length=250)
-
-    class Meta:
-        db_table = 'VIEW_SAP'
-        managed = False
-
- 
-class VIEW_actualcounts(models.Model):
-    id = models.IntegerField(primary_key=True)
-    CountDate = models.DateField()
-    Material = models.CharField(max_length=100)
-    Material_id = models.IntegerField()
-    Material_org = models.CharField(max_length=200)
-    CycCtID = models.CharField(max_length=100)
-    Counter = models.CharField(max_length=250)
-    LocationOnly = models.CharField(max_length=100, blank=True, default='')
-    CTD_QTY_Expr = models.CharField(max_length=500)
-    BLDG = models.CharField(max_length=100)
-    LOCATION = models.CharField(max_length=250)
-    FLAG_PossiblyNotRecieved = models.BooleanField()
-    FLAG_MovementDuringCount = models.BooleanField()
-    CountNotes = models.CharField(max_length=250)
-    Description = models.CharField(max_length=250, blank=True, default='')
-    SAPMaterialType = models.CharField(max_length=100, blank=True, default='')
-    SAPMaterialGroup = models.CharField(max_length=100, blank=True, default='')
-    Price = models.FloatField(null=True, blank=True)
-    PriceUnit = models.PositiveIntegerField(null=True, blank=True)
-    TypicalContainerQty = models.CharField(max_length=100,null=True, blank=True)
-    TypicalPalletQty = models.CharField(max_length=100,null=True, blank=True)
-    MaterialNotes = models.CharField(max_length=250, blank=True, default='')
-    PartType_id = models.IntegerField()
-    PartType = models.CharField(max_length=50)
-    PartTypePriority = models.SmallIntegerField()
-
-    class Meta:
-        db_table = 'VIEW_actualcounts'
-        managed = False
-    
-   
-class VIEW_countschedule(models.Model):
-    id = models.IntegerField(primary_key=True)
-    CountDate = models.DateField()
-    Material_id = models.IntegerField()
-    Material = models.CharField(max_length=100)
-    Material_org = models.CharField(max_length=200)
-    Requestor = models.CharField(max_length=100)
-      # the requestor can type whatever they want here, but WICS will record the userid behind-the-scenes
-    Requestor_userid_id = models.IntegerField()
-    RequestFilled = models.BooleanField()
-    Counter = models.CharField(max_length=250)
-    Priority = models.CharField(max_length=50)
-    ReasonScheduled = models.CharField(max_length=250)
-    ScheduleNotes = models.CharField(max_length=250)
-    Description = models.CharField(max_length=250, blank=True, default='')
-    SAPMaterialType = models.CharField(max_length=100, blank=True, default='')
-    SAPMaterialGroup = models.CharField(max_length=100, blank=True, default='')
-    Price = models.FloatField(null=True, blank=True)
-    PriceUnit = models.PositiveIntegerField(null=True, blank=True)
-    TypicalContainerQty = models.CharField(max_length=100,null=True, blank=True)
-    TypicalPalletQty = models.CharField(max_length=100,null=True, blank=True)
-    MaterialNotes = models.CharField(max_length=250, blank=True, default='')
-    PartType_id = models.IntegerField()
-    PartType = models.CharField(max_length=50)
-    PartTypePriority = models.SmallIntegerField()
-
-    class Meta:
-        db_table = 'VIEW_countschedule'
-        managed = False
-    
-
-class VIEW_FoundAt(models.Model):
-    Material_id = models.IntegerField()
-    Material = models.CharField(max_length=100)
-    Material_org = models.CharField(max_length=200)
-    CountDate = models.DateField()
-    FoundAt = models.CharField(max_length=1024)
-
-    class Meta:
-        db_table = 'VIEW_FoundAt'
-        managed = False
-
-
-class VIEW_LastFoundAt(models.Model):
-    Material_id = models.IntegerField()
-    Material = models.CharField(max_length=100)
-    Material_org = models.CharField(max_length=200)
-    CountDate = models.DateField()
-    FoundAt = models.CharField(max_length=1024)
-
-    class Meta:
-        db_table = 'VIEW_LastFoundAt'
-        managed = False
-
-
-class VIEW_LastFoundAtList(models.Model):
-    Material_id = models.IntegerField()
-    Material = models.CharField(max_length=100)
-    Material_org = models.CharField(max_length=200)
-    CountDate = models.DateField()
-    BLDG = models.CharField(max_length=100)
-    LOCATION = models.CharField(max_length=250)
-    FoundAt = models.CharField(max_length=1024)
-
-    class Meta:
-        db_table = 'VIEW_LastFoundAtList'
-        managed = False
-
-   
-class VIEW_LastSAP(models.Model):
-    id = models.IntegerField(primary_key=True)
-    uploaded_at = models.DateField()
-    org_id = models.IntegerField()
-    Material_id = models.IntegerField()
-    Material = models.CharField(max_length=100)
-    Material_org = models.CharField(max_length=200)
-    Plant = models.CharField(max_length=20)
-    StorageLocation = models.CharField(max_length=20)
-    BaseUnitofMeasure = models.CharField(max_length=20)
-    Amount = models.FloatField()
-    Currency = models.CharField(max_length=20)
-    ValueUnrestricted = models.FloatField(blank=True)
-    BlockedAmount = models.FloatField(blank=True)
-    ValueBlocked = models.FloatField(blank=True)
-    UOM = models.CharField(max_length=50)
-    UOMText = models.CharField(max_length=100)
-    DimensionText = models.CharField(max_length=100)
-    mult = models.FloatField()
-    SpecialStock = models.CharField(max_length=20)
-    Batch = models.CharField(max_length=20)
-    Description = models.CharField(max_length=250, blank=True, default='')
-    SAPMaterialType = models.CharField(max_length=100, blank=True, default='')
-    SAPMaterialGroup = models.CharField(max_length=100, blank=True, default='')
-    Price = models.FloatField(null=True, blank=True)
-    PriceUnit = models.PositiveIntegerField(null=True, blank=True)
-    TypicalContainerQty = models.CharField(max_length=100,null=True, blank=True)
-    TypicalPalletQty = models.CharField(max_length=100,null=True, blank=True)
-    Notes = models.CharField(max_length=250, blank=True, default='')
-    PartType_id = models.IntegerField()
-    PartType = models.CharField(max_length=50)
-    PartTypePriority = models.SmallIntegerField()
-    OrgName = models.CharField(max_length=250)
-
-    class Meta:
-        db_table = 'VIEW_LastSAP'
-        managed = False
-
- 
-class VIEW_MaterialLocationListWithSAP(models.Model):
-    id = models.IntegerField(primary_key=True)
-    org_id = models.IntegerField()
-    Material = models.CharField(max_length=100, blank=True, default='')
-    Material_org = models.CharField(max_length=200)
-    Description = models.CharField(max_length=250, blank=True, default='')
-    SAPMaterialType = models.CharField(max_length=100, blank=True, default='')
-    SAPMaterialGroup = models.CharField(max_length=100, blank=True, default='')
-    Price = models.FloatField(null=True, blank=True)
-    PriceUnit = models.PositiveIntegerField(null=True, blank=True)
-    Notes = models.CharField(max_length=250, blank=True, default='')
-    PartType_id = models.IntegerField()
-    PartType = models.CharField(max_length=50)
-    PartTypePriority = models.SmallIntegerField()
-    TypicalContainerQty = models.CharField(max_length=100,null=True, blank=True)
-    TypicalPalletQty = models.CharField(max_length=100,null=True, blank=True)
-    OrgName = models.CharField(max_length=250)
-    CountDate = models.DateField()
-    FoundAt = models.CharField(max_length=1024)
-    SAP_id = models.IntegerField()
-    SAPDate = models.DateField()
-    Plant = models.CharField(max_length=20)
-    StorageLocation = models.CharField(max_length=20)
-    Amount = models.FloatField()
-    BaseUnitofMeasure = models.CharField(max_length=20)
-    UOM = models.CharField(max_length=50)
-    UOMText = models.CharField(max_length=100)
-    DimensionText = models.CharField(max_length=100)
-    mult = models.FloatField()
-    ValueUnrestricted = models.FloatField(blank=True)
-    BlockedAmount = models.FloatField(blank=True)
-    ValueBlocked = models.FloatField(blank=True)
-    Currency = models.CharField(max_length=20)
-    SpecialStock = models.CharField(max_length=20)
-    Batch = models.CharField(max_length=20)
-    Vendor = models.CharField(max_length=20, blank=True)
-    DoNotShow = models.BooleanField()
-
-    class Meta:
-        db_table = 'VIEW_MaterialLocationListWithSAP'
-        managed = False
-
-class VIEW_MaterialLocationListWithLastSAP(models.Model):
-    id = models.IntegerField(primary_key=True)
-    org_id = models.IntegerField()
-    Material = models.CharField(max_length=100, blank=True, default='')
-    Material_org = models.CharField(max_length=200)
-    Description = models.CharField(max_length=250, blank=True, default='')
-    SAPMaterialType = models.CharField(max_length=100, blank=True, default='')
-    SAPMaterialGroup = models.CharField(max_length=100, blank=True, default='')
-    Price = models.FloatField(null=True, blank=True)
-    PriceUnit = models.PositiveIntegerField(null=True, blank=True)
-    TypicalContainerQty = models.CharField(max_length=100,null=True, blank=True)
-    TypicalPalletQty = models.CharField(max_length=100,null=True, blank=True)
-    Notes = models.CharField(max_length=250, blank=True, default='')
-    PartType_id = models.IntegerField()
-    PartType = models.CharField(max_length=50)
-    PartTypePriority = models.SmallIntegerField()
-    OrgName = models.CharField(max_length=250)
-    CountDate = models.DateField()
-    FoundAt = models.CharField(max_length=1024)
-    SAP_id = models.IntegerField()
-    SAPDate = models.DateField()
-    Plant = models.CharField(max_length=20)
-    StorageLocation = models.CharField(max_length=20)
-    Amount = models.FloatField()
-    BaseUnitofMeasure = models.CharField(max_length=20)
-    ValueUnrestricted = models.FloatField(blank=True)
-    BlockedAmount = models.FloatField(blank=True)
-    ValueBlocked = models.FloatField(blank=True)
-    Currency = models.CharField(max_length=20)
-    UOM = models.CharField(max_length=50)
-    UOMText = models.CharField(max_length=100)
-    DimensionText = models.CharField(max_length=100)
-    mult = models.FloatField()
-    SpecialStock = models.CharField(max_length=20)
-    Batch = models.CharField(max_length=20)
-    Vendor = models.CharField(max_length=20, blank=True)
-    DoNotShow = models.BooleanField()
-
-    class Meta:
-        db_table = 'VIEW_MaterialLocationListWithLastSAP'
-        managed = False
+###########################################################
+###########################################################

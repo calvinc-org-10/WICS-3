@@ -22,7 +22,7 @@
 <div class="row g-0">
     <div class="col-1"></div>
     <div class="col-7 text-start">
-        Count Date | Counter | Material | BLDG_LOCATION | Counted Quantity
+        Count Date | Counter | Material | LOCATION | Counted Quantity
     </div> 
     <div class="col-4">Notes</div>
 </div>
@@ -37,7 +37,7 @@
             {{ itm.CountDate }} | 
             {{ itm.Counter }} |
             {{ itm.Material }} |
-            {{ itm.BLDG }}_{{ itm.LOCATION }} |
+            {{ itm.LOCATION }} |
             {% if not itm.LocationOnly %}
                 {{ itm.CTD_QTY_Expr }} = {{ itm.CTD_QTY_Expr|eval_arith }}
             {% else %}

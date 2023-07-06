@@ -14,8 +14,7 @@ class CountEntryForm(forms.ModelForm):
         # later, create a DropdownText widget??
     Counter = forms.CharField(required=True)
     LocationOnly = forms.BooleanField(required=False)
-    BLDG = forms.CharField(required=True)
-    LOCATION = forms.CharField(required=False)
+    LOCATION = forms.CharField(required=True)
     CTD_QTY_Expr = forms.CharField(required=False)
     FLAG_PossiblyNotRecieved = forms.BooleanField(required=False)
     FLAG_MovementDuringCount = forms.BooleanField(required=False)
@@ -25,7 +24,7 @@ class CountEntryForm(forms.ModelForm):
     class Meta:
         model = ActualCounts
         fields = ['id', 'CountDate', 'CycCtID', 'Counter', 'LocationOnly', 
-                'BLDG', 'LOCATION', 'CTD_QTY_Expr', 'PKGID_Desc', 'TAGQTY',
+                'LOCATION', 'CTD_QTY_Expr', 'PKGID_Desc', 'TAGQTY',
                 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes']
     def save(self):
         if not self.is_valid():

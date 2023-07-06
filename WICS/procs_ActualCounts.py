@@ -75,7 +75,6 @@ def fnUploadActCountSprsht(req):
         elif fld in \
             ['Material', 
              'Counter', 
-             'BLDG', 
              'LOCATION', 
              'Notes', 
              'TypicalContainerQty', 
@@ -113,13 +112,12 @@ def fnUploadActCountSprsht(req):
 
         if ws:
             CountSprshtcolmnNames = ws[1]
-            CountSprshtREQUIREDFLDS = ['Material','CountDate','Counter','BLDG']     
+            CountSprshtREQUIREDFLDS = ['Material','CountDate','Counter','LOCATION']     
                 # LocationOnly/CTD_QTY_Expr handled separately since at least one must be present and both can be
             CountSprshtcolmnMap = {}
             CountSprsht_SSName_TableName_map = {
                     'CountDate': 'CountDate',
                     'Counter': 'Counter',
-                    'BLDG': 'BLDG',
                     'LOCATION': 'LOCATION',
                     'org_id': 'org_id',
                     'Material': 'Material',
@@ -201,9 +199,9 @@ def fnUploadActCountSprsht(req):
                                 elif fldName == 'Counter': 
                                     setattr(SRec, fldName, V)
                                     requiredFields['Counter'] = True
-                                elif fldName == 'BLDG': 
+                                elif fldName == 'LOCATION': 
                                     setattr(SRec, fldName, V)
-                                    requiredFields['BLDG'] = True
+                                    requiredFields['LOCATION'] = True
                                 elif fldName == 'LocationOnly': 
                                     setattr(SRec, fldName, makebool(V))
                                     requiredFields['Both LocationOnly and CTD_QTY'] = True
@@ -403,7 +401,6 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
             outputline['ActCounter'] = rawrow.ac_Counter
             if rawrow.ac_Counter is not None and rawrow.ac_Counter not in lastrow['Counters']:
                 lastrow['Counters'] += ', ' + rawrow.ac_Counter
-            outputline['BLDG'] = rawrow.ac_BLDG
             outputline['LOCATION'] = rawrow.ac_LOCATION
             outputline['PKGID'] = rawrow.ac_PKGID_Desc
             outputline['TAGQTY'] = rawrow.ac_TAGQTY
@@ -466,27 +463,40 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
 
     SummaryReport = []
 
-    for org in Organizations.objects.all():
-        #TODO: Move away from the VIEWs
-        # group by org_id
-        fldlist = "0 as id, cs.id as cs_id, cs.CountDate as cs_CountDate , cs.Counter as cs_Counter" \
-            ", cs.Priority as cs_Priority, cs.ReasonScheduled as cs_ReasonScheduled" \
-            ", cs.Requestor, cs.RequestFilled" \
-            ", cs.Notes as cs_Notes" \
-            ", ac.id as ac_id, ac.CountDate as ac_CountDate, ac.CycCtID as ac_CycCtID, ac.Counter as ac_Counter" \
-            ", ac.LocationOnly as ac_LocationOnly, ac.CTD_QTY_Expr as ac_CTD_QTY_Expr, ac.BLDG as ac_BLDG" \
-            ", ac.LOCATION as ac_LOCATION, ac.PKGID_Desc as ac_PKGID_Desc, ac.TAGQTY as ac_TAGQTY" \
-            ", ac.FLAG_PossiblyNotRecieved, ac.FLAG_MovementDuringCount, ac.Notes as ac_Notes" \
-            ", mtl.id as matl_id, mtl.org_id, mtl.OrgName" \
-            ", mtl.Material_org as Matl_PartNum, mtl.PartType as PartType" \
-            ", mtl.Description, mtl.TypicalContainerQty, mtl.TypicalPalletQty, mtl.Notes as mtl_Notes"
-        if isDate(passedCountDate): datestr = WrapInQuotes(passedCountDate,"'","'")
-        else: datestr = passedCountDate
-        org_condition = '(mtl.org_id = ' + str(org.pk) + ')'
-        date_condition = '(ac.CountDate = ' + datestr + ' OR cs.CountDate = ' + datestr + ') '
-        order_by = 'Matl_PartNum'
+    fldlist = "0 as id, cs.id as cs_id, cs.CountDate as cs_CountDate , cs.Counter as cs_Counter" \
+        ", cs.Priority as cs_Priority, cs.ReasonScheduled as cs_ReasonScheduled" \
+        ", cs.Requestor, cs.RequestFilled" \
+        ", cs.Notes as cs_Notes" \
+        ", ac.id as ac_id, ac.CountDate as ac_CountDate, ac.CycCtID as ac_CycCtID, ac.Counter as ac_Counter" \
+        ", ac.LocationOnly as ac_LocationOnly, ac.CTD_QTY_Expr as ac_CTD_QTY_Expr" \
+        ", ac.LOCATION as ac_LOCATION, ac.PKGID_Desc as ac_PKGID_Desc, ac.TAGQTY as ac_TAGQTY" \
+        ", ac.FLAG_PossiblyNotRecieved, ac.FLAG_MovementDuringCount, ac.Notes as ac_Notes" \
+        ", mtl.id as matl_id, mtl.org_id, mtl.OrgName" \
+        ", mtl.Material_org as Matl_PartNum, mtl.PartType as PartType" \
+        ", mtl.Description, mtl.TypicalContainerQty, mtl.TypicalPalletQty, mtl.Notes as mtl_Notes"
+    if isDate(passedCountDate): datestr = WrapInQuotes(passedCountDate,"'","'")
+    else: datestr = passedCountDate
+    date_condition = '(ac.CountDate = ' + datestr + ' OR cs.CountDate = ' + datestr + ') '
+    order_by = 'Matl_PartNum'
 
-        A_Sched_Ctd_from = 'WICS_countschedule cs INNER JOIN VIEW_materials mtl INNER JOIN WICS_actualcounts ac'    
+    VIEW_Material_sql = "(select MATL.id AS id, MATL.org_id AS org_id, MATL.Material AS Material, MATL.Description AS Description,"
+    VIEW_Material_sql += "  MATL.Notes AS Notes, MATL.PartType_id AS PartType_id,"
+    VIEW_Material_sql += "  MATL.TypicalContainerQty AS TypicalContainerQty, MATL.TypicalPalletQty AS TypicalPalletQty,"
+    VIEW_Material_sql += "  PTYPE.WhsePartType AS PartType, ORG.orgname AS OrgName,"
+    VIEW_Material_sql += "  if((exists "
+    VIEW_Material_sql += "         (select * from WICS_materiallist numdups where ((numdups.Material = MATL.Material) and (numdups.org_id <> MATL.org_id)))) , "
+    VIEW_Material_sql += "       concat(MATL.Material, ' (', ORG.orgname, ')') , "
+    VIEW_Material_sql += "       MATL.Material "
+    VIEW_Material_sql += "     ) AS Material_org "
+    VIEW_Material_sql += "from "
+    VIEW_Material_sql += "  ((WICS_materiallist MATL join WICS_organizations ORG on (MATL.org_id = ORG.id)) left join WICS_whseparttypes `PTYPE` on MATL.PartType_id = `PTYPE`.id) "
+    VIEW_Material_sql += " ) mtl "
+
+    for org in Organizations.objects.all():
+        # group by org_id
+        org_condition = '(mtl.org_id = ' + str(org.pk) + ')'
+
+        A_Sched_Ctd_from = 'WICS_countschedule cs INNER JOIN ' + VIEW_Material_sql + ' INNER JOIN WICS_actualcounts ac'    
         A_Sched_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id AND ac.Material_id=mtl.id'    
         A_Sched_Ctd_where = ''
         if Rptvariation == 'REQ':
@@ -512,7 +522,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
 
         if Rptvariation is None:
             B_UnSched_Ctd_from = 'WICS_countschedule cs RIGHT JOIN' \
-                ' (WICS_actualcounts ac INNER JOIN VIEW_materials mtl ON ac.Material_id=mtl.id)'
+                ' (WICS_actualcounts ac INNER JOIN ' + VIEW_Material_sql + ' ON ac.Material_id=mtl.id)'
             B_UnSched_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id'
             B_UnSched_Ctd_where = '(cs.id IS NULL)'
             B_UnSched_Ctd_sql = 'SELECT ' + fldlist + ' ' + \
@@ -528,7 +538,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
                         'outputrows': CreateOutputRows(B_UnSched_Ctd_qs)
                         })
         
-        C_Sched_NotCtd_Ctd_from = '(WICS_countschedule cs INNER JOIN VIEW_materials mtl ON cs.Material_id=mtl.id)' \
+        C_Sched_NotCtd_Ctd_from = '(WICS_countschedule cs INNER JOIN ' + VIEW_Material_sql + ' ON cs.Material_id=mtl.id)' \
             ' LEFT JOIN WICS_actualcounts ac'
         C_Sched_NotCtd_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id'
         C_Sched_NotCtd_Ctd_where = '(ac.id IS NULL)'
@@ -559,7 +569,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
                 }
 
     ExcelFileNamePrefix = "CountSummary "
-    svdir = django_settings.STATIC_ROOT
+    svdir = django_settings.STATIC_ROOT if django_settings.STATIC_ROOT is not None else django_settings.STATICFILES_DIRS[0]
     fName_base = '/tmpdl/'+ExcelFileNamePrefix + f'{dtobj_pDate:%Y-%m-%d}'
     fName = svdir + fName_base
     ExcelFileName = Excelfile_fromqs(Excel_qdict, fName)
