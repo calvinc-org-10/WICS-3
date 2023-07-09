@@ -47,7 +47,6 @@
         <div class="col-4 text-start">{{ itm.Notes }}</div>
         <div class="col-1">
             <button id="edit{{ itm.id }}" class="edit" value="{{ itm.id }}" type="button">Edit</button>
-            <button id="remv{{ itm.id }}" class="remv" value="{{ itm.id }}" type="button">Remove</button>
         </div>
     </div>
     <hr>
@@ -81,6 +80,7 @@
 </div>
 
 <!-- Modal -->
+<!-- currently not used, but leave here in case needed later -->
 <div class="modal-sm fade" id="modalRemvCheck" role="dialog">
     <div class="modal-dialog">
         <!-- Modal content-->
@@ -106,17 +106,6 @@
 </div>
 
 <script>
-    function leavequestion_chosen() {
-        var delRec = $("#modalRemvCheck").find( "form" ).find("[name='killRec']").val()
-        if (delRec) {
-            fn_postclosecheck();
-        }
-    }
-    $("#modalRemvCheck").find( "form" ).on( "submit", function( event ) {
-        event.preventDefault();
-        leavequestion_chosen($("#modalRemvCheck").find( "form" ).find("[name='RecNum']").val());
-    });
-
     $(".edit").on("click",loadCountEntryRec)
 
     function loadCountEntryRec(event) {
@@ -133,23 +122,6 @@
     function addNewCountEntryRec(event) {
         newRec = "{% url 'CountEntryForm' %}"
         window.open(newRec,'_blank');
-    };
-
-    $(".remv").on("click",remvCountEntryRec)
-
-    //TODO: fix me!! Implement record deletes
-    function remvCountEntryRec(event) {
-        R = parseInt(this.value)
-
-        fn_postclosecheck = doRemove
-        document.getElementById("modal_title").innerHTML = "Remove Record?"
-        document.getElementById("modal_question").innerHTML = "Are you sure you want to remove count record ".concat(R).concat("?")
-        $("#modalRemvCheck").find( "form" ).find("[name='RecNum']").val(R)
-
-        $('#modalRemvCheck').modal();
-    };
-    function doRemove(RecNum) {
-        alert("The delete option will be done later...")
     };
 </script>
 

@@ -42,7 +42,6 @@
         <div class="col-4">{{ itm.ScheduleNotes }}</div>
         <div class="col-3">
             <button id="edit{{ itm.id }}" class="edit" value="{{ itm.id }}" type="button">Edit</button>
-            <button id="remv{{ itm.id }}" class="remv" value="{{ itm.id }}" type="button">Remove</button>
         </div>
     </div>
     <hr>
@@ -92,23 +91,6 @@
     };
 
     //----------------------------
-
-    $(".remv").on("click",remvCountEntryRec)
-
-    //TODO: fix me!! Implement record deletes
-    function remvCountEntryRec(event) {
-        R = parseInt(this.value)
-
-        fn_postclosecheck = doRemove
-        document.getElementById("modal_title").innerHTML = "Remove Record?"
-        document.getElementById("modal_question").innerHTML = "Are you sure you want to remove count record ".concat(R).concat("?")
-        $("#modalRemvCheck").find( "form" ).find("[name='RecNum']").val(R)
-
-        $('#modalRemvCheck').modal();
-    };
-    function doRemove(RecNum) {
-        alert("The delete option will be done later...")
-    };
 
     //----------------------------
 
