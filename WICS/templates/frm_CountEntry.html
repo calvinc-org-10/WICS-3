@@ -410,11 +410,34 @@ button:focus {
     };
 
     function SubmMainFm() {
-        if ($("#{{ frmMain.LOCATION.id_for_label }}").val()) {
-            $("#CEForm").submit()
-        } else {
+        let formGood = true
+
+        if (!($("#{{ frmMain.CountDate.id_for_label }}").val())) {
+            formGood = false
+            alertBox("Enter Count Date", "Please enter a Count Date");
+            $("#{{ frmMain.CountDate.id_for_label }}").focus();
+        } else if (!($("#{{ frmMain.Material.id_for_label }}").val())) {
+            formGood = false
+            alertBox("Enter Material", "Please enter a Material #");
+            $("#{{ frmMain.Material.id_for_label }}").focus();
+        } else if (!($("#{{ frmMain.Counter.id_for_label }}").val())) {
+            formGood = false
+            alertBox("Enter Counter", "Please enter the Counter");
+            $("#{{ frmMain.Counter.id_for_label }}").focus();
+        } else if (!($("#{{ frmMain.LOCATION.id_for_label }}").val())) {
+            formGood = false
             alertBox("Enter LOCATION", "Please enter a LOCATION");
             $("#{{ frmMain.LOCATION.id_for_label }}").focus();
+        } else if (!($("#{{ frmMain.LocationOnly.id_for_label }}").prop("checked"))) {     // if not LocationOnly
+            if (isNaN(parseFloat($("#EvalExpr").html().slice(2)))) {                // if CTD QTY isNaN
+                formGood = false
+                alertBox("Enter Valid Quantity", "Please enter a Valid Quantity or LocationOnly");
+                $("#{{ frmMain.CTD_QTY_Expr.id_for_label }}").focus();
+            }
+        }
+
+        if (formGood) {
+            $("#CEForm").submit()
         }
     }
 
