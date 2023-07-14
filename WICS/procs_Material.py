@@ -27,10 +27,10 @@ from WICS.procs_SAP import fnSAPList
 from typing import Any, Dict
 
 
-
 class MaterialLocationsList(LoginRequiredMixin, ListView):
+    #TODO:  Get away from the VIEWs
     #login_url = reverse('WICSlogin')
-    ordering = ['org_id','Material']
+    # ordering = ['org_id','Material']  - ordering should not be defined on a raw queryset
     context_object_name = 'MatlList'
     template_name = 'rpt_PartLocations.html'
     SAPSums = {}
@@ -39,7 +39,7 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
         self._user = req.user
         #TODO: Lose the view in the sql below
         # get last count date (incl LocationOnly) for each Material (prefetch_related?)
-        sqlLFA = "SELECT MATL.id, MATL.OrgName, MATL.Material, MATL.Description, MATL.PartType, LFA.CountDate AS LFADate, LFA.FoundAt AS LFALocation,"
+        sqlLFA = "SELECT MATL.id, MATL.OrgName, MATL.Material, MATL.Description, MATL.PartType_id, LFA.CountDate AS LFADate, LFA.FoundAt AS LFALocation,"
         sqlLFA += " MATL.Notes, 0 AS SAPList, FALSE AS DoNotShow"
         sqlLFA += " FROM VIEW_LastFoundAt LFA JOIN VIEW_materials MATL ON LFA.Material_id = MATL.id"
         sqlLFA += " ORDER BY MATL.org_id, MATL.Material"        
@@ -57,7 +57,7 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
         qs = super().get_queryset()
         for rec in qs:
             #pass in Material record
-            rec.SAPList = self.SAPTable.filter(Material_id=rec.id)
+            rec.SAPList = self.SAPTable.filter(MatlRec_id=rec.id)
             # filter Material in SAP_SOH for date OR last count date within 30d
             testdate = rec.LFADate
             if testdate == None: testdate = calvindate(MINYEAR, 1, 1)
