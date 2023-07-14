@@ -14,9 +14,9 @@
 {% endblock %}
 
 {% block boddy %}
-<div class="container text-center mx-auto d-print-none">
+<div class="container text-center mx-auto d-print-none"> <!-- form header with date chooser -->
     <!-- GoTo Date -->
-    <div class="container-fluid text-center bg-info">
+    <div class="container-fluid text-center bg-info">   <!-- wait spinner and choose date container -->
         <div class="row">
             <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
             <div class="col-1"></div>
@@ -27,17 +27,19 @@
                 SAP Date {{ SAPDate }}
             </div>
         </div>
-    </div>
-</div>
+    </div>   <!-- wait spinner and choose date container -->
+</div>  <!-- form header -->
 
 <div id="mainReport" class="container-fluid mx-auto"  style="height:350px; overflow:auto;" >
     {% for RptSection in SummaryReport %}
         {% ifchanged RptSection.org %}
             {% if not forloop.first %}
-                <hr style="height=60px;"></div>
+                <hr>
+                </div>  <!-- org container -->
+            {% else %}
             {% endif %}
-            <div style="break-after: page;">
-                <div class="container text-center mx-auto">
+            <div style="break-after: page;">    <!-- org container -->
+                <div class="container text-center mx-auto"> <!-- org header -->
                     <div class="row">
                         <div class="col-5 fs-3 text-end">
                             <br>Counts {% if variation == 'REQ' %}Requested{% else %}Scheduled and Done{% endif %}
@@ -48,144 +50,134 @@
                         <div class="col-2 text-end"> {{ user.get_full_name }} </div>
                     </div>
                     <h1><u> {{ RptSection.org.orgname }} </u></h1>
-                </div>    
+                </div>    <!-- org header -->
         {% endifchanged %}
         <hr>
         <h3><u>{{ RptSection.Title }}</u></h3>
-        <div class="row g-0 calvin-smalltext">
-            <div class="col-1">Count Date</div>
-            <div class="col-1">Cyc Ct ID</div>
-            <div class="col-2">Material</div>
-            <div class="col-3">Counter</div>
-            <div class="col-2">LOCATION</div>
-            <div class="col-1">PKG ID / Desc</div>
-            <div class="col-1">TAG QTY</div>
-        </div>
         {% for ent in RptSection.outputrows %}
-            {% if ent.type == 'Detail' %}
-            <div class="CtSummDetail">
-            <div class="row g-0 calvin-smalltext">
-                <div class="col-1">{{ CountDate|date:"m/d" }}</div>
-                <div class="col-1">{{ ent.CycCtID }}</div>
-                <div class="col-2">{{ ent.Material }}</div>
-                <div class="col-3">{{ ent.ActCounter }}</div>
-                <div class="col-2">{{ ent.LOCATION }}</div>
-                <div class="col-1">{{ ent.PKGID }}</div>
-                <div class="col-1">{{ ent.TAGQTY }}</div>
-            </div>
-            <div class="row g-0 small">
-                <div class="col-11 small text-end">
-                    {% if ent.ActCountNotes %}
-                        <b>Count Notes: </b>{{ ent.ActCountNotes }}
+            {% ifchanged ent.Material_id %}
+                <div style="break-inside: avoid;">   <!-- avoid page breaks for a single Material sheet -->
+                    <div class="CtSummDetail">
+                    <div class="row g-0 calvin-smalltext">
+                        <div class="col-1">Count Date</div>
+                        <div class="col-1">Cyc Ct ID</div>
+                        <div class="col-2">Material</div>
+                        <div class="col-3">Counter</div>
+                        <div class="col-2">LOCATION</div>
+                        <div class="col-1">PKG ID / Desc</div>
+                        <div class="col-1">TAG QTY</div>
+                    </div>
+            {% endifchanged %}
+                {% if ent.type == 'Detail' %}
+                    <div class="row g-0 calvin-smalltext">
+                        <div class="col-1">{{ CountDate|date:"m/d" }}</div>
+                        <div class="col-1">{{ ent.CycCtID }}</div>
+                        <div class="col-2">{{ ent.Material }}</div>
+                        <div class="col-3">{{ ent.ActCounter }}</div>
+                        <div class="col-2">{{ ent.LOCATION }}</div>
+                        <div class="col-1">{{ ent.PKGID }}</div>
+                        <div class="col-1">{{ ent.TAGQTY }}</div>
+                    </div>
+                    <div class="row g-0 small">
+                        <div class="col-11 small text-end">
+                            {% if ent.ActCountNotes %}
+                                <b>Count Notes: </b>{{ ent.ActCountNotes }}
+                            {% endif %}
+                            <b>Actual Count: </b> {{ ent.CTD_QTY_Expr }}
+                        </div>
+                        <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
+                    </div>
+                    {% if ent.PossNotRec or ent.MovDurCt %}
+                    <div class="text-center">
+                        {% if ent.PossNotRec %}<b>POSSIBLY NOT RECIEVED</b>{% endif %}
+                        {% if ent.MovDurCt %}<b>MOVEMENT DURING COUNT</b>{% endif %}
+                    </div>
                     {% endif %}
-                    <b>Actual Count: </b> {{ ent.CTD_QTY_Expr }}
-                </div>
-                <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
-            </div>
-            {% if ent.PossNotRec or ent.MovDurCt %}
-            <div class="text-center">
-                {% if ent.PossNotRec %}<b>POSSIBLY NOT RECIEVED</b>{% endif %}
-                {% if ent.MovDurCt %}<b>MOVEMENT DURING COUNT</b>{% endif %}
-            </div>
-            {% endif %}
-            </div>
-            {% elif ent.type == 'Summary' %}
-            <div>
-                <b>SAP</b> {{SAPDate}}:
-                {% for s in ent.SAPNum %}{{ s }}{% endfor %}, 
-                Typical Container Qty = {{ ent.TypicalContainerQty }}, 
-                Typical Pallet Qty = {{ ent.TypicalPalletQty }}
-            </div>
-            <div class="row g-0">
-                <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
-                <div class="col-1">Counted</div>
-                <div class="col-1">SAP</div>
-                <div class="col-1">Diff</div>
-                <div class="col-1">Acc %</div>
-                <div class="col-1"></div>
-                <div class="col-1"></div>
-                <div class="col-1"></div>
-            </div>
-            <div class="row g-0">
-                <div class="col-5">Part Type {{ ent.PartType }}</div>
-                <div class="col-1">{{ ent.CountTotal }}</div>
-                <div class="col-1">{{ ent.SAPTotal }}</div>
-                <div class="col-1">{{ ent.Diff }}</div>
-                <div class="col-1 
-                    {% if ent.Accuracy < AccuracyCutoff.DANGER  %} bg-danger
-                    {% elif ent.Accuracy > AccuracyCutoff.SUCCESS %} bg-success
-                    {% elif ent.Accuracy > AccuracyCutoff.WARNING %} bg-warning
+                {% elif ent.type == 'Summary' %}
+                    </div>  <!-- class CtSummDetail -->
+                    <div class="CtSummSummary">
+                    <div>
+                        <b>SAP</b> {{SAPDate}}:
+                        {% for s in ent.SAPNum %}{{ s }}{% endfor %}, 
+                        Typical Container Qty = {{ ent.TypicalContainerQty }}, 
+                        Typical Pallet Qty = {{ ent.TypicalPalletQty }}
+                    </div>
+                    <div class="row g-0">
+                        <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
+                        <div class="col-1">Counted</div>
+                        <div class="col-1">SAP</div>
+                        <div class="col-1">Diff</div>
+                        <div class="col-1">Acc %</div>
+                        <div class="col-1"></div>
+                        <div class="col-1"></div>
+                        <div class="col-1"></div>
+                    </div>
+                    <div class="row g-0">
+                        <div class="col-5">Part Type {{ ent.PartType }}</div>
+                        <div class="col-1">{{ ent.CountTotal }}</div>
+                        <div class="col-1">{{ ent.SAPTotal }}</div>
+                        <div class="col-1">{{ ent.Diff }}</div>
+                        <div class="col-1 
+                            {% if ent.Accuracy < AccuracyCutoff.DANGER  %} bg-danger
+                            {% elif ent.Accuracy > AccuracyCutoff.SUCCESS %} bg-success
+                            {% elif ent.Accuracy > AccuracyCutoff.WARNING %} bg-warning
+                            {% endif %}
+                        "><b>{{ ent.Accuracy|floatformat:2 }}%</b></div>
+                        <div class="col-1"></div>
+                        <div class="col-1"></div>
+                        {% if variation != 'REQ' %}
+                        <div class="col-1">
+                            <button type="button" class="btnSchCt d-print-none" value="{{ ent.Material_id }}"><small>Schedule Count</small></button>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="row g-0">
+                        Scheduled Counter: {{ ent.SchedCounter|default:'----' }}
+                        {% if ent.Requestor  %}
+                            | Requestor: {{ ent.Requestor }} | RequestFilled: {{ ent.RequestFilled|yesno|upper }}
+                        {% endif %}
+                    </div>
+                    {% if ent.ReasonScheduled %}
+                    <div class="row g-0 small">
+                        <div class="col"><b>Reason Scheduled: </b>{{ ent.ReasonScheduled }}</div>
+                    </div>
                     {% endif %}
-                "><b>{{ ent.Accuracy|floatformat:2 }}%</b></div>
-                <div class="col-1"></div>
-                <div class="col-1"></div>
-                {% if variation != 'REQ' %}
-                <div class="col-1">
-                    <button type="button" class="btnSchCt d-print-none" value="{{ ent.Material_id }}"><small>Schedule Count</small></button>
-                </div>
+                    {% if ent.SchedNotes %}
+                    <div class="row g-0 small">
+                        <div class="col"><b>Schedule Notes: </b>{{ ent.SchedNotes }}</div>
+                    </div>
+                    {% endif %}
+                    </div>  <!-- class CtSummSummary -->
+                    <hr>
+                    </div>     <!-- avoid page breaks for previous Material sheet -->
+                {% else %}
+                    Unknown lineout.type {{ ent.type }}<br>
                 {% endif %}
-            </div>
-            <div class="row g-0">
-                Scheduled Counter: {{ ent.SchedCounter|default:'----' }}
-                {% if ent.Requestor  %}
-                    | Requestor: {{ ent.Requestor }} | RequestFilled: {{ ent.RequestFilled|yesno|upper }}
-                {% endif %}
-            </div>
-            {% if ent.ReasonScheduled %}
-            <div class="row g-0 small">
-                <div class="col"><b>Reason Scheduled: </b>{{ ent.ReasonScheduled }}</div>
-            </div>
-            {% endif %}
-            {% if ent.SchedNotes %}
-            <div class="row g-0 small">
-                <div class="col"><b>Schedule Notes: </b>{{ ent.SchedNotes }}</div>
-            </div>
-            {% endif %}
-            {% if not forloop.last %}
-            <hr>
-            <div class="row g-0 calvin-smalltext">
-                <div class="col-1">Count Date</div>
-                <div class="col-1">Cyc Ct ID</div>
-                <div class="col-2">Material</div>
-                <div class="col-3">Counter</div>
-                <div class="col-2">LOCATION</div>
-                <div class="col-1">PKG ID / Desc</div>
-                <div class="col-1">TAG QTY</div>
-            </div>
-            {% endif %}
-            {% else %}
-                Unknown lineout.type {{ ent.type }}<br>
-            {% endif %}
         {% endfor %}
-        <hr>
     {% endfor %}
-</div>
-<hr style="height=60px;"></div>  <!-- to close open div for the last org -->
-
+</div>  <!-- final org container -->
+</div>  <!-- mainReport -->
+<!-- form footer -->
 <div class="container">
-    <!-- form footer -->
-    <hr>
-    <div class="container">
-        <div class="row mx-auto max-width=100%">
-            <div class="col-6"></div>
-            <div class="col-4">
-                <button id="download_btn" type="button" class="d-print-none btn btn-light btn-outline-secondary">
-                    <a href="{% static ExcelFileName %}" download>
-                        D/L sprdsht
-                    </a>
-                </button>
-                <button id="swap_detail_disp_btn" type="button" class="d-print-none" onclick="swap_detail_disp();">Hide Detail</button>
-                <button id="swap_prt_disp_btn" type="button" class="d-print-none" onclick="swap_prt_disp();">Print Version</button>
-            </div>
-            <div class="col-2">
-                <button id="close_btn" type="button">
-                    <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
-                    Close Form
-                </button>
-            </div>
+    <div class="row mx-auto max-width=100% d-print-none">
+        <div class="col-6"></div>
+        <div class="col-4">
+            <button id="download_btn" type="button" class="d-print-none btn btn-light btn-outline-secondary">
+                <a href="{% static ExcelFileName %}" download>
+                    D/L sprdsht
+                </a>
+            </button>
+            <button id="swap_detail_disp_btn" type="button" class="d-print-none" onclick="swap_detail_disp();">Hide Detail</button>
+            <button id="swap_prt_disp_btn" type="button" class="d-print-none" onclick="swap_prt_disp();">Print Version</button>
         </div>
-    </div>
-</div>
+        <div class="col-2">
+            <button id="close_btn" type="button">
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                Close Form
+            </button>
+        </div>
+    </div>  <!-- the (only) row in form footer container -->
+</div>  <!-- form footer container -->
 
 <script>
     var mainscroll = "height:350px; overflow:auto;"
