@@ -85,7 +85,8 @@
         <div class="card">
             <div class="card-header">
                 {{ materials.management_form }}
-                {% if materials.errors %} {{ materials.errors }} <br> {% endif %}
+                {% if materials.non_form_errors %} {{ materials.non_form_errors }} <br> {% endif %}
+                {% for err in materials.errors %} {% if err %} {{ err }} {% endif %} {% endfor %}
                 To change the Part Type of a Material or add new Materials, use the Material Form
                 <br>
                 <div class="container"><div class="row">
@@ -101,7 +102,7 @@
                 <li>
                 <div class="row">
                     {{ ff.id }}{{ff.id.value }}
-                    <div class="col-2">({{ ff.org.value }}) {{ ff.Material.value }}</div>
+                    <div class="col-2">({{ ff.instance.org.orgname }}) {{ ff.Material.value }} {% render_field ff.org hidden=True %}{% render_field ff.Material hidden=True %}</div>
                     <div class="col-3"> {% render_field ff.Price style="width:6em;" %}  {% render_field ff.PriceUnit style="width:6em;" %} </div>
                     <div class="col-3"> {% render_field ff.TypicalContainerQty style="width:6em;" %}  {% render_field ff.TypicalPalletQty style="width:6em;" %} </div>
                 </div>

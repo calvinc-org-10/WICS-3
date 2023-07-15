@@ -218,15 +218,11 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
     # endif
 
     # count summary subform
-    # much as I'd like to use the view, it slows the prod db to a crawl
-    # SAPTotals = VIEW_SAP.objects.filter(Material_id=currRec.pk).values('uploaded_at','Material','mult').annotate(SAPQty=Sum('Amount')).order_by('uploaded_at', 'Material')
     # add another 30 days to the SAP cutoff in case the earliest Count records don't have an SAP count from the same day
-    # SAPTotals = SAP_SOHRecs.objects.filter(MatlRec=currRec, uploaded_at__gte=HistoryCutoffDate.daysfrom(-30))\
     SAPTotals = SAP_SOHRecs.objects.filter(MatlRec=currRec)\
         .values('uploaded_at','Material')\
         .annotate(SAPQty=Sum('Amount')).annotate(mult=Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1]))\
         .order_by('uploaded_at', 'Material')
-    # raw_countdata = ActualCounts.objects.filter(Material=currRec, CountDate__gte=HistoryCutoffDate).order_by('Material__Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
     raw_countdata = ActualCounts.objects.filter(Material=currRec).order_by('Material__Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
     LastMaterial = None ; LastCountDate = None
     initdata = []
@@ -280,7 +276,6 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
             'scheduleset': schedSet,
             'countsummset': summarySet,
             'SAPSet': SAP_SOH,
-            #DIE: 'SAPHist':SAPHist,
             'changes_saved': changes_saved,
             'changed_data': chgd_dat,
             }
@@ -316,16 +311,6 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
                 'Currency': x['Currency'],
                 }
         
-        # LastFoundAtSQL  = "SELECT `VIEW_FoundAt`.`id`, `VIEW_FoundAt`.`Material_id`, `VIEW_FoundAt`.`Material`,"
-        # LastFoundAtSQL += " `VIEW_FoundAt`.`Material_org`, `VIEW_FoundAt`.`CountDate`, `VIEW_FoundAt`.`FoundAt`"
-        # LastFoundAtSQL += " FROM `VIEW_FoundAt`"
-        # LastFoundAtSQL += " WHERE `VIEW_FoundAt`.`CountDate` ="
-        # LastFoundAtSQL += "   (SELECT MAX(U0.`CountDate`) AS `LFADate`"
-        # LastFoundAtSQL += "   FROM `WICS_actualcounts` U0"
-        # LastFoundAtSQL += "   WHERE U0.`Material_id` = (`VIEW_FoundAt`.`Material_id`)"
-        # LastFoundAtSQL += "   GROUP BY U0.`Material_id`)"
-
-        # LastFoundAt_qs = VIEW_FoundAt.objects.raw(LastFoundAtSQL)
         LastFoundAt_qs = VIEW_LastFoundAt()
         for rec in LastFoundAt_qs:
             self.LastFoundAt_dict[rec.Material_id] = rec
@@ -444,7 +429,6 @@ MatlSubFm_fldlist = ['id','org','Material', 'Description', 'PartType', 'Price', 
 def fnPartTypesForm(req, recNum = -1, gotoRec=False):
     # get current record
     currRec = None
-    #if gotoRec and req.method == 'GET' and 'realGotoID' in req.GET:
     if gotoRec and req.method == 'GET' and recNum > 0:
         currRec = WhsePartTypes.objects.get(pk=recNum)
     if not currRec:
@@ -462,7 +446,6 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
         'main': {},
         'matl': {},
     }
-    #{'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg}
     prefixes = {
         'main': 'parttype',
         'matl': 'matl'
@@ -475,8 +458,7 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
 
     # we cannot use VIEW_materials because inlineformset_factory needs a real FK to PartTypes
     # but I want Material_org to present to the user, so...
-    # 2023-06-04 - not used right now, but keep for later
-    MaterialList_withOrg = MaterialList.objects.all()\
+    MaterialList_qs = MaterialList.objects.all().select_related('org')\
         .annotate(Material_org=
                   Case(
                     When(Exists(Subquery(MaterialList.objects.exclude(org=OuterRef('org')))),then=Concat(F('org__orgname'),Value(' '),F('Material'),output_field=models.CharField())),
@@ -484,46 +466,34 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
                     )
                 )\
         .order_by('Material_org')
-    # change MaterialList_qs to be MaterialList_withOrg once I get it to work
-    MaterialList_qs = MaterialList.objects.all().order_by('org_id','Material')
     
     if req.method == 'POST':
         # changed data is being submitted.  process and save it
-    # process PTypFm AND subforms.
+        # process PTypFm AND subforms.
 
         # process main form
-        #if currRec:
-        PtTypFm = PartTypesForm(req.POST, instance=currRec,  initial=initvals['main'],  prefix=prefixes['main'])
-        #else:
-        #    PtTypFm = MaterialForm(req.POST, initial={'gotoItem': thisPK, 'showPK': thisPK, 'org':_userorg},  prefix='material')
-        #endif
+        PtTypFm = PartTypesForm(req.POST, instance=currRec,  prefix=prefixes['main'])
 
         # Material subform
         MaterialSubFm_class = forms.inlineformset_factory(WhsePartTypes,MaterialList,
                     fields=MatlSubFm_fldlist,
                     extra=0,can_delete=False)
-        # MaterialSubFm_class.PartType.queryset=WhsePartTypes.objects.filter(org=_userorg).order_by('WhsePartType').all() - rendered manually
-        #if currRec:
         MaterialSubFm = MaterialSubFm_class(req.POST, instance=currRec, prefix=prefixes['matl'], initial=initvals['matl'], queryset=MaterialList_qs)
-        #else:
-        #    countSet = countSubFm_class(req.POST, prefix='countset', initial={'org': _userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
 
         if PtTypFm.is_valid() and MaterialSubFm.is_valid():
             if PtTypFm.has_changed():
                 PtTypFm.save()
                 chgd_dat['main'] = PtTypFm.changed_data
                 changes_saved['main'] = True
-                #raise Exception('main saved')
 
             if MaterialSubFm.has_changed():
                 MaterialSubFm.save()
                 chgd_dat['matl'] = MaterialSubFm.changed_objects
                 changes_saved['matl'] = True
-                #raise Exception('counts saved')
 
     else: # request.method == 'GET' or something else
         if currRec:
-            PtTypFm = PartTypesForm(instance=currRec, initial=initvals['main'], prefix=prefixes['main'])
+            PtTypFm = PartTypesForm(instance=currRec, prefix=prefixes['main'])
         else:
             PtTypFm = PartTypesForm(initial=initvals['main'], prefix=prefixes['main'])
 
@@ -531,12 +501,7 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
         MaterialSubFm_class = forms.inlineformset_factory(WhsePartTypes,MaterialList, 
                     fields=MatlSubFm_fldlist,
                     extra=0,can_delete=False)
-        # MaterialSubFm_class.PartType.queryset=WhsePartTypes.objects.filter(org=_userorg).order_by('WhsePartType').all() - rendered manually
-        #if currRec:
         MaterialSubFm = MaterialSubFm_class(instance=currRec, prefix=prefixes['matl'], initial=initvals['matl'], queryset=MaterialList_qs)
-        #else:
-        #    countSet = countSubFm_class(req.POST, prefix='countset', initial={'org': _userorg}, queryset=ActualCounts.objects.order_by('-CountDate'))
-
     # endif
 
     gotoForm = {}
