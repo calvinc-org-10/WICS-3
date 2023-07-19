@@ -1,3 +1,5 @@
+import asyncio
+import logging
 from datetime import datetime
 import zoneinfo
 from django import forms, db
@@ -5,18 +7,22 @@ from django.conf import settings as django_settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import QuerySet
 from django.forms import formset_factory, modelformset_factory, CharField
 from django.shortcuts import render
-from django.http.response import HttpResponseBase, HttpResponse, HttpResponseRedirect
-from django.urls import reverse, resolve
+from django.http import HttpRequest
+from django.http.response import HttpResponseBase, HttpResponse, HttpResponseRedirect,HttpResponseNotAllowed
+from django.urls import reverse
+from django.utils.decorators import classonlymethod
 from django.utils.text import slugify
-from django.views.generic import ListView
-from django.views.generic.edit import FormView
-from typing import Any
+from django.views.generic import View, ListView
+from django.views.generic.edit import ModelFormMixin
+from django.views.generic.list import MultipleObjectMixin
+from typing import Any, Dict
 from cMenu.utils import WrapInQuotes, Excelfile_fromqs, ExcelWorkbook_fileext
 from cMenu import menucommand_handlers
 from cMenu.menucommand_handlers import MENUCOMMAND
-from cMenu.models import menuCommands, menuItems, menuGroups, cParameters
+from cMenu.models import menuCommands, menuItems, menuGroups, cParameters, cGreetings
 from sysver import sysver
 from django_support.settings import sysver_key
 
@@ -79,7 +85,6 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
         fn = getattr(menucommand_handlers, CommandArg)
         retHTTP = fn(req)
     elif CommandNum == MENUCOMMAND.RunSQLStatement.value:
-        # retHTTP = reverse('RunSQL')
         return HttpResponseRedirect(reverse('RunSQL'))
     elif CommandNum == MENUCOMMAND.ConstructSQLStatement.value:
         pass
@@ -90,7 +95,7 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
     elif CommandNum == MENUCOMMAND.EditParameters.value :
         return HttpResponseRedirect(reverse('EditParms'))
     elif CommandNum == MENUCOMMAND.EditGreetings.value :
-        pass
+        return HttpResponseRedirect(reverse('Greetings'))
     elif CommandNum == MENUCOMMAND.ExitApplication.value :
         return HttpResponseRedirect(reverse('WICSlogout'))
     else:
@@ -546,3 +551,59 @@ def fncParmForm(req):
         }
     return render(req, templt, cntext)
 
+
+#####################################################################
+#####################################################################
+#####################################################################
+
+
+@login_required
+def fn_cGreetings(req):
+    mdlClass = cGreetings
+    mdlFields = ['id','Greeting']
+    context_object_name = 'GreetingsList'
+    template_name = 'cGreetings.html'
+    success_template_name = 'cGreetings.html'
+    formset_class = modelformset_factory(mdlClass, 
+                                         widgets={'Greeting': forms.Textarea(attrs={'cols':100,'rows':4})},
+                                         fields=mdlFields, 
+                                         can_delete=True)
+    formset = None
+    queryset = mdlClass.objects.all()
+
+    changes = {}
+
+    def process_get() -> HttpResponse:
+        # formset = formset_class(queryset=queryset)
+        formset = formset_class()
+        cntext = {
+            context_object_name: formset, 
+            'changes': changes, 
+            }
+        return render(req, template_name, cntext)
+
+    def process_post() -> HttpResponse:
+        # formset = formset_class(req.POST, queryset=queryset)
+        formset = formset_class(req.POST)
+        if formset.is_valid():
+            formset.save()
+            changes['changed'] = None
+            if formset.changed_objects: changes['changed'] = formset.changed_objects 
+            changes['deleted'] = None
+            if formset.deleted_objects: changes['deleted'] = formset.deleted_objects 
+            changes['added'] = None
+            if formset.new_objects: changes['added'] = formset.new_objects 
+        cntext = {
+            context_object_name: formset, 
+            'changes': changes, 
+            }
+        return render(req, success_template_name, cntext)
+        # return HttpResponse('Stop rushing me!!')
+
+   
+    if req.method == 'POST':
+        processedForm = process_post()
+    else:
+        processedForm = process_get()
+
+    return processedForm

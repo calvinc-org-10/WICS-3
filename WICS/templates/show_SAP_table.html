@@ -29,6 +29,24 @@
 </div>
 
 <hr>
+<div class="container">
+    <ul>
+        <li>
+        org &amp; Material | 
+        Description |
+        SAP StorageLocation | 
+        SAP Quantity (unrestricted) |
+        SAP ValueUnrestricted |
+        SpecialStock | 
+        Batch | 
+        Vendor
+        |&#x26AB|
+        SAP Blocked |
+        SAP ValueBlocked | 
+        </li>
+    </ul>
+</div>
+
 <!-- body -->
 <div class="container" style="height:350px; overflow-y:auto;">
     <ul>
@@ -39,10 +57,13 @@
         {{ SAProw.Description }} |
         {{ SAProw.StorageLocation }} | 
         {{ SAProw.Amount }}  {{ SAProw.BaseUnitofMeasure }} |
-        {{ SAProw.Currency }} {{ SAProw.ValueUnrestricted|floatformat:"2" }} | 
+        {{ SAProw.Currency }} {{ SAProw.ValueUnrestricted|floatformat:"2" }} |
         {{ SAProw.SpecialStock }} | 
         {{ SAProw.Batch }} | 
         {{ SAProw.Vendor }}
+        |&#x26AB|
+        {{ SAProw.Blocked }}  {{ SAProw.BaseUnitofMeasure }} |
+        {{ SAProw.Currency }} {{ SAProw.ValueBlocked|floatformat:"2" }} | 
     </li>
     {% endfor %}
     </ul>

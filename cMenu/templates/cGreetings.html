@@ -1,0 +1,144 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block tTitle %}Greetings{% endblock %}
+
+{% block boddy %}
+<div class="container text-center mx-auto"> <!-- status messages and such -->
+    <div class="row">
+        <div class="col-5 fs-3 text-end">
+            Login Greetings (Quotations)
+        </div>
+        <div class="col-5 text-start">
+            <img src={% static 'WICS-Logo.png' %} width="200" height="100">
+        </div>
+    <div class="col-2 text-end"> {{ user.get_full_name }} </div>
+    <div class="row">
+        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+        {% if changes.changed or changes.deleted or changes.added %}
+            Changed: {{ changes.changed }}
+            <br>
+            Deleted: {{ changes.deleted }}
+            <br>
+            Added: {{ changes.added }}
+        {% endif %}
+    </div><!-- row -->
+    {% if messages %}
+    <div class="row">
+    <ul class="messages">
+        {% for message in messages %}
+        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    </div>
+    {% endif %}
+
+</div>  <!-- status messages and such -->
+
+<!-- header row -->
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-2">
+            <button type="submit" form="mainGrtFrm">
+                <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                Save changes
+            </button>
+        </div>
+        <div class="col-6">
+        </div>
+        <div class="col-2">
+        </div>
+        <div class="col">
+            <button type="button" onclick="window.close();">
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                Close Form
+            </button>
+        </div>
+    </div>
+</div>
+<hr>
+
+<form method="post" id="mainGrtFrm">  <!-- action=?? - not needed - submit will submit to calling view -->
+<!-- form header -->
+{% csrf_token %}
+{{ GreetingsList.management_form }}
+{% if GreetingsList.non_form_errors %}
+<div class="row">
+    {{ GreetingsList.non_form_errors }}
+</div>
+{% endif %}
+<!-- form body -->
+{% for itm in GreetingsList %}
+    {{ itm.id }}  
+    {% if itm.errors %} {{ itm.errors }}<br> {% endif %}
+    <div class="row g-0">
+        <div class="col-10 text-start">
+            Greeting {{ itm.instance.id|default_if_none:"** NEW **" }}
+            <br>
+            {{ itm.Greeting }}
+        </div>
+        <div class="col-1">
+            {% if GreetingsList.can_delete %}
+                Delete?
+                <br>
+                {{ itm.DELETE }}
+            {% endif %}
+        </div>
+    </div>
+    <hr>
+{% endfor %}
+</form>
+<!-- form footer -->
+<div class="container">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-2">
+            <button type="submit" form="mainGrtFrm">
+                <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                Save changes
+            </button>
+        </div>
+        <div class="col-6">
+        </div>
+        <div class="col-2">
+        </div>
+        <div class="col">
+            <button type="button" onclick="window.close();">
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                Close Form
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Modal -->
+<!-- currently not used, but leave here in case needed later -->
+<div class="modal-sm fade" id="modalRemvCheck" role="dialog">
+    <div class="modal-dialog">
+        <!-- Modal content-->
+        <div class="modal-content">
+            <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal">&times;</button>
+            <h4 class="modal-title" id="modal_title"></h4>
+        </div>
+        <div class="modal-body" id="modal_question">
+        </div>
+        <div class="modal-footer">
+        <form>
+            <input type="hidden" name="RecNum"></input>
+            <fieldset>
+            <button type="button" class="btn btn-default" name="killRec" value="false" data-dismiss="modal">No</button>
+            <button type="button" class="btn"             name="killRec" value="true"  data-dismiss="modal">Yes, abandon changes</button>
+            <!-- Allow form submission with keyboard without duplicating the dialog button -->
+            <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+            </fieldset>
+        </form>
+        </div>
+    </div>
+</div>
+
+<script>
+</script>
+
+{% endblock %}

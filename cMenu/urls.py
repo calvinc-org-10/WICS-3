@@ -43,4 +43,7 @@ urlpatterns = [
             #views.cParmFormList.as_view(),   
             views.fncParmForm,
             name='EditParms'),
+    path('greetings', 
+            views.fn_cGreetings,
+            name='Greetings'),
 ]
