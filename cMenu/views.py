@@ -593,6 +593,10 @@ def fn_cGreetings(req):
             if formset.deleted_objects: changes['deleted'] = formset.deleted_objects 
             changes['added'] = None
             if formset.new_objects: changes['added'] = formset.new_objects 
+
+            # reset formset to reflect changes
+            formset = formset_class()
+
         cntext = {
             context_object_name: formset, 
             'changes': changes, 
