@@ -598,7 +598,6 @@ def fn_cGreetings(req):
             'changes': changes, 
             }
         return render(req, success_template_name, cntext)
-        # return HttpResponse('Stop rushing me!!')
 
    
     if req.method == 'POST':
