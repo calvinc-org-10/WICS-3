@@ -456,11 +456,17 @@ def fn_cRawSQL(req):
                 Excel_qdict = [{colNames[x]:cRec[x] for x in range(len(colNames))} for cRec in cursor]
                 ExcelFileNamePrefix = "SQLresults "
                 svdir = django_settings.STATIC_ROOT
+                if svdir is None:
+                    svdir = django_settings.STATICFILES_DIRS[0]
                 noww = datetime.now(zoneinfo.ZoneInfo('US/Central'))
                 fName_base = '/tmpdl/'+ExcelFileNamePrefix + f'{noww:%Y-%m-%d (%H-%M-%S)}'
-                fName = svdir + fName_base
-                cntext['SavedAt'] = Excelfile_fromqs(Excel_qdict, fName)
-                cntext['ExcelFileName'] = fName_base + ExcelWorkbook_fileext
+                if svdir is not None and fName_base is not None:
+                    fName = svdir + fName_base
+                    cntext['SavedAt'] = Excelfile_fromqs(Excel_qdict, fName)
+                    cntext['ExcelFileName'] = fName_base + ExcelWorkbook_fileext
+                else:
+                    cntext['SavedAt'] = None
+                    cntext['ExcelFileName'] = None
             else:
                 cntext['colNames'] = 'NO RECORDS RETURNED; ' + str(cursor.rowcount) + ' records affected'
                 cntext['nRecs'] = cursor.rowcount

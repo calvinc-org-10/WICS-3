@@ -123,7 +123,7 @@ def fnUploadSAP(req):
                         SRec = SAP_SOHRecs(
                                 org = _org,     # will be going away
                                 uploaded_at = UplDate,
-                                MatlRec = MatlRec   #ISSUE131
+                                Material = MatlRec
                                 )
                         for fldName, colNum in SAPcolmnMap.items():
                             if fldName == _TblName_Material:
@@ -178,27 +178,24 @@ def fnSAPList(for_date = calvindate().today(), matl = None):
         LatestSAPDate = SAP_SOHRecs.objects.filter(uploaded_at__lte=dateObj).latest().uploaded_at
     else:
         LatestSAPDate = SAP_SOHRecs.objects.earliest().uploaded_at
-    # SAPLatest = VIEW_SAP.objects.filter(uploaded_at=LatestSAPDate).order_by('org_id', 'Material', 'StorageLocation')
-    #ISSUE131
     SAPLatest = SAP_SOHRecs.objects\
         .filter(uploaded_at=LatestSAPDate)\
         .annotate(mult=Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1]))\
-        .order_by('MatlRec__org', 'MatlRec__Material', 'StorageLocation')
+        .order_by('Material__org', 'Material__Material', 'StorageLocation')
 
     SList = {'reqDate': for_date, 'SAPDate': LatestSAPDate, 'SAPTable':[]}
 
     if not matl:
         STable = SAPLatest
     else:
-        #ISSUE131
         if isinstance(matl,str):
             raise Exception('fnSAPList by Matl string is deprecated')
         elif isinstance(matl,MaterialList):  # handle case matl is a MaterialList instance here
-            STable = SAPLatest.filter(MatlRec=matl)
+            STable = SAPLatest.filter(Material=matl)
         elif isinstance(matl,int):  # handle case matl is a MaterialList id here
-            STable = SAPLatest.filter(MatlRec_id=matl)
+            STable = SAPLatest.filter(Material_id=matl)
         else:   # it better be an iterable!
-            STable = SAPLatest.filter(MatlRec__in=matl)
+            STable = SAPLatest.filter(Material__in=matl)
 
     # yea, building SList is sorta wasteful, but a lot of existing code depends on it
     # won't be changing it until a total revamp of WICS

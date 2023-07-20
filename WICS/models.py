@@ -302,7 +302,7 @@ class SAP_SOHRecs(models.Model):
     uploaded_at = models.DateField()
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
     MaterialPartNum = models.CharField(max_length=100)
-    MatlRec = models.ForeignKey(MaterialList,on_delete=models.SET_NULL,null=True)   #ISSUE131
+    Material = models.ForeignKey(MaterialList,on_delete=models.SET_NULL,null=True)
     Description = models.CharField(max_length=250, blank=True)
     Plant = models.CharField(max_length=20, blank=True)
     MaterialType = models.CharField(max_length=50, blank=True)
@@ -337,16 +337,15 @@ class UnitsOfMeasure(models.Model):
 
 def VIEW_SAP():
     return SAP_SOHRecs.objects.all()\
-        .annotate(    #ISSUE131
-            Material_id=F('MatlRec_id'),
+        .annotate(
             Material_org=Case(
-                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material')).exclude(org=OuterRef('org'))), 
-                    then=Concat(F('Material'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
+                When(Exists(MaterialList.objects.filter(Material=OuterRef('MaterialPartNum')).exclude(org=OuterRef('org'))), 
+                    then=Concat(F('MaterialPartNum'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
                     ),
-                default=F('Material')
+                default=F('MaterialPartNum')
                 ),
-            Description = F('MatlRec__Description'),
-            Notes = F('MatlRec__Notes'),
+            Description = F('Material__Description'),
+            Notes = F('Material__Notes'),
             mult = Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1])
             )
             # do I need to annotate OrgName?

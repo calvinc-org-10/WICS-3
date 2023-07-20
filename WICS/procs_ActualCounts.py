@@ -346,7 +346,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
             outputline = dict()
             outputline['type'] = 'Summary'
             outputline['SAPNum'] = []
-            for SAProw in SAP_SOH['SAPTable'].filter(MatlRec_id=lastrow['Material_id']):     #ISSUE131
+            for SAProw in SAP_SOH['SAPTable'].filter(Material_id=lastrow['Material_id']):
                 outputline['SAPNum'].append((SAProw.StorageLocation, SAProw.Amount, SAProw.BaseUnitofMeasure))
                 SAPTot += SAProw.Amount*SAProw.mult
             outputline['TypicalContainerQty'] = lastrow['TypicalContainerQty']

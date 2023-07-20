@@ -57,7 +57,7 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
         qs = super().get_queryset()
         for rec in qs:
             #pass in Material record
-            rec.SAPList = self.SAPTable.filter(MatlRec_id=rec.id)   #ISSUE131
+            rec.SAPList = self.SAPTable.filter(Material=rec)
             # filter Material in SAP_SOH for date OR last count date within 30d
             testdate = rec.LFADate
             if testdate == None: testdate = calvindate(MINYEAR, 1, 1)
@@ -219,8 +219,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
 
     # count summary subform
     # add another 30 days to the SAP cutoff in case the earliest Count records don't have an SAP count from the same day
-    #ISSUE131
-    SAPTotals = SAP_SOHRecs.objects.filter(MatlRec=currRec)\
+    SAPTotals = SAP_SOHRecs.objects.filter(Material=currRec)\
         .values('uploaded_at','MaterialPartNum')\
         .annotate(SAPQty=Sum('Amount')).annotate(mult=Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1]))\
         .order_by('uploaded_at', 'MaterialPartNum')
@@ -314,7 +313,7 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
         
         LastFoundAt_qs = VIEW_LastFoundAt()
         for rec in LastFoundAt_qs:
-            self.LastFoundAt_dict[rec.Material_id] = rec
+            self.LastFoundAt_dict[rec['Material']] = rec
 
         return super().setup(req, *args, **kwargs)
 
@@ -324,8 +323,8 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
         for rec in qs:
             if rec.id in self.LastFoundAt_dict:
                 L = self.LastFoundAt_dict[rec.id]
-                rec.LFADate = L.CountDate
-                rec.LFALocation = L.FoundAt
+                rec.LFADate = L['CountDate']
+                rec.LFALocation = L['FoundAt']
             else:
                 rec.LFADate = datetime.date(MINYEAR,1,1)
             # rec.LFALocation = L['lastFoundAt']

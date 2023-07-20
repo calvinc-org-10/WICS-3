@@ -40,7 +40,7 @@
         SpecialStock | 
         Batch | 
         Vendor
-        |&#x26AB|
+        |&#x26AB|  <!-- big round separator ball -->
         SAP Blocked |
         SAP ValueBlocked | 
         </li>
@@ -52,9 +52,8 @@
     <ul>
     {% for SAProw in SAPSet %}
     <li>
-        #ISSUE131
-        {{ SAProw.MatlRec.org }}
-        {{ SAProw.MatlRec }} | 
+        {{ SAProw.Material.org }}
+        {{ SAProw.Material }} | 
         {{ SAProw.Description }} |
         {{ SAProw.StorageLocation }} | 
         {{ SAProw.Amount }}  {{ SAProw.BaseUnitofMeasure }} |
@@ -62,7 +61,7 @@
         {{ SAProw.SpecialStock }} | 
         {{ SAProw.Batch }} | 
         {{ SAProw.Vendor }}
-        |&#x26AB|
+        |&#x26AB|   <!-- big round separator ball -->
         {{ SAProw.Blocked }}  {{ SAProw.BaseUnitofMeasure }} |
         {{ SAProw.Currency }} {{ SAProw.ValueBlocked|floatformat:"2" }} | 
     </li>
