@@ -65,6 +65,7 @@
         {{ SAProw.Blocked }}  {{ SAProw.BaseUnitofMeasure }} |
         {{ SAProw.Currency }} {{ SAProw.ValueBlocked|floatformat:"2" }} | 
     </li>
+    {% if forloop.counter|divisibleby:5 %}<hr>{% endif %}
     {% endfor %}
     </ul>
 </div>

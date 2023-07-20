@@ -77,8 +77,9 @@ button:focus {
         <!-- div class="container-fluid m-1" -->
         <div class="container m-1">
             <div class="row g-0">
-            <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" class="border border-5 border-danger fw-bold" tabindex="-1" style="width:8em;" onchange="loadExtraInfo();" required=True %}</div>
-            <div class="col-2">CycCt ID: {% render_field frmMain.CycCtID tabindex="-1" size="8" %}</div>
+            <div class="col-3">Count Dt: {% render_field frmMain.CountDate type="date" class="border border-5 border-danger fw-bold" tabindex="-1" style="width:10em;" onchange="loadExtraInfo();" required=True %}</div>
+            {# <div class="col-2">CycCt ID: {% render_field frmMain.CycCtID tabindex="-1" size="8" %}</div> #}
+            <div class="col-1">{% render_field frmMain.CycCtID hidden=True %}</div>
             <div class="col-4">Material:
                 {# {% render_field frmMain.Material onchange="loadExtraInfo()" %}</div> #}
                 <input list="Material-list"
