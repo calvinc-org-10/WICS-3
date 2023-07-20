@@ -10,7 +10,7 @@ from cMenu.utils import calvindate, dictfetchall, ExcelWorkbook_fileext
 from userprofiles.models import WICSuser
 import WICS.globals
 from WICS.models import ActualCounts, CountSchedule
-from WICS.models import VIEW_SAP, SAP_SOHRecs, SAPPlants_org, UnitsOfMeasure
+from WICS.models import SAP_SOHRecs, SAPPlants_org, UnitsOfMeasure  #, VIEW_SAP
 from WICS.models import WhsePartTypes, MaterialList, tmpMaterialListUpdate
 
 
@@ -66,12 +66,16 @@ def fnUploadSAP(req):
             wb = load_workbook(filename=fName, read_only=True)
             ws = wb.active
 
+            _SStName_Material = 'Material'
+            _TblName_Material = 'MaterialPartNum'
+            _SStName_Plant = 'Plant'
+            _TblName_Plant = 'Plant'
             SAPcolmnNames = ws[1]
-            SAPcolmnMap = {'Material': None, 'Plant': None}
+            SAPcolmnMap = {_TblName_Material: None, _TblName_Plant: None}
             SAP_SSName_TableName_map = {
-                    'Material': 'Material',  # Material+org will translate to a Material_id
+                    _SStName_Material: _TblName_Material,  # Material+org will translate to a Material_id
+                    _SStName_Plant: _TblName_Plant,
                     'Material description': 'Description', 
-                    'Plant': 'Plant',
                     'Material type': 'MaterialType',
                     'Storage location': 'StorageLocation',
                     'Base Unit of Measure': 'BaseUnitofMeasure',
@@ -86,9 +90,16 @@ def fnUploadSAP(req):
                     }
             for col in SAPcolmnNames:
                 if col.value in SAP_SSName_TableName_map:
-                    SAPcolmnMap[SAP_SSName_TableName_map[col.value]] = col.column - 1
-            if (SAPcolmnMap['Material'] is None) or (SAPcolmnMap['Plant'] is None):   # or SAPcol['StorageLocation'] == None or SAPcol['Amount'] == None):
-                raise Exception('SAP Spreadsheet has bad header row.  See Calvin to fix this.')
+                    colkey = SAP_SSName_TableName_map[col.value]
+                    # has this col.value already been mapped?
+                    if (colkey in SAPcolmnMap and SAPcolmnMap[colkey] is not None):
+                        # yes, that's a problem
+                        raise Exception(f'SAP Spreadsheet has bad header row - More than one column named {col.value}.  See Calvin to fix this.')
+                    else:
+                        SAPcolmnMap[colkey] = col.column - 1
+                    # endif previously mapped
+            if (SAPcolmnMap[_TblName_Material] is None) or (SAPcolmnMap[_TblName_Plant] is None):   # or SAPcol['StorageLocation'] == None or SAPcol['Amount'] == None):
+                raise Exception(f'SAP Spreadsheet has bad header row - no {_SStName_Material} column or no {_SStName_Plant} column.  See Calvin to fix this.')
 
             # if SAP SOH records exist for this date, kill them; only one set of SAP SOH records per day
             # (this was signed off on by user before coming here)
@@ -98,10 +109,10 @@ def fnUploadSAP(req):
             SprshtRowNum = 1
             for row in ws.iter_rows(min_row=SprshtRowNum+1, values_only=True):
                 SprshtRowNum += 1
-                if row[SAPcolmnMap['Material']]==None: MatlNum = ''
-                else: MatlNum = row[SAPcolmnMap['Material']]
+                if row[SAPcolmnMap[_TblName_Material]]==None: MatlNum = ''
+                else: MatlNum = row[SAPcolmnMap[_TblName_Material]]
                 if len(str(MatlNum)):
-                    _org = SAPPlants_org.objects.filter(SAPPlant=row[SAPcolmnMap['Plant']])[0].org
+                    _org = SAPPlants_org.objects.filter(SAPPlant=row[SAPcolmnMap[_TblName_Plant]])[0].org
                     try:
                         MatlRec = MaterialList.objects.get(org=_org,Material=MatlNum)
                     except:
@@ -112,11 +123,11 @@ def fnUploadSAP(req):
                         SRec = SAP_SOHRecs(
                                 org = _org,     # will be going away
                                 uploaded_at = UplDate,
-                                MatlRec = MatlRec
+                                MatlRec = MatlRec   #ISSUE131
                                 )
                         for fldName, colNum in SAPcolmnMap.items():
-                            if fldName == 'Material':
-                                pass    # will become continue
+                            if fldName == _TblName_Material:
+                                pass    # not continue - we are preserving the incoming MaterialPartNum string
                             if row[colNum]==None: setval = ''
                             else: setval = row[colNum]
                             setattr(SRec, fldName, setval)
@@ -168,6 +179,7 @@ def fnSAPList(for_date = calvindate().today(), matl = None):
     else:
         LatestSAPDate = SAP_SOHRecs.objects.earliest().uploaded_at
     # SAPLatest = VIEW_SAP.objects.filter(uploaded_at=LatestSAPDate).order_by('org_id', 'Material', 'StorageLocation')
+    #ISSUE131
     SAPLatest = SAP_SOHRecs.objects\
         .filter(uploaded_at=LatestSAPDate)\
         .annotate(mult=Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1]))\
@@ -178,6 +190,7 @@ def fnSAPList(for_date = calvindate().today(), matl = None):
     if not matl:
         STable = SAPLatest
     else:
+        #ISSUE131
         if isinstance(matl,str):
             raise Exception('fnSAPList by Matl string is deprecated')
         elif isinstance(matl,MaterialList):  # handle case matl is a MaterialList instance here

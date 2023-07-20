@@ -301,8 +301,8 @@ def VIEW_LastFoundAtList(matl=None):
 class SAP_SOHRecs(models.Model):
     uploaded_at = models.DateField()
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
-    Material = models.CharField(max_length=100)
-    MatlRec = models.ForeignKey(MaterialList,on_delete=models.SET_NULL,null=True)
+    MaterialPartNum = models.CharField(max_length=100)
+    MatlRec = models.ForeignKey(MaterialList,on_delete=models.SET_NULL,null=True)   #ISSUE131
     Description = models.CharField(max_length=250, blank=True)
     Plant = models.CharField(max_length=20, blank=True)
     MaterialType = models.CharField(max_length=50, blank=True)
@@ -319,9 +319,9 @@ class SAP_SOHRecs(models.Model):
 
     class Meta:
         get_latest_by = 'uploaded_at'
-        ordering = ['uploaded_at', 'org', 'Material']
+        ordering = ['uploaded_at', 'org', 'MaterialPartNum']
         indexes = [
-            models.Index(fields=['uploaded_at', 'org', 'Material']),
+            models.Index(fields=['uploaded_at', 'org', 'MaterialPartNum']),
             models.Index(fields=['Plant']),
         ]
 
@@ -337,7 +337,7 @@ class UnitsOfMeasure(models.Model):
 
 def VIEW_SAP():
     return SAP_SOHRecs.objects.all()\
-        .annotate(
+        .annotate(    #ISSUE131
             Material_id=F('MatlRec_id'),
             Material_org=Case(
                 When(Exists(MaterialList.objects.filter(Material=OuterRef('Material')).exclude(org=OuterRef('org'))), 

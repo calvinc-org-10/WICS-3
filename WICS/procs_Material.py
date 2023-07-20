@@ -22,7 +22,7 @@ from WICS.globals import _defaultOrg
 from WICS.forms import MaterialForm, MaterialCountSummary, PartTypesForm
 from WICS.models import MaterialList, VIEW_materials, WhsePartTypes
 from WICS.models import CountSchedule, ActualCounts, VIEW_LastFoundAt, LastFoundAt, FoundAt
-from WICS.models import VIEW_SAP, SAP_SOHRecs, UnitsOfMeasure
+from WICS.models import SAP_SOHRecs, UnitsOfMeasure #, VIEW_SAP
 from WICS.procs_SAP import fnSAPList
 from typing import Any, Dict
 
@@ -57,7 +57,7 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
         qs = super().get_queryset()
         for rec in qs:
             #pass in Material record
-            rec.SAPList = self.SAPTable.filter(MatlRec_id=rec.id)
+            rec.SAPList = self.SAPTable.filter(MatlRec_id=rec.id)   #ISSUE131
             # filter Material in SAP_SOH for date OR last count date within 30d
             testdate = rec.LFADate
             if testdate == None: testdate = calvindate(MINYEAR, 1, 1)
@@ -219,10 +219,11 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
 
     # count summary subform
     # add another 30 days to the SAP cutoff in case the earliest Count records don't have an SAP count from the same day
+    #ISSUE131
     SAPTotals = SAP_SOHRecs.objects.filter(MatlRec=currRec)\
-        .values('uploaded_at','Material')\
+        .values('uploaded_at','MaterialPartNum')\
         .annotate(SAPQty=Sum('Amount')).annotate(mult=Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1]))\
-        .order_by('uploaded_at', 'Material')
+        .order_by('uploaded_at', 'MaterialPartNum')
     raw_countdata = ActualCounts.objects.filter(Material=currRec).order_by('Material__Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
     LastMaterial = None ; LastCountDate = None
     initdata = []
