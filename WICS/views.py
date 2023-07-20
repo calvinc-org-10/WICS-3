@@ -12,12 +12,16 @@ from WICS.procs_CountSchedule import fnCountScheduleRecordExists
 
 @login_required
 def fnCountEntryView(req, 
-            recNum = 0, MatlNum = 0, reqDate = calvindate().today(),
+            recNum = None, MatlNum = None, reqDate = None,
             gotoCommand = None
             ):
 
+    # defauls parms
+    if recNum is None: recNum = 0
+    if reqDate is None: reqDate = calvindate().today()
+
     # the string 'None' is not the same as the value None
-    if MatlNum=='None': MatlNum=0
+    if MatlNum=='None' or MatlNum is None: MatlNum=0
     if gotoCommand=='None': gotoCommand=None
 
     FormMain = CountEntryForm
@@ -229,13 +233,17 @@ def fnCountEntryView(req,
 ############################################################################
 
 def _fnCountSchedRecViewCommon(req, variation,
-            recNum = 0, MatlNum = 0, reqDate = calvindate().today(),
+            recNum = 0, MatlNum = 0, reqDate = None,
             gotoCommand = None, **kwargs
             ):
     requser = WICSuser.objects.get(user=req.user)
 
+    # defauls parms
+    if recNum is None: recNum = 0
+    if reqDate is None: reqDate = calvindate().today()
+
     # the string 'None' is not the same as the value None
-    if MatlNum=='None': MatlNum=0
+    if MatlNum=='None' or MatlNum is None: MatlNum=0
     if gotoCommand=='None': gotoCommand=None
 
     if variation=='REQ':
@@ -432,7 +440,7 @@ def _fnCountSchedRecViewCommon(req, variation,
 
 @login_required
 def fnRequestCountScheduleRecView(req, 
-            recNum = 0, MatlNum = 0, reqDate = calvindate().today(),
+            recNum = 0, MatlNum = 0, reqDate = None,
             gotoCommand = None
             ):
     return _fnCountSchedRecViewCommon(req, 'REQ',
@@ -442,7 +450,7 @@ def fnRequestCountScheduleRecView(req,
 
 @login_required
 def fnCountScheduleRecView(req, 
-            recNum = 0, MatlNum = 0, reqDate = calvindate().today(),
+            recNum = 0, MatlNum = 0, reqDate = None,
             gotoCommand = None
             ):
 
