@@ -300,11 +300,11 @@ def fnUpdateMatlListfromSAP(req):
             UnknownTypeID = WhsePartTypes.objects.get(WhsePartType=WICS.globals._PartTypeName_UNKNOWN)
             # first pass, for presentation in results - orgname rather than org
             AddMatlsSelectSQL = "SELECT"
-            AddMatlsSelectSQL += " (SELECT orgname FROM WICS_organizations WHERE id=org_id) AS orgname, Material,"
-            AddMatlsSelectSQL += " Description, Plant, " + str(UnknownTypeID.pk) + " AS PartType_id,"
+            AddMatlsSelectSQL += " org_id, (SELECT orgname FROM WICS_organizations WHERE id=org_id) AS orgname,"
+            AddMatlsSelectSQL += " Material, Description,"
+            AddMatlsSelectSQL += " Plant, " + str(UnknownTypeID.pk) + " AS PartType_id,"
             AddMatlsSelectSQL += " SAPMaterialType, SAPMaterialGroup, Price, PriceUnit, Currency,"
-            AddMatlsSelectSQL += " '' AS TypicalContainerQty, '' AS TypicalPalletQty, '' AS Notes,"
-            AddMatlsSelectSQL += " 0 AS new_MaterialLink_id"
+            AddMatlsSelectSQL += " '' AS TypicalContainerQty, '' AS TypicalPalletQty, '' AS Notes"
             AddMatlsSelectSQL += " FROM WICS_tmpmateriallistupdate WHERE MaterialLink_id IS NULL"
             with connection.cursor() as cursor:
                 cursor.execute(AddMatlsSelectSQL)
@@ -327,6 +327,14 @@ def fnUpdateMatlListfromSAP(req):
                 cursor.execute(AddMatlsDoitSQL)
 
             #TODO: (issue #53) update AddedMatlsList field new_MaterialLink_id with the new MaterialLink_id
+            NewMatl_idListSQL = "SELECT id, org_id, Material"
+            NewMatl_idListSQL += " FROM WICS_materiallist"
+            NewMatl_idListSQL += f" WHERE (org_id, Material) IN {tuple(((x['org_id'], x['Material']) for x in AddedMatlsList))}"
+            with connection.cursor() as cursor:
+                cursor.execute(NewMatl_idListSQL)
+                NewMatl_idDict = {(x['org_id'], x['Material']): x['id'] for x in dictfetchall(cursor)}
+            for newRec in AddedMatlsList:
+                newRec['id'] = NewMatl_idDict[(newRec['org_id'], newRec['Material'])]
 
             # delete the temporary table and the temporary file
             tmpMaterialListUpdate.objects.all().delete()
