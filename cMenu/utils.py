@@ -141,7 +141,7 @@ def isDate(testdate):
 
 def dictfetchall(cursor):
     """
-    Return all rows from a cursor as a dict.
+    Return all rows from a cursor as a list of dictionaries.
     Assume the column names are unique.
     """
     columns = [col[0] for col in cursor.description]

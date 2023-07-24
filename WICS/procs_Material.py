@@ -42,7 +42,7 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
         sqlLFA = "SELECT MATL.id, MATL.OrgName, MATL.Material, MATL.Description, MATL.PartType_id, LFA.CountDate AS LFADate, LFA.FoundAt AS LFALocation,"
         sqlLFA += " MATL.Notes, 0 AS SAPList, FALSE AS DoNotShow"
         sqlLFA += " FROM VIEW_LastFoundAt LFA JOIN VIEW_materials MATL ON LFA.Material_id = MATL.id"
-        sqlLFA += " ORDER BY MATL.org_id, MATL.Material"        
+        sqlLFA += " ORDER BY MATL.org_id, MATL.Material"
         qs = MaterialList.objects.raw(sqlLFA)
 
         # it's more efficient to pull this all now and store it for the upcoming qs request
@@ -86,7 +86,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
 
     FormFieldsSubs = [
         # 0 = ActualCounts Subform
-        ['id', 'CountDate', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'LOCATION', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',],    
+        ['id', 'CountDate', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'LOCATION', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',],
         # 1 = CountSchedule SubForm
         ['id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'Notes',],
     ]
@@ -145,11 +145,11 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
     gotoForm = {}
     gotoForm['choicelist'] = \
     MaterialList.objects.all().annotate(Material_org=Case(
-        When(Exists(MaterialList.objects.filter(Material=OuterRef('Material')).exclude(org=OuterRef('org'))), 
+        When(Exists(MaterialList.objects.filter(Material=OuterRef('Material')).exclude(org=OuterRef('org'))),
              then=Concat(F('Material'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
              ),
         default=F('Material')
-        )   
+        )
         ).values('id','Material_org')
     gotoForm['gotoItem'] = currRec
 
@@ -310,10 +310,10 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
                 'Value': x['TotalValue'],
                 'Currency': x['Currency'],
                 }
-        
+
         LastFoundAt_qs = VIEW_LastFoundAt()
         for rec in LastFoundAt_qs:
-            self.LastFoundAt_dict[rec['Material']] = rec
+            self.LastFoundAt_dict[rec['Material_id']] = rec
 
         return super().setup(req, *args, **kwargs)
 
@@ -458,6 +458,7 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
 
     # we cannot use VIEW_materials because inlineformset_factory needs a real FK to PartTypes
     # but I want Material_org to present to the user, so...
+    #TODO: use the tools I've already built for other forms
     MaterialList_qs = MaterialList.objects.all().select_related('org')\
         .annotate(Material_org=
                   Case(
@@ -466,7 +467,7 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
                     )
                 )\
         .order_by('Material_org')
-    
+
     if req.method == 'POST':
         # changed data is being submitted.  process and save it
         # process PTypFm AND subforms.
@@ -498,7 +499,7 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
             PtTypFm = PartTypesForm(initial=initvals['main'], prefix=prefixes['main'])
 
         # Material subform
-        MaterialSubFm_class = forms.inlineformset_factory(WhsePartTypes,MaterialList, 
+        MaterialSubFm_class = forms.inlineformset_factory(WhsePartTypes,MaterialList,
                     fields=MatlSubFm_fldlist,
                     extra=0,can_delete=False)
         MaterialSubFm = MaterialSubFm_class(instance=currRec, prefix=prefixes['matl'], initial=initvals['matl'], queryset=MaterialList_qs)

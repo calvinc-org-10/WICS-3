@@ -1,9 +1,9 @@
 from typing import Any
-from django.db import models, transaction
+from django.db import connection, models
 from django.db.models import F, Exists, OuterRef, Value, Case, When, Subquery, Max
 from django.db.models.functions import Concat
-from userprofiles.models import WICSuser        
-from cMenu.utils import GroupConcat
+from userprofiles.models import WICSuser
+from cMenu.utils import GroupConcat, dictfetchall
 
 
 # I'm quite happy with automaintained pk fields, so I don't specify any
@@ -47,12 +47,12 @@ class WhsePartTypes(models.Model):
 
 def fnMaterial_org_constr(fld_matlName, fld_org, fld_orgname):
     return Case(
-        When(Exists(MaterialList.objects.filter(Material=OuterRef(fld_matlName)).exclude(org=OuterRef(fld_org))), 
+        When(Exists(MaterialList.objects.filter(Material=OuterRef(fld_matlName)).exclude(org=OuterRef(fld_org))),
             then=Concat(F(fld_matlName), Value(' ('), F(fld_orgname), Value(')'), output_field=models.CharField())
             ),
         default=F(fld_matlName)
         )
-    
+
 ###########################################################
 ###########################################################
 
@@ -107,23 +107,23 @@ def fnMaterial_id(org_id:int,Material:str) -> str | None:
 def VIEW_materials():
     return MaterialList.objects.all()\
         .annotate(
-            PrtType=F('PartType__WhsePartType'), 
+            PrtType=F('PartType__WhsePartType'),
             OrgName=F('org__orgname'),
             Material_org=Case(
-                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material')).exclude(org=OuterRef('org'))), 
+                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material')).exclude(org=OuterRef('org'))),
                     then=Concat(F('Material'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
                     ),
                 default=F('Material')
-                )   
+                )
             )
-    
+
 ###########################################################
 ###########################################################
 
 class CountSchedule(models.Model):
     CountDate = models.DateField(null=False)
     Material = models.ForeignKey(MaterialList, on_delete=models.RESTRICT)
-    Requestor = models.CharField(max_length=100, null=True, blank=True)     
+    Requestor = models.CharField(max_length=100, null=True, blank=True)
       # the requestor can type whatever they want here, but WICS will record the userid behind-the-scenes
     Requestor_userid = models.ForeignKey(WICSuser, on_delete=models.SET_NULL, null=True)
     RequestFilled = models.BooleanField(null=True, default=0)
@@ -150,20 +150,16 @@ def VIEW_countschedule():
     qs = CountSchedule.objects.all()
     qs = qs.annotate(
             Material_org = Case(
-                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))), 
+                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))),
                     then=Concat(F('Material__Material'), Value(' ('), F('Material__org__orgname'), Value(')'), output_field=models.CharField())
                     ),
                 default=F('Material__Material')
                 )
             )
-    qs = qs.annotate(Description = F('Material__Description'))
-    qs = qs.annotate(MaterialNotes = F('Material__Notes'))
-    qs = qs.annotate(ScheduleNotes = F('Notes'))
-#                Material_org=Case(
-#                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material')).exclude(org=OuterRef('org'))), 
-#                    then=Concat(F('Material'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
-#                    ),
-
+    qs = qs.annotate(Description = F('Material__Description'),
+                    MaterialNotes = F('Material__Notes'),
+                    ScheduleNotes = F('Notes')
+            )
 
     return qs
 
@@ -201,7 +197,7 @@ def VIEW_actualcounts():
     qs = ActualCounts.objects.all()
     qs = qs.annotate(
             Material_org=Case(
-                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))), 
+                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))),
                     then=Concat(F('Material__Material'), Value(' ('), F('Material__org__orgname'), Value(')'), output_field=models.CharField())
                     ),
                 default=F('Material__Material')
@@ -213,50 +209,47 @@ def VIEW_actualcounts():
 
     return qs
 
-@transaction.atomic
 def FoundAt(matl = None):
-    ActualCounts.objects.raw("SET SESSION group_concat_max_len = 4096;")
+    # Django's generated SQL takes longer than I'd like.  I can do better, so...
 
     if matl is None:
-        FA_qs = ActualCounts.objects.all()
+        Totalqs = VIEW_actualcounts().all()
     else:
-        FA_qs = ActualCounts.objects.filter(Material=matl)
+        Totalqs = VIEW_actualcounts().filter(Material=matl)
 
-    FA_qs = FA_qs\
-            .values('Material','CountDate')\
-            .annotate(FoundAt = GroupConcat('LOCATION',distinct=True,ordering='LOCATION ASC'))\
-            .order_by('-CountDate')
-    FA_qs = FA_qs.annotate(Material_org=Case(
-                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))), 
-                    then=Concat(F('Material__Material'), Value(' ('), F('Material__org__orgname'), Value(')'), output_field=models.CharField())
-                    ),
-                default=F('Material__Material')
-                )
-            )
-
+    FA_qs = Totalqs.values('Material', 'Material_org', 'CountDate').annotate(FoundAt=GroupConcat('LOCATION',distinct=True, ordering='LOCATION'))
     return FA_qs
 
+
 def VIEW_LastFoundAt(matl = None):
-    # return ActualCounts.objects.none()
-
+    """NOTE:  This returns a list of dictionaries, **NOT** a QuerySet!!! """
     if matl is None:
-        MaxDates = ActualCounts.objects.all().values('Material').annotate(MaxCtDt=Max('CountDate'))
+        RecordRestrict_sql = ''
     else:
-        MaxDates = ActualCounts.objects.filter(Material=matl).values('Material').annotate(MaxCtDt=Max('CountDate'))
+        RecordRestrict_sql = f'ACT.Material_id = {matl.pk}'
 
-    q = FoundAt(matl)
-    q = q.values('Material','CountDate','FoundAt')
-    q = q.filter(CountDate = Subquery(MaxDates.filter(Material=OuterRef('Material')).values('MaxCtDt')[:1]))
-    q = q.annotate(Material_org=Case(
-                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))), 
-                    then=Concat(F('Material__Material'), Value(' ('), F('Material__org__orgname'), Value(')'), output_field=models.CharField())
-                    ),
-                default=F('Material__Material')
-                )
-            )
-    q = q.order_by('Material__Material', 'Material__org', 'FoundAt')
+    LFAsql = ""
+    LFAsql += "SELECT ACT.`Material_id`,"
+    LFAsql += "	    CASE WHEN EXISTS(SELECT (1) AS `a` FROM `WICS_materiallist` U0 WHERE (U0.`Material` = (MATL.`Material`) AND NOT (U0.`org_id` = (MATL.`org_id`))) LIMIT 1)"
+    LFAsql += "		    THEN CONCAT_WS('', MATL.`Material`, ' (', ORG.`orgname`, ')')"
+    LFAsql += "		    ELSE MATL.`Material`"
+    LFAsql += "	        END AS `Material_org`,"
+    LFAsql += "	    ACT.`CountDate`,"
+    LFAsql += "	    GROUP_CONCAT(DISTINCT ACT.`LOCATION` ORDER BY LOCATION) AS `FoundAt`"
+    LFAsql += " FROM `WICS_actualcounts` ACT"
+    LFAsql += " INNER JOIN `WICS_materiallist` MATL ON (ACT.`Material_id` = MATL.`id`)"
+    LFAsql += " INNER JOIN `WICS_organizations` ORG ON (MATL.`org_id` = ORG.`id`)"
+    LFAsql += " INNER JOIN (SELECT U0.Material_id, MAX(U0.`CountDate`) AS `MaxCtDt` FROM `WICS_actualcounts` U0 GROUP BY U0.`Material_id`) V1"
+    LFAsql += " ON ACT.`CountDate` = V1.MaxCtDt AND ACT.Material_id = V1.Material_id"
+    if RecordRestrict_sql: LFAsql += f" WHERE {RecordRestrict_sql}"
+    LFAsql += " GROUP BY ACT.`Material_id`, ACT.`CountDate`"
+    LFAsql += " ORDER BY Material_org"
 
-    return q
+    with connection.cursor() as cursor:
+        cursor.execute(LFAsql)
+        LFAList = dictfetchall(cursor)
+    
+    return LFAList
 
 def LastFoundAt(matl):
     lastCountDate = None
@@ -264,10 +257,10 @@ def LastFoundAt(matl):
 
     if isinstance(matl,(int, MaterialList)):
         LFAqs = VIEW_LastFoundAt(matl)
-        if LFAqs: 
+        if LFAqs:
             lastCountDate = LFAqs[0]['CountDate']
             LFAString = LFAqs[0]['FoundAt']
-    
+
     return {'lastCountDate': lastCountDate, 'lastFoundAt': LFAString,}
 
 def VIEW_LastFoundAtList(matl=None):
@@ -282,16 +275,7 @@ def VIEW_LastFoundAtList(matl=None):
                     .filter(Material=matl,
                             CountDate = Subquery(MaxDates.filter(Material=OuterRef('Material')).values('MaxCtDt')[:1]))
 
-    LFAqs = FA_qs\
-            .annotate(FoundAt = F('LOCATION'), 
-                    Material_org=Case(
-                        When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))), 
-                        then=Concat(F('Material__Material'), Value(' ('), F('Material__org__orgname'), Value(')'), output_field=models.CharField())
-                        ),
-                    default=F('Material__Material')
-                    )
-                )\
-            .order_by('Material__Material', 'Material__org', 'FoundAt')
+    LFAqs = FA_qs.order_by('Material__Material', 'Material__org', 'FoundAt')
 
     return LFAqs
 
@@ -328,7 +312,7 @@ class SAP_SOHRecs(models.Model):
 class SAPPlants_org(models.Model):
     SAPPlant = models.CharField(max_length=20, primary_key=True)
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=False)
-    
+
 class UnitsOfMeasure(models.Model):
     UOM = models.CharField(max_length=50, unique=True)
     UOMText = models.CharField(max_length=100, blank=True, default='')
@@ -339,7 +323,7 @@ def VIEW_SAP():
     return SAP_SOHRecs.objects.all()\
         .annotate(
             Material_org=Case(
-                When(Exists(MaterialList.objects.filter(Material=OuterRef('MaterialPartNum')).exclude(org=OuterRef('org'))), 
+                When(Exists(MaterialList.objects.filter(Material=OuterRef('MaterialPartNum')).exclude(org=OuterRef('org'))),
                     then=Concat(F('MaterialPartNum'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
                     ),
                 default=F('MaterialPartNum')
@@ -368,11 +352,11 @@ class Location_WorksheetZone(models.Model):
 class WICSPermissions(models.Model):
     class Meta:
         managed = False  # No database table creation or deletion  \
-                         # operations will be performed for this model. 
+                         # operations will be performed for this model.
         default_permissions = () # disable "add", "change", "delete"
                                  # and "view" default permissions
-        permissions = [ 
-            ('Material_onlyview', 'For restricting Material Form to view only'),  
+        permissions = [
+            ('Material_onlyview', 'For restricting Material Form to view only'),
         ]
 
 ###########################################################
