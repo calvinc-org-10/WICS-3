@@ -31,27 +31,35 @@ class WICSUfrm(forms.Form):
 
 @permission_required('SUPERUSER', raise_exception=True)
 def fnWICSuserForm(req):
-    uFormSet_class = formset_factory(WICSUfrm,max_num=100,extra=0)
+
+    def load_initial_WICSuserForm():
+        initd = []
+        qset = WICSuser.objects.all()
+        for u in qset:
+            initd.append({
+            'uid': u.user.pk,
+            'WICSuid': u.pk,
+            'showuid': str(u.user.pk) + "/" + str(u.pk),
+            'menuGroup': u.menuGroup,
+            'uname': u.user.username,
+            'fname': u.user.first_name,
+            'lname': u.user.last_name,
+            'email': u.user.email,
+            'superuser': u.user.is_superuser,
+            'admin': u.user.is_staff,
+            'active': u.user.is_active,
+            'last_login': u.user.last_login,
+            })
+        return initd
+    # enddef  load_initial_WICSuserForm():
+        
+    uFormSet_class = formset_factory(WICSUfrm,max_num=300,extra=0)
+    
     templt = 'Uadmin.html'
     nChangedRecs = 0
-    initdata = []
-    qset = WICSuser.objects.all()
-    for u in qset:
-        initdata.append({
-        'uid': u.user.pk,
-        'WICSuid': u.pk,
-        'showuid': str(u.user.pk) + "/" + str(u.pk),
-        'menuGroup': u.menuGroup,
-        'uname': u.user.username,
-        'fname': u.user.first_name,
-        'lname': u.user.last_name,
-        'email': u.user.email,
-        'superuser': u.user.is_superuser,
-        'admin': u.user.is_staff,
-        'active': u.user.is_active,
-        'last_login': u.user.last_login,
-        })
+    
     if req.method == 'POST':
+        initdata = load_initial_WICSuserForm()
         uFormSet = uFormSet_class(req.POST, initial=initdata)
         if uFormSet.is_valid():
             for f in uFormSet:
@@ -107,17 +115,17 @@ def fnWICSuserForm(req):
                     WuRec.save()
                 #endif
             #endfor
-            # close the window
-            templt = 'Uadmin.html'
-            pass
+            # reload the form so that changes may be seen
+            initdata = load_initial_WICSuserForm()
+            uFormSet = uFormSet_class(initial=initdata)
         else:
             # reveal the errors and try again
             pass
-        #endif
-        pass
+        #endif uFormSet.is_valid():
     else:
+        initdata = load_initial_WICSuserForm()
         uFormSet = uFormSet_class(initial=initdata)
-    #endif
+    #endif req.method = 'POST'
 
     cntext = {
         'ulist': uFormSet, 
