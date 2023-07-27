@@ -1,6 +1,6 @@
 from typing import Any
 from django.db import connection, models
-from django.db.models import F, Exists, OuterRef, Value, Case, When, Subquery, Max
+from django.db.models import F, Exists, OuterRef, Value, Case, When, Subquery, Max, QuerySet
 from django.db.models.functions import Concat
 from userprofiles.models import WICSuser
 from cMenu.utils import GroupConcat, dictfetchall
@@ -265,17 +265,27 @@ def LastFoundAt(matl):
 
 def VIEW_LastFoundAtList(matl=None):
 
-    if matl is None:
-        MaxDates = ActualCounts.objects.all().values('Material').annotate(MaxCtDt=Max('CountDate'))
-        FA_qs = VIEW_actualcounts()\
-                    .filter(CountDate = Subquery(MaxDates.filter(Material=OuterRef('Material')).values('MaxCtDt')[:1]))
-    else:
-        MaxDates = ActualCounts.objects.filter(Material=matl).values('Material').annotate(MaxCtDt=Max('CountDate'))
-        FA_qs = VIEW_actualcounts()\
-                    .filter(Material=matl,
-                            CountDate = Subquery(MaxDates.filter(Material=OuterRef('Material')).values('MaxCtDt')[:1]))
+    FA_qs = None
 
-    LFAqs = FA_qs.order_by('Material__Material', 'Material__org', 'FoundAt')
+    if (matl is not None) and (not matl):
+        matl = None
+
+    MaxDates = ActualCounts.objects.all().values('Material').annotate(MaxCtDt=Max('CountDate'))
+    FA_qs = VIEW_actualcounts().filter(
+                        CountDate = Subquery(MaxDates.filter(Material=OuterRef('Material')).values('MaxCtDt')[:1])
+                )
+    
+    if matl is not None:
+        try:
+            iter(matl)
+            FA_qs = FA_qs.filter(Material__in=matl)
+        except TypeError:
+            FA_qs = None
+
+    if FA_qs is None:
+        FA_qs = VIEW_actualcounts().filter(Material=matl)
+    
+    LFAqs = FA_qs.annotate(FoundAt=F('LOCATION')).values('Material','Material_org','CountDate','FoundAt').distinct().order_by('Material__Material', 'Material__org', 'FoundAt') if FA_qs is not None else None
 
     return LFAqs
 

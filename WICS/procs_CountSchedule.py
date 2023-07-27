@@ -3,7 +3,7 @@ import os, uuid
 import re as regex
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Value
+from django.db.models import Value, Subquery
 from django.db.models.query import QuerySet
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render
@@ -12,7 +12,7 @@ from barcode import Code128
 from userprofiles.models import WICSuser
 from cMenu.models import getcParm
 from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate, ExcelWorkbook_fileext
-from WICS.models import MaterialList, CountSchedule, VIEW_countschedule
+from WICS.models import MaterialList, CountSchedule, VIEW_countschedule, VIEW_LastFoundAtList
 from WICS.models import LastFoundAt, WorksheetZones, Location_WorksheetZone
 from WICS.procs_SAP import fnSAPList
 from typing import *
@@ -345,18 +345,25 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
     #     return HttpResponse('Stop rushing me!!')
 
     def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
-        zoneListqs = WorksheetZones.objects.order_by('zone')
-        numZones = zoneListqs.last().zone
-        # oops -- I need zoneList to be an array with '' if there's no zone
-        zoneList = [''] * numZones
-        for Z in zoneListqs:
-            zoneList[Z.zone-1] = Z.zoneName
+        #DIE: zoneListqs = WorksheetZones.objects.order_by('zone')
+        #DIE: numZones = zoneListqs.last().zone
+        #DIE: # oops -- I need zoneList to be an array with '' if there's no zone
+        #DIE: zoneList = [''] * numZones
+        #DIE: for Z in zoneListqs:
+        #DIE:     zoneList[Z.zone-1] = Z.zoneName
 
         # collect the list of Counters so that tabs can be built in the html
         CounterList = CountSchedule.objects.filter(CountDate=self.CountDate).order_by('Counter').values('Counter').distinct()
 
+        # form list of last found locations
+        MList = MaterialList.objects.filter(
+                    pk__in=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate).values('Material'))
+                )
+        LocationList = VIEW_LastFoundAtList(MList).order_by('FoundAt') if MList.exists() else []
+
         context.update({
-                'zoneList': zoneList,
+                #DIE: 'zoneList': zoneList,
+                'LocationList': LocationList,
                 'CounterList': CounterList,
                 'CountDate': self.CountDate,     # .as_datetime(), -- this was done in setup()
                 'SAP_Updated_at': self.SAPDate,

@@ -129,6 +129,16 @@
 {% endfor %}
 </div>
 
+{% if LocationList %}
+<div>
+    <ul>
+    {% for L in LocationList %}
+        <li>{{ L.FoundAt }} | {{ L.CountDate }} | {{ L.Material_org }}</li>
+    {% endfor %}
+    </ul>
+</div>
+{% endif %}
+
 <!-- form footer -->
 <div class="container d-print-none">
     <div class="row mx-auto max-width=100%">
