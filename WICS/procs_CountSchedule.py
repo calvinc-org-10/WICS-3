@@ -3,7 +3,7 @@ import os, uuid
 import re as regex
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Value, Subquery
+from django.db.models import Value, Subquery, OuterRef
 from django.db.models.query import QuerySet
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render
@@ -323,7 +323,7 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
                 lastCtr = rec.Counter
             else:
                 rec.NewCounter = False
-            bcstr = Code128(str(strMatlNum)).render(writer_options={'module_height':7.0,'module_width':0.25,'quiet_zone':0.1,'write_text':True,'text_distance':3.5})
+            bcstr = Code128(str(strMatlNum)).render(writer_options={'module_height':7.0,'module_width':0.35,'quiet_zone':0.1,'write_text':True,'text_distance':3.5})
             bcstr = str(bcstr).replace("b'","").replace('\\r','').replace('\\n','').replace("'","")
             rec.MaterialBarCode = bcstr
             rec.LastFoundAt = LastFoundAt(rec.Material)
@@ -359,7 +359,7 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
         MList = MaterialList.objects.filter(
                     pk__in=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate).values('Material'))
                 )
-        LocationList = VIEW_LastFoundAtList(MList).order_by('FoundAt') if MList.exists() else []
+        LocationList = VIEW_LastFoundAtList(MList).annotate(Counter=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1])).order_by('FoundAt') if MList.exists() else []
 
         context.update({
                 #DIE: 'zoneList': zoneList,

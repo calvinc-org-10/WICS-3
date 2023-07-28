@@ -3,7 +3,6 @@
 
 
 {% block tTitle %}Counting Agenda/Worksheet{% endblock %}
-{# TODO: Find out why Desc and Last Found lines wrap incorrectly in print #}
 {% block tHeader %}
 <style>
     @page {
@@ -18,16 +17,12 @@
     .footer {
       position: fixed;
       bottom: 0;
-    } 
-    table.report-container {
-        page-break-after:always;
     }
-    thead.report-header {
-        display:table-header-group;
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
     }
-    tfoot.report-footer {
-        display:table-footer-group;
-    } </style>
+</style>
 {% endblock %}
 
 {% block boddy %}
@@ -63,18 +58,26 @@
 {% for itm in CtSchd %}
     {% if itm.NewCounter %}
         {% if not forloop.first %}
+            {% for L in LocationList %}
+            {% if forloop.first %}<hr><div class="ts-3"><ul>{% endif %}
+                {% if L.Counter == itm.Counter %}
+                <li>{{ L.FoundAt }} | {{ L.CountDate }} | {{ L.Material_org }}</li>
+                {% endif %}
+            {% if forloop.last %}</ul></div>{% endif %}
+            {% endfor %}
+    
             <!-- close off the previous counter-->
             </div>
             <!-- <hr> -->
         {% endif %}
         <div class="container" style="break-after: page;">
         <div class="row max-width=100%">
-            <div class="col-10">
+            <div class="col-11">
                 <h2>
                     {{ itm.Counter }} Counting Agenda/Worksheet for {{ CountDate|date:'Y-m-d' }}
                 </h2>
             </div>
-            <div class="col-2 text-end">
+            <div class="col-1 text-end">
                 <img src={% static 'WICS-Logo.png' %} width="150" height="70">
             </div>
         </div>
@@ -82,16 +85,10 @@
 
     <div style="break-inside: avoid;">  <!-- avoid page breaks for a single Material sheet -->
     <div class="row g-0 max-width=100%">
-        <div class="col-6">
-            {% if itm.NewMat3char or itm.NewCounter %}
-                <span class="bg-secondary fw-bold fs-5 text-white" style="width:10">
-                    __ {{ itm.Material.Material|slice:"0:3" }} __
-                </span>
-                <br class="bg-white">
-            {% endif %}
+        <div class="col-7">
             {{ itm.MaterialBarCode|safe }}
         </div>
-        <div class="col-4">
+        <div class="col-4 fs-5">
             {{ itm.Material.org }} Material
             {{ itm.Material_org }}
         </div>
@@ -119,25 +116,73 @@
         Reason Scheduled: {{ itm.ReasonScheduled }} | Notes: {{ itm.Notes }} | SAP Qty: {{ itm.SAPQty }}
         </div>
     </div>
+    <br>
+    <div class="row g-0 fs-3">
+        <div class="col-8">Act Cntr: ________________________</div>
+        <div class="col">Date: _____________</div>
+    </div>
+    <div class="row g-0">
+        <table>
+            <thead>
+            <tr>
+                <th style="width:20%">LOCATION</th>
+                <th style="width:60%">CTD_QTY_Expr</th>
+                <th style="width:20%">Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for L in LocationList %}
+            {% if forloop.first %}<ul>{% endif %}
+                {% if L.Material == itm.Material.pk %}
+                <tr style="height:60px">
+                    <td>{{ L.FoundAt }}</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+                {% endif %}
+            {% if forloop.last %}</ul>{% endif %}
+            {% endfor %}
+            <tr style="height:60px">
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr style="height:60px">
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr style="height:60px">
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr style="height:60px">
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
     <hr>
     </div>  <!-- style="break-inside: avoid;">  {!-- avoid page breaks for a single Material sheet -->
     {% if forloop.last %}
+        {% for L in LocationList %}
+        {% if forloop.first %}<hr><div class="ts-3"><ul>{% endif %}
+            {% if L.Counter == itm.Counter %}
+            <li>{{ L.FoundAt }} | {{ L.CountDate }} | {{ L.Material_org }}</li>
+            {% endif %}
+        {% if forloop.last %}</ul></div>{% endif %}
+        {% endfor %}
+
         <!-- close off the previous counter-->
         </div>
         <hr class="d-print-none">
     {% endif %}
 {% endfor %}
 </div>
-
-{% if LocationList %}
-<div>
-    <ul>
-    {% for L in LocationList %}
-        <li>{{ L.FoundAt }} | {{ L.CountDate }} | {{ L.Material_org }}</li>
-    {% endfor %}
-    </ul>
-</div>
-{% endif %}
 
 <!-- form footer -->
 <div class="container d-print-none">
