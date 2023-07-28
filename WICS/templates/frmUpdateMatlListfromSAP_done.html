@@ -2,7 +2,7 @@
 {% load widget_tweaks %}
 {% load static %}
 
-{% block tTitle %}Update Material List from SAP Spreadsheet{% endblock %}
+{% block tTitle %}Update Material List from SAP MM60 Spreadsheet{% endblock %}
 
 {% block boddy %}
 <div class="container text-center mx-auto">
@@ -29,6 +29,8 @@
     <li>
         <b>{{ err }}</b>
     </li>
+    {% empty %}
+        <li><b>None!</b></li>
     {% endfor %}
 </ul>
 {% endif %}
@@ -46,6 +48,8 @@ Material Added:
         {{ rec.Price }} -
         {{ rec.PriceUnit }}
         </li>
+    {% empty %}
+        <li><b>None!</b></li>
     {% endfor %}
 </ul>
 <hr>
@@ -57,6 +61,8 @@ Material Removed:
         {{ rec.Material }} - 
         {{ rec.Description }}
         </li>
+    {% empty %}
+        <li><b>None!</b></li>
     {% endfor %}
 </ul>
 
