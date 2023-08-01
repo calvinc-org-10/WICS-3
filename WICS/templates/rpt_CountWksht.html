@@ -56,16 +56,25 @@
 
 <div class="container mx-auto">
 {% for itm in CtSchd %}
-    {% if itm.NewCounter %}
+    {% ifchanged itm.Counter %}
         {% if not forloop.first %}
+            {# print summary of locations for previous Counter #}
             {% for L in LocationList %}
-            {% if forloop.first %}<hr><div class="ts-3"><ul>{% endif %}
-                {% if L.Counter == itm.Counter %}
+            {% if forloop.first %}<hr><div class="fs-4"><u></u>{{itm.prevCounter}} Locations</u><ul>{% endif %}
+                {% if L.Counter == itm.prevCounter %}
                 <li>{{ L.FoundAt }} | {{ L.CountDate }} | {{ L.Material_org }}</li>
                 {% endif %}
             {% if forloop.last %}</ul></div>{% endif %}
             {% endfor %}
-    
+            {# print summary of Materials for previous Counter #}
+            {% for M in CtSchd %}
+            {% if forloop.first %}<hr><div class="fs-4"><u></u>{{itm.prevCounter}} Materials</u><ul>{% endif %}
+                {% if M.Counter == itm.prevCounter %}
+                <li>{{ M.Material_org }}</li>
+                {% endif %}
+            {% if forloop.last %}</ul></div>{% endif %}
+            {% endfor %}
+
             <!-- close off the previous counter-->
             </div>
             <!-- <hr> -->
@@ -81,7 +90,7 @@
                 <img src={% static 'WICS-Logo.png' %} width="150" height="70">
             </div>
         </div>
-    {% endif %}
+    {% endifchanged %}
 
     <div style="break-inside: avoid;">  <!-- avoid page breaks for a single Material sheet -->
     <div class="row g-0 max-width=100%">
@@ -169,10 +178,19 @@
     <hr>
     </div>  <!-- style="break-inside: avoid;">  {!-- avoid page breaks for a single Material sheet -->
     {% if forloop.last %}
+        {# print summary of locations for final Counter #}
         {% for L in LocationList %}
-        {% if forloop.first %}<hr><div class="ts-3"><ul>{% endif %}
+        {% if forloop.first %}<hr><div class="fs-4"><u></u>{{itm.prevCounter}} Locations</u><ul>{% endif %}
             {% if L.Counter == itm.Counter %}
             <li>{{ L.FoundAt }} | {{ L.CountDate }} | {{ L.Material_org }}</li>
+            {% endif %}
+        {% if forloop.last %}</ul></div>{% endif %}
+        {% endfor %}
+        {# print summary of Materials for final Counter #}
+        {% for M in CtSchd %}
+        {% if forloop.first %}<hr><div class="fs-4"><u></u>{{itm.prevCounter}} Materials</u><ul>{% endif %}
+            {% if M.Counter == itm.prevCounter %}
+            <li>{{ M.Material_org }}</li>
             {% endif %}
         {% if forloop.last %}</ul></div>{% endif %}
         {% endfor %}

@@ -309,7 +309,7 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
         qs = CountSchedule.objects.filter(CountDate=self.CountDate).order_by(*self.ordering).select_related('Material','Material__PartType')
         qs = qs.annotate(LastFoundAt=Value(''), SAPQty=Value(0), MaterialBarCode=Value(''), Material_org=Value(''))
         Mat3char = None
-        lastCtr = None
+        prevCtr = None
         for rec in qs:
             strMatlNum = str(rec.Material)
             rec.Material_org = strMatlNum
@@ -318,11 +318,10 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
                 Mat3char = strMatlNum[0:3]
             else:
                 rec.NewMat3char = False
-            if lastCtr != rec.Counter:
-                rec.NewCounter = True
-                lastCtr = rec.Counter
-            else:
-                rec.NewCounter = False
+
+            rec.prevCounter = prevCtr
+            prevCtr = rec.Counter
+
             bcstr = Code128(str(strMatlNum)).render(writer_options={'module_height':7.0,'module_width':0.35,'quiet_zone':0.1,'write_text':True,'text_distance':3.5})
             bcstr = str(bcstr).replace("b'","").replace('\\r','').replace('\\n','').replace("'","")
             rec.MaterialBarCode = bcstr
