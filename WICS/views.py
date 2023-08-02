@@ -214,7 +214,7 @@ def fnCountEntryView(req,
         if MatlNum==None: MatlNum = 0
         ## matlchoiceForm['gotoItem'] = {'Material':MatlNum}
         matlchoiceForm['gotoItem'] = ''
-    matlchoiceForm['choicelist'] = VIEW_materials().values('id','Material_org')
+    matlchoiceForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
 
     # display the form
     cntext = {'frmMain': mainFm,
@@ -392,7 +392,7 @@ def _fnCountSchedRecViewCommon(req, variation,
             if exstSchdRec:
                 # if its not THIS record, reject
                 if (currRec and currRec.id != exstSchdRec):
-                    matlRec = VIEW_materials().get(id=MatlNum)
+                    matlRec = VIEW_materials.objects.get(id=MatlNum)
                     msgDupSched = 'A count for ' + str(matlRec.Material) + ' is already scheduled for ' + str(reqDate)
                     matlRec = incomingMatlRec
                     MatlNum = getattr(matlRec,'Material',None)
@@ -420,7 +420,7 @@ def _fnCountSchedRecViewCommon(req, variation,
         if MatlNum==None: MatlNum = 0
         ## matlchoiceForm['gotoItem'] = {'Material':MatlNum}
         matlchoiceForm['gotoItem'] = ''
-    matlchoiceForm['choicelist'] = VIEW_materials().all().values('id','Material_org')
+    matlchoiceForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
 
     # display the form
     cntext = {'frmMain': mainFm,
