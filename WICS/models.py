@@ -1,9 +1,9 @@
 from typing import Any
 from django.db import connection, models
-from django.db.models import F, Exists, OuterRef, Value, Case, When, Subquery, Max, QuerySet
+from django.db.models import F, Exists, OuterRef, Value, Case, When, Subquery, Max, Min, QuerySet
 from django.db.models.functions import Concat
 from userprofiles.models import WICSuser
-from cMenu.utils import GroupConcat, dictfetchall
+from cMenu.utils import GroupConcat, dictfetchall, calvindate
 
 
 # I'm quite happy with automaintained pk fields, so I don't specify any
@@ -104,7 +104,16 @@ def fnMaterial_id(org_id:int,Material:str) -> str | None:
     except:
         return None
 
-def VIEW_materials():
+def VIEW_materials_fn():
+    LastCounts_qs = ActualCounts.objects.values('Material').annotate(LastCountDate=Max('CountDate'))
+    LastFoundAt_qs = ActualCounts.objects.values('Material', 'CountDate')\
+        .filter(CountDate=Subquery(LastCounts_qs.filter(Material=OuterRef('Material')).values('LastCountDate')[:1]))\
+        .annotate(FoundAt=GroupConcat('LOCATION',distinct=True, ordering='LOCATION'))
+    NextScheduled_qs = CountSchedule.objects.values('Material')\
+        .filter(CountDate__gt=calvindate()).annotate(NextScheduledCount=Min('CountDate'))
+    ScheduledToday_qs = CountSchedule.objects.values('Material','CountDate')\
+        .filter(CountDate=calvindate())
+
     return MaterialList.objects.all()\
         .annotate(
             PrtType=F('PartType__WhsePartType'),
@@ -114,8 +123,38 @@ def VIEW_materials():
                     then=Concat(F('Material'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
                     ),
                 default=F('Material')
-                )
+                ),
+            LastCountDate=Subquery(LastFoundAt_qs.filter(Material=OuterRef('Material')).values('CountDate')[:1]),
+            LastFoundAt=Subquery(LastFoundAt_qs.filter(Material=OuterRef('Material')).values('FoundAt')[:1]),
+            NextScheduledCount=Subquery(NextScheduled_qs.filter(Material=OuterRef('Material')).values('NextScheduledCount')[:1]),
+            ScheduledForToday=Exists(ScheduledToday_qs.filter(Material=OuterRef('Material'))),
             )
+class VIEW_materials(models.Model):
+    id = models.PositiveIntegerField(primary_key=True)
+    org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True, null=True)
+    Material = models.CharField(max_length=100)
+    Description = models.CharField(max_length=250, blank=True, default='')
+    PartType = models.ForeignKey(WhsePartTypes, null=True, on_delete=models.RESTRICT, default=None)
+    Plant = models.CharField(max_length=20, blank=True, default='')
+    SAPMaterialType = models.CharField(max_length=100, blank=True, default='')
+    SAPMaterialGroup = models.CharField(max_length=100, blank=True, default='')
+    Price = models.FloatField(null=True, blank=True, default=0.0)
+    PriceUnit = models.PositiveIntegerField(null=True, blank=True, default=1)
+    Currency = models.CharField(max_length=20, blank=True, default='')
+    TypicalContainerQty = models.CharField(max_length=100, null=True, blank=True, default=None)
+    TypicalPalletQty = models.CharField(max_length=100, null=True, blank=True, default=None)
+    Notes = models.CharField(max_length=250, blank=True, default='')
+    PartType = models.CharField(max_length=50)
+    OrgName = models.CharField(max_length=250)
+    LastCountDate = models.DateField()
+    LastFoundAt = models.CharField(max_length=4096)
+    Material_org =  models.CharField(max_length=100)
+    NextScheduledCount = models.DateField()
+    ScheduledForToday = models.BooleanField()
+
+    class Meta:
+       db_table = 'VIEW_materials'
+       managed = False
 
 ###########################################################
 ###########################################################

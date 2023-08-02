@@ -58,20 +58,26 @@
 {% for itm in CtSchd %}
     {% ifchanged itm.Counter %}
         {% if not forloop.first %}
-            {# print summary of locations for previous Counter #}
-            {% for L in LocationList %}
-            {% if forloop.first %}<hr><div class="fs-4"><u></u>{{itm.prevCounter}} Locations</u><ul>{% endif %}
-                {% if L.Counter == itm.prevCounter %}
-                <li>{{ L.FoundAt }} | {{ L.CountDate }} | {{ L.Material_org }}</li>
-                {% endif %}
-            {% if forloop.last %}</ul></div>{% endif %}
-            {% endfor %}
             {# print summary of Materials for previous Counter #}
             {% for M in CtSchd %}
-            {% if forloop.first %}<hr><div class="fs-4"><u></u>{{itm.prevCounter}} Materials</u><ul>{% endif %}
+            {% if forloop.first %}<hr><div class="fs-4" style="break-before: page;"><u>{{itm.prevCounter}} Materials</u><ul>{% endif %}
                 {% if M.Counter == itm.prevCounter %}
                 <li>{{ M.Material_org }}</li>
                 {% endif %}
+            {% if forloop.last %}</ul></div>{% endif %}
+            {% endfor %}
+
+            {# print summary of locations for previous Counter #}
+            {% for L in LocationList %}
+            {% if forloop.first %}
+                <hr><div class="fs-4" style="break-before: page;">
+                <u>{{itm.prevCounter}} Locations</u>
+                <div class="small"><i>Material may be in locations not listed here</i></div>
+                <ul>
+            {% endif %}
+            {% if L.Counter == itm.prevCounter %}
+            <li>{{ L.FoundAt }} | {{ L.CountDate }} | {{ L.Material_org }}</li>
+            {% endif %}
             {% if forloop.last %}</ul></div>{% endif %}
             {% endfor %}
 
@@ -144,7 +150,7 @@
             {% if forloop.first %}<ul>{% endif %}
                 {% if L.Material == itm.Material.pk %}
                 <tr style="height:60px">
-                    <td>{{ L.FoundAt }}</td>
+                    <td style="vertical-align:top;">{{ L.FoundAt }}</td>
                     <td></td>
                     <td></td>
                 </tr>
@@ -178,20 +184,26 @@
     <hr>
     </div>  <!-- style="break-inside: avoid;">  {!-- avoid page breaks for a single Material sheet -->
     {% if forloop.last %}
-        {# print summary of locations for final Counter #}
-        {% for L in LocationList %}
-        {% if forloop.first %}<hr><div class="fs-4"><u></u>{{itm.prevCounter}} Locations</u><ul>{% endif %}
-            {% if L.Counter == itm.Counter %}
-            <li>{{ L.FoundAt }} | {{ L.CountDate }} | {{ L.Material_org }}</li>
+        {# print summary of Materials for previous Counter #}
+        {% for M in CtSchd %}
+        {% if forloop.first %}<hr><div class="fs-4" style="break-before: page;"><u>{{itm.prevCounter}} Materials</u><ul>{% endif %}
+            {% if M.Counter == itm.Counter %}
+            <li>{{ M.Material_org }}</li>
             {% endif %}
         {% if forloop.last %}</ul></div>{% endif %}
         {% endfor %}
-        {# print summary of Materials for final Counter #}
-        {% for M in CtSchd %}
-        {% if forloop.first %}<hr><div class="fs-4"><u></u>{{itm.prevCounter}} Materials</u><ul>{% endif %}
-            {% if M.Counter == itm.prevCounter %}
-            <li>{{ M.Material_org }}</li>
-            {% endif %}
+
+        {# print summary of locations for previous Counter #}
+        {% for L in LocationList %}
+        {% if forloop.first %}
+            <hr><div class="fs-4" style="break-before: page;">
+            <u>{{itm.prevCounter}} Locations</u>
+            <div class="small"><i>Material may be in locations not listed here</i></div>
+            <ul>
+        {% endif %}
+        {% if L.Counter == itm.Counter %}
+        <li>{{ L.FoundAt }} | {{ L.CountDate }} | {{ L.Material_org }}</li>
+        {% endif %}
         {% if forloop.last %}</ul></div>{% endif %}
         {% endfor %}
 
