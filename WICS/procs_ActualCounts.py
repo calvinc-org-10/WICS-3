@@ -26,6 +26,7 @@ from WICS.procs_SAP import fnSAPList
 def fnUploadActCountSprsht(req):
 
     CountSprshtDateEpoch = WINDOWS_EPOCH
+    NOTdbFld_flags = ['**NOTdbFld**',]
 
     def cleanupfld(fld, val):
         """
@@ -130,6 +131,7 @@ def fnUploadActCountSprsht(req):
                     'TAGQTY': 'TAGQTY',
                     'Poss Not Rcvd': 'FLAG_PossiblyNotRecieved',
                     'Mvmt Dur Ct': 'FLAG_MovementDuringCount',
+                    'WICSignore': NOTdbFld_flags[0],
                     }
             for col in CountSprshtcolmnNames:
                 if col.value in CountSprsht_SSName_TableName_map:
@@ -149,120 +151,125 @@ def fnUploadActCountSprsht(req):
         nRowsErrors = 0
         
         if ws:
-            # SprshtRowNum = 2  # skip row 2 because it holds hints for the kids, not a count - nope, let old spreadsheet work, too
             MAX_COUNT_ROWS = 5000
             for row in ws.iter_rows(min_row=SprshtRowNum+1, max_row=MAX_COUNT_ROWS, values_only=True):
                 SprshtRowNum += 1
 
-                # if no org given, check that Material unique.
-                if 'org_id' not in CountSprshtcolmnMap:
-                    spshtorg = None
-                else:
-                    spshtorg = cleanupfld('org_id', row[CountSprshtcolmnMap['org_id']])['cleanval']
-                matlnum = cleanupfld('Material', row[CountSprshtcolmnMap['Material']])['cleanval']
-                matlorglist = MaterialList.objects.filter(Material=matlnum).values_list('org_id', flat=True)
-                MatlKount =  len(matlorglist)
-                MatObj = None
-                err_already_handled = False
-                if MatlKount == 1:
-                    MatObj = MaterialList.objects.get(Material=matlnum)
-                    spshtorg = MatObj.org_id
-                if MatlKount > 1:
-                    if spshtorg is None:
-                        UplResults.append({'error':f"{matlnum} in multiple org_id's {tuple(matlorglist)}, but no org_id given", 'rowNum':SprshtRowNum})
-                        nRowsErrors += 1
-                        err_already_handled = True
-                    elif spshtorg in matlorglist:
-                        MatObj = MaterialList.objects.get(org_id=spshtorg, Material=matlnum)
+                ignoreline = (NOTdbFld_flags[0] in CountSprshtcolmnMap) and (row[CountSprshtcolmnMap[NOTdbFld_flags[0]]])
+                if not ignoreline:
+                    # if no org given, check that Material unique.
+                    if CountSprsht_SSName_TableName_map['org_id'] not in CountSprshtcolmnMap:
+                        spshtorg = None
                     else:
-                        UplResults.append({'error':f"{matlnum} in in multiple org_id's {tuple(matlorglist)}, but org_id given ({spshtorg}) is not one of them", 'rowNum':SprshtRowNum})
-                        nRowsErrors += 1
-                        err_already_handled = True
+                        spshtorg = cleanupfld('org_id', row[CountSprshtcolmnMap['org_id']])['cleanval']
+                    matlnum = cleanupfld('Material', row[CountSprshtcolmnMap['Material']])['cleanval']
+                    matlorglist = MaterialList.objects.filter(Material=matlnum).values_list('org_id', flat=True)
+                    MatlKount =  len(matlorglist)
+                    MatObj = None
+                    err_already_handled = False
+                    if MatlKount == 1:
+                        MatObj = MaterialList.objects.get(Material=matlnum)
+                        spshtorg = MatObj.org_id
+                    if MatlKount > 1:
+                        if spshtorg is None:
+                            UplResults.append({'error':f"{matlnum} in multiple org_id's {tuple(matlorglist)}, but no org_id given", 'rowNum':SprshtRowNum})
+                            nRowsErrors += 1
+                            err_already_handled = True
+                        elif spshtorg in matlorglist:
+                            MatObj = MaterialList.objects.get(org_id=spshtorg, Material=matlnum)
+                        else:
+                            UplResults.append({'error':f"{matlnum} in in multiple org_id's {tuple(matlorglist)}, but org_id given ({spshtorg}) is not one of them", 'rowNum':SprshtRowNum})
+                            nRowsErrors += 1
+                            err_already_handled = True
 
-                if matlnum and not MatObj:
-                    if not err_already_handled:
-                        nRowsErrors += 1
-                        UplResults.append({'error':'either ' + matlnum + ' does not exist in MaterialList or incorrect org_id (' + str(spshtorg) + ') given', 'rowNum':SprshtRowNum})
-                elif matlnum and MatObj:
-                    rowErrs = False
-                    requiredFields = {reqFld: False for reqFld in CountSprshtREQUIREDFLDS}
-                    requiredFields['Both LocationOnly and CTD_QTY'] = False
+                    if matlnum and not MatObj:
+                        if not err_already_handled:
+                            nRowsErrors += 1
+                            UplResults.append({'error':'either ' + matlnum + ' does not exist in MaterialList or incorrect org_id (' + str(spshtorg) + ') given', 'rowNum':SprshtRowNum})
+                    elif matlnum and MatObj:
+                        rowErrs = False
+                        requiredFields = {reqFld: False for reqFld in CountSprshtREQUIREDFLDS}
+                        requiredFields['Both LocationOnly and CTD_QTY'] = False
 
-                    MatChanged = False
-                    SRec = ActualCounts()
-                    for fldName, colNum in CountSprshtcolmnMap.items():
-                        # check/correct problematic data types
-                        usefld, V = cleanupfld(fldName, row[colNum]).values()
-                        if (V is not None):
-                            if usefld:
-                                if   fldName == 'CountDate': 
-                                    setattr(SRec, fldName, V) 
-                                    requiredFields['CountDate'] = True
-                                elif fldName == 'Material': 
-                                    setattr(SRec, fldName, MatObj)
-                                    requiredFields['Material'] = True
-                                elif fldName == 'Counter': 
-                                    setattr(SRec, fldName, V)
-                                    requiredFields['Counter'] = True
-                                elif fldName == 'LOCATION': 
-                                    setattr(SRec, fldName, V)
-                                    requiredFields['LOCATION'] = True
-                                elif fldName == 'LocationOnly': 
-                                    setattr(SRec, fldName, makebool(V))
-                                    requiredFields['Both LocationOnly and CTD_QTY'] = True
-                                elif fldName == 'CTD_QTY_Expr': 
-                                    setattr(SRec, fldName, V)
-                                    requiredFields['Both LocationOnly and CTD_QTY'] = True
-                                elif fldName == 'TypicalContainerQty' \
-                                or fldName == 'TypicalPalletQty':
-                                    if V == '' or V == None: V = 0
-                                    if V != 0 and V != getattr(MatObj,fldName,0): 
-                                        setattr(MatObj, fldName, V)
-                                        MatChanged = True
+                        MatChanged = False
+                        SRec = ActualCounts()
+                        for fldName, colNum in CountSprshtcolmnMap.items():
+                            if fldName in NOTdbFld_flags: continue
+                            # check/correct problematic data types
+                            usefld, V = cleanupfld(fldName, row[colNum]).values()
+                            if (V is not None):
+                                if usefld:
+                                    if   fldName == 'CountDate': 
+                                        setattr(SRec, fldName, V) 
+                                        requiredFields['CountDate'] = True
+                                    elif fldName == 'Material': 
+                                        setattr(SRec, fldName, MatObj)
+                                        requiredFields['Material'] = True
+                                    elif fldName == 'Counter': 
+                                        setattr(SRec, fldName, V)
+                                        requiredFields['Counter'] = True
+                                    elif fldName == 'LOCATION': 
+                                        setattr(SRec, fldName, V)
+                                        requiredFields['LOCATION'] = True
+                                    elif fldName == 'LocationOnly': 
+                                        setattr(SRec, fldName, makebool(V))
+                                        requiredFields['Both LocationOnly and CTD_QTY'] = True
+                                    elif fldName == 'CTD_QTY_Expr': 
+                                        setattr(SRec, fldName, V)
+                                        requiredFields['Both LocationOnly and CTD_QTY'] = True
+                                    elif fldName == 'TypicalContainerQty' \
+                                    or fldName == 'TypicalPalletQty':
+                                        if V == '' or V == None: V = 0
+                                        if V != 0 and V != getattr(MatObj,fldName,0): 
+                                            setattr(MatObj, fldName, V)
+                                            MatChanged = True
+                                    else:
+                                        if hasattr(SRec, fldName): setattr(SRec, fldName, V)
+                                    # endif fldname
                                 else:
-                                    if hasattr(SRec, fldName): setattr(SRec, fldName, V)
-                                # endif fldname
-                            else:
-                                if fldName!='CTD_QTY_Expr':
-                                    # we have to suspend judgement on CTD_QTY_Expr until last, because this could be a LocationOnly count
-                                    rowErrs = True
-                                    UplResults.append({'error':str(V)+' is invalid for '+fldName, 'rowNum':SprshtRowNum})
-                            #endif usefld
-                        #endif (V is not None)
-                    # for each column
-                    
-                    # now we determine if one of LocationOnly or CTD_QTY was given
-                    if not requiredFields['Both LocationOnly and CTD_QTY']:
-                        fldName = 'CTD_QTY_Expr'
-                        V = row[CountSprshtcolmnMap[fldName]]
-                        rowErrs = True
-                        UplResults.append({'error':
-                                                'record is not marked LocationOnly and '+str(V)+' is invalid for '+fldName,
-                                            'rowNum':SprshtRowNum})
-
-                    # are all required fields present?
-                    AllRequiredPresent = True
-                    for keyname, Prsnt in requiredFields.items():
-                        AllRequiredPresent = AllRequiredPresent and Prsnt
-                        if not Prsnt:
+                                    if fldName!='CTD_QTY_Expr':
+                                        # we have to suspend judgement on CTD_QTY_Expr until last, because this could be a LocationOnly count
+                                        rowErrs = True
+                                        UplResults.append({'error':str(V)+' is invalid for '+fldName, 'rowNum':SprshtRowNum})
+                                #endif usefld
+                            #endif (V is not None)
+                        # for each column
+                        
+                        # now we determine if one of LocationOnly or CTD_QTY was given
+                        if not requiredFields['Both LocationOnly and CTD_QTY']:
+                            fldName = 'CTD_QTY_Expr'
+                            V = row[CountSprshtcolmnMap[fldName]]
                             rowErrs = True
-                            UplResults.append({'error':keyname+' missing', 'rowNum':SprshtRowNum})
+                            UplResults.append({'error':
+                                                    'record is not marked LocationOnly and '+str(V)+' is invalid for '+fldName,
+                                                'rowNum':SprshtRowNum})
 
-                    if not rowErrs:
-                        SRec.save()
-                        if MatChanged: MatObj.save()
-                        qs = type(SRec).objects.filter(pk=SRec.pk).values().first()
-                        res = {'error': False, 'rowNum':SprshtRowNum, 'TypicalQty':MatChanged, 'MaterialNum': str(MatObj) }
-                        res.update(qs)      # tack the new record (along with its new pk) onto res
-                            #QUESTION:  can I do this directly with SRec??
-                        UplResults.append(res)
-                        nRowsAdded += 1
-                    else:
-                        nRowsErrors += 1
-                    # 
-                else:       # Material not given
+                        # are all required fields present?
+                        AllRequiredPresent = True
+                        for keyname, Prsnt in requiredFields.items():
+                            AllRequiredPresent = AllRequiredPresent and Prsnt
+                            if not Prsnt:
+                                rowErrs = True
+                                UplResults.append({'error':keyname+' missing', 'rowNum':SprshtRowNum})
+
+                        if not rowErrs:
+                            SRec.save()
+                            if MatChanged: MatObj.save()
+                            qs = type(SRec).objects.filter(pk=SRec.pk).values().first()
+                            res = {'error': False, 'rowNum':SprshtRowNum, 'TypicalQty':MatChanged, 'MaterialNum': str(MatObj) }
+                            res.update(qs)      # tack the new record (along with its new pk) onto res
+                                #QUESTION:  can I do this directly with SRec??
+                            UplResults.append(res)
+                            nRowsAdded += 1
+                        else:
+                            nRowsErrors += 1
+                        # 
+                    else:       # Material not given
+                        nRowsNoMaterial += 1
+                    # endif matlnum and MatObj/not MatObj
+                else:
                     nRowsNoMaterial += 1
-                # endif matlnum and MatObj/not MatObj
+                #endif not ignoreline
             # endfor row
 
             if SprshtRowNum >= MAX_COUNT_ROWS:
@@ -484,18 +491,19 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
     date_condition = '(ac.CountDate = ' + datestr + ' OR cs.CountDate = ' + datestr + ') '
     order_by = 'Matl_PartNum'
 
-    VIEW_Material_sql = "(select MATL.id AS id, MATL.org_id AS org_id, MATL.Material AS Material, MATL.Description AS Description,"
-    VIEW_Material_sql += "  MATL.Notes AS Notes, MATL.PartType_id AS PartType_id,"
-    VIEW_Material_sql += "  MATL.TypicalContainerQty AS TypicalContainerQty, MATL.TypicalPalletQty AS TypicalPalletQty,"
-    VIEW_Material_sql += "  PTYPE.WhsePartType AS PartType, ORG.orgname AS OrgName,"
-    VIEW_Material_sql += "  if((exists "
-    VIEW_Material_sql += "         (select * from WICS_materiallist numdups where ((numdups.Material = MATL.Material) and (numdups.org_id <> MATL.org_id)))) , "
-    VIEW_Material_sql += "       concat(MATL.Material, ' (', ORG.orgname, ')') , "
-    VIEW_Material_sql += "       MATL.Material "
-    VIEW_Material_sql += "     ) AS Material_org "
-    VIEW_Material_sql += "from "
-    VIEW_Material_sql += "  ((WICS_materiallist MATL join WICS_organizations ORG on (MATL.org_id = ORG.id)) left join WICS_whseparttypes `PTYPE` on MATL.PartType_id = `PTYPE`.id) "
-    VIEW_Material_sql += " ) mtl "
+    #VIEW_Material_sql = "(select MATL.id AS id, MATL.org_id AS org_id, MATL.Material AS Material, MATL.Description AS Description,"
+    #VIEW_Material_sql += "  MATL.Notes AS Notes, MATL.PartType_id AS PartType_id,"
+    #VIEW_Material_sql += "  MATL.TypicalContainerQty AS TypicalContainerQty, MATL.TypicalPalletQty AS TypicalPalletQty,"
+    #VIEW_Material_sql += "  PTYPE.WhsePartType AS PartType, ORG.orgname AS OrgName,"
+    #VIEW_Material_sql += "  if((exists "
+    #VIEW_Material_sql += "         (select * from WICS_materiallist numdups where ((numdups.Material = MATL.Material) and (numdups.org_id <> MATL.org_id)))) , "
+    #VIEW_Material_sql += "       concat(MATL.Material, ' (', ORG.orgname, ')') , "
+    #VIEW_Material_sql += "       MATL.Material "
+    #VIEW_Material_sql += "     ) AS Material_org "
+    #VIEW_Material_sql += "from "
+    #VIEW_Material_sql += "  ((WICS_materiallist MATL join WICS_organizations ORG on (MATL.org_id = ORG.id)) left join WICS_whseparttypes `PTYPE` on MATL.PartType_id = `PTYPE`.id) "
+    #VIEW_Material_sql += " ) mtl "
+    VIEW_Material_sql = "VIEW_materials mtl "
 
     for org in Organizations.objects.all():
         # group by org_id

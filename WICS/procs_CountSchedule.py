@@ -12,8 +12,7 @@ from barcode import Code128
 from userprofiles.models import WICSuser
 from cMenu.models import getcParm
 from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate, ExcelWorkbook_fileext
-from WICS.models import MaterialList, CountSchedule, VIEW_countschedule, VIEW_LastFoundAtList
-from WICS.models import LastFoundAt, WorksheetZones, Location_WorksheetZone
+from WICS.models import MaterialList, VIEW_materials, CountSchedule, VIEW_countschedule, VIEW_LastFoundAtList
 from WICS.procs_SAP import fnSAPList
 from typing import *
 from openpyxl import load_workbook
@@ -307,7 +306,7 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
         SAP_SOH = fnSAPList(self.CountDate)
         self.SAPDate = SAP_SOH['SAPDate']
         qs = CountSchedule.objects.filter(CountDate=self.CountDate).order_by(*self.ordering).select_related('Material','Material__PartType')
-        qs = qs.annotate(LastFoundAt=Value(''), SAPQty=Value(0), MaterialBarCode=Value(''), Material_org=Value(''))
+        qs = qs.annotate(LastCountDate=Value(0), LastFoundAt=Value(''), SAPQty=Value(0), MaterialBarCode=Value(''), Material_org=Value(''))
         Mat3char = None
         prevCtr = None
         for rec in qs:
@@ -325,12 +324,8 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
             bcstr = Code128(str(strMatlNum)).render(writer_options={'module_height':7.0,'module_width':0.35,'quiet_zone':0.1,'write_text':True,'text_distance':3.5})
             bcstr = str(bcstr).replace("b'","").replace('\\r','').replace('\\n','').replace("'","")
             rec.MaterialBarCode = bcstr
-            rec.LastFoundAt = LastFoundAt(rec.Material)
-            zoneList = []
-            for lz in Location_WorksheetZone.objects.all().values('location','zone'):
-                if regex.search(lz['location'],rec.LastFoundAt['lastFoundAt']):    #if lz['location'] in rec.LastFoundAt['lastFoundAt']: 
-                    zoneList.append(lz['zone'])
-            rec.Zones = zoneList
+            rec.LastFoundAt = VIEW_materials.objects.get(pk=rec.Material_id).LastFoundAt
+            rec.LastCountDate = VIEW_materials.objects.get(pk=rec.Material_id).LastCountDate
             for SAProw in SAP_SOH['SAPTable'].filter(Material=rec.Material):
                 rec.SAPQty += SAProw.Amount*SAProw.mult
 
@@ -344,13 +339,6 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
     #     return HttpResponse('Stop rushing me!!')
 
     def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
-        #DIE: zoneListqs = WorksheetZones.objects.order_by('zone')
-        #DIE: numZones = zoneListqs.last().zone
-        #DIE: # oops -- I need zoneList to be an array with '' if there's no zone
-        #DIE: zoneList = [''] * numZones
-        #DIE: for Z in zoneListqs:
-        #DIE:     zoneList[Z.zone-1] = Z.zoneName
-
         # collect the list of Counters so that tabs can be built in the html
         CounterList = CountSchedule.objects.filter(CountDate=self.CountDate).order_by('Counter').values('Counter').distinct()
 
@@ -361,7 +349,6 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
         LocationList = VIEW_LastFoundAtList(MList).annotate(Counter=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1])).order_by('FoundAt') if MList.exists() else []
 
         context.update({
-                #DIE: 'zoneList': zoneList,
                 'LocationList': LocationList,
                 'CounterList': CounterList,
                 'CountDate': self.CountDate,     # .as_datetime(), -- this was done in setup()

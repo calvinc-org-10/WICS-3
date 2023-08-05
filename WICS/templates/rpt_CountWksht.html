@@ -112,7 +112,7 @@
         <div class="col-11">
             {{ CountDate|date:'Y-m-d' }} |
             {{ itm.Material.PartType.WhsePartType|default:"NO PART TYPE" }} |
-            Prio: <b>{{ itm.Priority }}</b> |
+            Prio: <b>{{ itm.Priority|default:"---" }}</b> |
             Sched Counter: {{ itm.Counter|default:"---" }} |
             {{ itm.Material.Description }}
         </div>
@@ -121,7 +121,7 @@
         <div class="col-11">
         Typical Container Qty = {{ itm.Material.TypicalContainerQty }},
         Typical Pallet Qty = {{ itm.Material.TypicalPalletQty }} |
-        Last Found On {{ itm.LastFoundAt.lastCountDate|default_if_none:"---" }} At {{ itm.LastFoundAt.lastFoundAt|default:"---" }}
+        Last Found On {{ itm.LastCountDate|default_if_none:"---" }} At {{ itm.LastFoundAt|default:"---" }}
         </div>
     </div>
     <div class="row g-0 calvin-smalltext">

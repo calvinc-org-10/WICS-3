@@ -34,24 +34,34 @@
             {{ itm.org }} {{ itm.Material }} |
             Part Type: {{ itm.PartType }} |
             Last Counted: 
-            {% if itm.LFADate|date:"Y-m-d" == '0001-01-01' %}
+            {% if itm.LastCountDate|date:"Y-m-d" == '0001-01-01' %}
             {# A date of 0001-01-01 is secret code for no date #}
                                 |
             {% else %}
-                {{ itm.LFADate }} |
+                {{ itm.LastCountDate }} |
             {% endif %}
-            Last Found At: {{ itm.LFALocation }} |
+            Last Found At: {{ itm.LastFoundAt }} |
             {% if itm.SAPQty %}
                 SAPQty = {{ itm.SAPQty|floatformat:"1" }} |
             {% else %}
                 <b>No SAP Qty</b> |
             {% endif %}
             {{ itm.SAPValue|floatformat:"2g" }} {{ itm.SAPCurrency }} |
+            Unit Value: {{ itm.UnitValue|floatformat:"2g"}} |
             {{ itm.Notes }}
             <br>
             <span class="calvin-smalltext">{{ itm.Description }}</span>
             </div>
-            <div class="col-2"><button id="SchedCt{{ itm.id }}" class="SchedCt" value="{{ itm.id }}" type="button">Schedule Count</button></div>
+            <div class="col-3">
+                {% if itm.ScheduledForToday %}
+                    <b>SCHEDULED FOR COUNT TODAY</b>
+                {% endif %}
+                {% if itm.NextScheduledCount %}
+                    {% if itm.ScheduledForToday %}<br>{% endif %}
+                    Next Sched Count: {{ itm.NextScheduledCount }}{% endif %}
+                {% if itm.NextScheduledCount or itm.NextScheduledCount %}<br>{% endif %}
+                <button id="SchedCt{{ itm.id }}" class="SchedCt" value="{{ itm.id }}" type="button">Schedule Count</button>
+            </div>
         </div>
     <hr>
     {% endfor %}

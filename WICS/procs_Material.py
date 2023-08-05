@@ -21,14 +21,13 @@ from userprofiles.models import WICSuser
 from WICS.globals import _defaultOrg
 from WICS.forms import MaterialForm, MaterialCountSummary, PartTypesForm
 from WICS.models import MaterialList, VIEW_materials, WhsePartTypes
-from WICS.models import CountSchedule, ActualCounts, VIEW_LastFoundAt, LastFoundAt, FoundAt
+from WICS.models import CountSchedule, ActualCounts, FoundAt
 from WICS.models import SAP_SOHRecs, UnitsOfMeasure #, VIEW_SAP
 from WICS.procs_SAP import fnSAPList
 from typing import Any, Dict
 
 
 class MaterialLocationsList(LoginRequiredMixin, ListView):
-    #TODO:  Get away from the VIEWs
     #login_url = reverse('WICSlogin')
     # ordering = ['org_id','Material']  - ordering should not be defined on a raw queryset
     context_object_name = 'MatlList'
@@ -39,11 +38,15 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
         self._user = req.user
         #TODO: Lose the view in the sql below
         # get last count date (incl LocationOnly) for each Material (prefetch_related?)
-        sqlLFA = "SELECT MATL.id, MATL.OrgName, MATL.Material, MATL.Description, MATL.PartType_id, LFA.CountDate AS LFADate, LFA.FoundAt AS LFALocation,"
-        sqlLFA += " MATL.Notes, 0 AS SAPList, FALSE AS DoNotShow"
-        sqlLFA += " FROM VIEW_LastFoundAt LFA JOIN VIEW_materials MATL ON LFA.Material_id = MATL.id"
-        sqlLFA += " ORDER BY MATL.org_id, MATL.Material"
-        qs = MaterialList.objects.raw(sqlLFA)
+        #sqlLFA = "SELECT MATL.id, MATL.OrgName, MATL.Material, MATL.Description, MATL.PartType_id, LFA.CountDate AS LFADate, LFA.FoundAt AS LFALocation,"
+        #sqlLFA += " MATL.Notes, 0 AS SAPList, FALSE AS DoNotShow"
+        #sqlLFA += " FROM VIEW_LastFoundAt LFA JOIN VIEW_materials MATL ON LFA.Material_id = MATL.id"
+        #sqlLFA += " ORDER BY MATL.org_id, MATL.Material"
+        #qs = MaterialList.objects.raw(sqlLFA)
+        qs = VIEW_materials.objects.all().annotate(
+                        SAPList=Value(0),
+                        DoNotShow=Value(False),
+                    )
 
         # it's more efficient to pull this all now and store it for the upcoming qs request
         SAP = fnSAPList()
@@ -57,9 +60,9 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
         qs = super().get_queryset()
         for rec in qs:
             #pass in Material record
-            rec.SAPList = self.SAPTable.filter(Material=rec)
+            rec.SAPList = self.SAPTable.filter(Material_id=rec.pk)
             # filter Material in SAP_SOH for date OR last count date within 30d
-            testdate = rec.LFADate
+            testdate = rec.LastCountDate
             if testdate == None: testdate = calvindate(MINYEAR, 1, 1)
             rec.DoNotShow = (not rec.SAPList.exists()) and (testdate < calvindate().today()-int(getcParm('LOCRPT-COUNTDAYS-IFNOSAP')))
 
@@ -77,7 +80,6 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
 
 @login_required
 def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffDate=None):
-    _DEFAULTHISTORYDAYS = -60   # default number of history days to provide for subforms
 
     FormMain = MaterialForm
 
@@ -90,12 +92,6 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
         # 1 = CountSchedule SubForm
         ['id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'Notes',],
     ]
-
-    #DIE?: I thought this would help -- mebbe not
-    # if HistoryCutoffDate is None:
-    #     HistoryCutoffDate = calvindate().daysfrom(_DEFAULTHISTORYDAYS)
-    # else:
-    #     HistoryCutoffDate = calvindate(HistoryCutoffDate)
 
     # get current record
     currRec = None
@@ -144,13 +140,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
 
     gotoForm = {}
     gotoForm['choicelist'] = \
-    MaterialList.objects.all().annotate(Material_org=Case(
-        When(Exists(MaterialList.objects.filter(Material=OuterRef('Material')).exclude(org=OuterRef('org'))),
-             then=Concat(F('Material'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
-             ),
-        default=F('Material')
-        )
-        ).values('id','Material_org')
+    VIEW_materials.objects.all().values('id','Material_org')
     gotoForm['gotoItem'] = currRec
 
     if req.method == 'POST':
@@ -267,11 +257,9 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
     cntext = {
             'frmMain': mtlFm,
             'userReadOnly': req.user.has_perm('WICS.Material_onlyview') and not req.user.has_perm('WICS.SuperUser'),
-            'lastFoundAt': LastFoundAt(currRec),
-            # 'FoundAt': FoundAt(currRec).filter(CountDate__gte=HistoryCutoffDate),
+            'lastFoundAt': VIEW_materials.objects.filter(pk=currRec.pk).values('LastCountDate','LastFoundAt')[0],
             'FoundAt': FoundAt(currRec),
             'gotoForm': gotoForm,
-            # 'HistoryCutoffDate': HistoryCutoffDate.as_datetime(),
             'countset': countSet,
             'scheduleset': schedSet,
             'countsummset': summarySet,
@@ -294,11 +282,11 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
     template_name = 'frm_MatlListing.html'
 
     SAPSums = {}
-    LastFoundAt_dict = {}
 
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
-        self.queryset = MaterialList.objects.order_by(*self.ordering).annotate(LFADate=Value(0), LFALocation=Value(''), SAPQty=Value(0), HasSAPQty=Value(False), SAPValue=Value(0), SAPCurrency=Value(''))
+        #self.queryset = MaterialList.objects.order_by(*self.ordering).annotate(LFADate=Value(0), LFALocation=Value(''), SAPQty=Value(0), HasSAPQty=Value(False), SAPValue=Value(0), SAPCurrency=Value(''))
+        self.queryset = VIEW_materials.objects.order_by(*self.ordering).annotate(SAPQty=Value(0), HasSAPQty=Value(False), SAPValue=Value(0), SAPCurrency=Value(''), UnitValue=Value(0))
 
         # it's more efficient to pull this all now and store it for the upcoming qs request
         SAP = fnSAPList()
@@ -311,29 +299,19 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
                 'Currency': x['Currency'],
                 }
 
-        LastFoundAt_qs = VIEW_LastFoundAt()
-        for rec in LastFoundAt_qs:
-            self.LastFoundAt_dict[rec['Material_id']] = rec
-
         return super().setup(req, *args, **kwargs)
 
     # this should get called (super) and added to for the child classes
     def get_queryset(self) -> QuerySet[Any]:
         qs = super().get_queryset()
         for rec in qs:
-            if rec.id in self.LastFoundAt_dict:
-                L = self.LastFoundAt_dict[rec.id]
-                rec.LFADate = L['CountDate']
-                rec.LFALocation = L['FoundAt']
-            else:
-                rec.LFADate = datetime.date(MINYEAR,1,1)
-            # rec.LFALocation = L['lastFoundAt']
             rec.SAPQty = 0
             if rec.id in self.SAPSums:
                 rec.SAPQty = self.SAPSums[rec.id]['Qty']
                 rec.SAPValue = self.SAPSums[rec.id]['Value']
                 rec.SAPCurrency = self.SAPSums[rec.id]['Currency']
                 rec.HasSAPQty = True
+                rec.UnitValue = 0 if not rec.SAPQty else rec.SAPValue/rec.SAPQty
 
         return qs
 
@@ -347,7 +325,7 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
 #####################################################################
 
 class MaterialByPartType(MaterialListCommonView):
-    ordering = ['PartType__WhsePartType', 'Material']
+    ordering = ['PartTypeName', 'Material']
     rptName = 'Material By Part Type'
 
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
@@ -360,7 +338,8 @@ class MaterialByPartType(MaterialListCommonView):
 #####################################################################
 
 class MaterialByLastCountDate(MaterialListCommonView):
-    ordering = ['Material']   # ordering is actually based on a field to be added, and is changed in get_queryset
+    ordering = ['LastCountDate','Material']   # ordering is actually based on a field to be added, and is changed in get_queryset
+    finalordering = ['-HasSAPQty','LastCountDate','Material']   # ordering is actually based on a field to be added, and is changed in get_queryset
     rptName = 'Material By Last Count Date'
 
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
@@ -371,11 +350,12 @@ class MaterialByLastCountDate(MaterialListCommonView):
         qs = super().get_queryset()
 
         q_list = list(qs)
-        # already sorted by Material
+        # already sorted by LastCountDate and Material
         # .order_by('-HasSAPQty', 'LFADate', 'Material')
-        q_list.sort(key=attrgetter('LFADate'))
         q_list.sort(key=attrgetter('HasSAPQty'),reverse=True)
         return q_list
+
+        # return qs
 
 #####################################################################
 
@@ -424,7 +404,6 @@ def fnLocationList(req):
 MatlSubFm_fldlist = ['id','org','Material', 'Description', 'PartType', 'Price', 'PriceUnit', 'TypicalContainerQty', 'TypicalPalletQty', 'Notes']
 
 
-# later -- check for uniqueness of (org, WhsePartType), (org,PartTypePriority)
 @login_required
 def fnPartTypesForm(req, recNum = -1, gotoRec=False):
     # get current record
@@ -459,14 +438,15 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
     # we cannot use VIEW_materials because inlineformset_factory needs a real FK to PartTypes
     # but I want Material_org to present to the user, so...
     #TODO: use the tools I've already built for other forms
-    MaterialList_qs = MaterialList.objects.all().select_related('org')\
-        .annotate(Material_org=
-                  Case(
-                    When(Exists(Subquery(MaterialList.objects.exclude(org=OuterRef('org')))),then=Concat(F('org__orgname'),Value(' '),F('Material'),output_field=models.CharField())),
-                    default=F('Material'),
-                    )
-                )\
-        .order_by('Material_org')
+    #MaterialList_qs = MaterialList.objects.all().select_related('org')\
+    #    .annotate(Material_org=
+    #              Case(
+    #                When(Exists(Subquery(MaterialList.objects.exclude(org=OuterRef('org')))),then=Concat(F('org__orgname'),Value(' '),F('Material'),output_field=models.CharField())),
+    #                default=F('Material'),
+    #                )
+    #            )\
+    #    .order_by('Material_org')
+    MaterialList_qs = VIEW_materials.objects.all().select_related('org').order_by('Material_org')
 
     if req.method == 'POST':
         # changed data is being submitted.  process and save it

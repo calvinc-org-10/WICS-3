@@ -104,6 +104,7 @@ def fnMaterial_id(org_id:int,Material:str) -> str | None:
     except:
         return None
 
+# DIE - no longer needed
 def VIEW_materials_fn():
     LastCounts_qs = ActualCounts.objects.values('Material').annotate(LastCountDate=Max('CountDate'))
     LastFoundAt_qs = ActualCounts.objects.values('Material', 'CountDate')\
@@ -144,7 +145,7 @@ class VIEW_materials(models.Model):
     TypicalContainerQty = models.CharField(max_length=100, null=True, blank=True, default=None)
     TypicalPalletQty = models.CharField(max_length=100, null=True, blank=True, default=None)
     Notes = models.CharField(max_length=250, blank=True, default='')
-    PartType = models.CharField(max_length=50)
+    PartTypeName = models.CharField(max_length=50,db_column='PartType')
     OrgName = models.CharField(max_length=250)
     LastCountDate = models.DateField()
     LastFoundAt = models.CharField(max_length=4096)
@@ -258,49 +259,6 @@ def FoundAt(matl = None):
 
     FA_qs = Totalqs.values('Material', 'Material_org', 'CountDate').annotate(FoundAt=GroupConcat('LOCATION',distinct=True, ordering='LOCATION'))
     return FA_qs
-
-
-def VIEW_LastFoundAt(matl = None):
-    """NOTE:  This returns a list of dictionaries, **NOT** a QuerySet!!! """
-    if matl is None:
-        RecordRestrict_sql = ''
-    else:
-        RecordRestrict_sql = f'ACT.Material_id = {matl.pk}'
-
-    LFAsql = ""
-    LFAsql += "SELECT ACT.`Material_id`,"
-    LFAsql += "	    CASE WHEN EXISTS(SELECT (1) AS `a` FROM `WICS_materiallist` U0 WHERE (U0.`Material` = (MATL.`Material`) AND NOT (U0.`org_id` = (MATL.`org_id`))) LIMIT 1)"
-    LFAsql += "		    THEN CONCAT_WS('', MATL.`Material`, ' (', ORG.`orgname`, ')')"
-    LFAsql += "		    ELSE MATL.`Material`"
-    LFAsql += "	        END AS `Material_org`,"
-    LFAsql += "	    ACT.`CountDate`,"
-    LFAsql += "	    GROUP_CONCAT(DISTINCT ACT.`LOCATION` ORDER BY LOCATION) AS `FoundAt`"
-    LFAsql += " FROM `WICS_actualcounts` ACT"
-    LFAsql += " INNER JOIN `WICS_materiallist` MATL ON (ACT.`Material_id` = MATL.`id`)"
-    LFAsql += " INNER JOIN `WICS_organizations` ORG ON (MATL.`org_id` = ORG.`id`)"
-    LFAsql += " INNER JOIN (SELECT U0.Material_id, MAX(U0.`CountDate`) AS `MaxCtDt` FROM `WICS_actualcounts` U0 GROUP BY U0.`Material_id`) V1"
-    LFAsql += " ON ACT.`CountDate` = V1.MaxCtDt AND ACT.Material_id = V1.Material_id"
-    if RecordRestrict_sql: LFAsql += f" WHERE {RecordRestrict_sql}"
-    LFAsql += " GROUP BY ACT.`Material_id`, ACT.`CountDate`"
-    LFAsql += " ORDER BY Material_org"
-
-    with connection.cursor() as cursor:
-        cursor.execute(LFAsql)
-        LFAList = dictfetchall(cursor)
-    
-    return LFAList
-
-def LastFoundAt(matl):
-    lastCountDate = None
-    LFAString = ''
-
-    if isinstance(matl,(int, MaterialList)):
-        LFAqs = VIEW_LastFoundAt(matl)
-        if LFAqs:
-            lastCountDate = LFAqs[0]['CountDate']
-            LFAString = LFAqs[0]['FoundAt']
-
-    return {'lastCountDate': lastCountDate, 'lastFoundAt': LFAString,}
 
 def VIEW_LastFoundAtList(matl=None):
 
