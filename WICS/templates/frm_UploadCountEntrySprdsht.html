@@ -16,21 +16,28 @@
         <div class="col-2 text-end"> {{ user.get_full_name }} </div>
     </div>
     <div class="row"> <!-- status messages -->
-        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
-    </div>
-    </div>
+        <div id="wait_spinner" class="container" style="display:none">
+            <div class="spinner-border text-success"></div>
+            Processing... 
+            <br>
+            <span id="retStatecode" style="display:none"></span><span id="Upload-Status"></span>
+        </div>
+        <div id="fatalErrMsg"></div>
+    </div>  <!-- row -->
+    </div>  <!-- container -->
 
     <hr>
-    <form method="post" enctype="multipart/form-data">
+    <form id="getUplSprsheet" method="post" enctype="multipart/form-data">
         {% csrf_token %}
         Where is the Count Entry Spreadsheet?
         <input type="file" name="CEFile" required id="id_CEFile">
+        <input id="phase" name="phase" type="hidden" value='init-upl'></input>
         <br><br>
         <!-- form footer -->
         <div class="container">
             <div class="row mx-auto max-width=100%">
                 <div class="col-4">
-                    <button id="save_btn" type="submit">
+                    <button id="save_btn" type="button" onclick="PollServer();">
                         <img src="{% static 'upload-outbox-line-icon.svg' %}" width="20" height="20"></img>
                         Upload
                     </button>
@@ -45,9 +52,12 @@
             </div>
         </div>
 
-  </form>
+    </form>
 
     <script>
+        var intervalID;
+        const POLLING_INTERVAL = 1000;
+
         document.body.onbeforeunload = function() {
             document.getElementById("wait_spinner").style.display = "block";
             }
@@ -56,6 +66,68 @@
             function(){
                 window.close();
             });
+
+        function PollServer(){
+
+            var phase = $("#phase").val()
+            var retStatecode;
+            const fform = document.getElementById("getUplSprsheet");
+            const formdata = new FormData(fform);
+
+            function SetRetData(data) {
+                $( '#Upload-Status' ).text( data.statetext );
+                $( "#retStatecode" ).text(data.statecode);
+                };
+
+            if (phase == 'init-upl') {
+                $( '#Upload-Status' ).text( "" );
+                $( '#fatalErrMsg' ).text( "" );
+                document.getElementById("wait_spinner").style.display = "block";
+
+                $.ajax({
+                    method: 'POST', 
+                    data: formdata, 
+                    processData: false, 
+                    contentType: false, 
+                    });
+                $("#phase").val('waiting')
+                intervalID = setInterval(PollServer,POLLING_INTERVAL);
+                $( "#retStatecode" ).text('waiting');   // fake code to skip rest of this iteration
+            } else if (phase == 'waiting') {
+                $.ajax({
+                    method: 'POST', 
+                    data: formdata, 
+                    dataType: "json",
+                    processData: false, 
+                    contentType: false, 
+                    success: SetRetData,
+                    });
+            };
+
+            retStatecode = $( "#retStatecode" ).text();
+            if (retStatecode == "fatalerr") {
+                // kill intervalID = setInterval(PollBackend,1500,'waiting');
+                clearInterval(intervalID);
+
+                $( '#fatalErrMsg' ).text( $("#Upload-Status").text() );
+                $( '#Upload-Status' ).text( "" );
+                document.getElementById("wait_spinner").style.display = "none";
+                
+                $("#phase").val('init-upl')
+                
+                $( '#id_CEFile' ).val(null);
+                $( '#id_CEFile' ).trigger("focus");
+            }
+            if (retStatecode == "done") {
+                // kill intervalID = setInterval(PollBackend,1500,'waiting');
+                clearInterval(intervalID);
+
+                // switch to results
+                $("#phase").val('wantresults');
+                $("#getUplSprsheet").trigger("submit");
+            };
+            }
+
     </script>
 
 {% endblock %}

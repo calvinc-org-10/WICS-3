@@ -21,13 +21,14 @@
     </div>
 </div>
 <hr>
+{% csrf_token %}
 {% if ImpErrList %}
 <hr>
 <b>Errors:</b>
 <ul>
     {% for err in ImpErrList %}
     <li>
-        <b>{{ err }}</b>
+        <b>{{ err.errmsg }}</b>
     </li>
     {% empty %}
         <li><b>None!</b></li>
@@ -39,8 +40,8 @@ Material Added:
 <ul>
     {% for rec in AddedMatls %}
         <li>
-        id {{ rec.id }} - 
-        {{ rec.orgname }} -
+        id {{ rec.MaterialLink_id }} - 
+        {{ rec.org }} -
         {{ rec.Material }} - 
         {{ rec.Description }} - 
         {{ rec.SAPMaterialType }} -
@@ -82,6 +83,20 @@ Material Removed:
     </div>
 </div>
 <script>
+
+    $( document ).ready(function() {
+        const formdata = new FormData();
+        formdata.append('phase', 'resultspresented')
+        csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        $.ajax({
+            type: 'POST', 
+            data: formdata,
+            headers: {'X-CSRFToken': csrftoken},
+            processData: false, 
+            contentType: false, 
+            success: function(data) {}
+            });
+    });
 
     /****
      document.body.onbeforeunload = function() {

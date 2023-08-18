@@ -15,6 +15,7 @@
     </div>
     <hr>
 
+    {% csrf_token %}
     <h4>
         {{ ResultStats.nRowsRead }} spreadsheet rows read <br>
         {{ ResultStats.nRowsNoMaterial }} rows skipped - no Material given or WICSIgnore = 1 <br> 
@@ -25,14 +26,22 @@
     <ul>
     {% for res in UplResults %}
         <li>
-            {% if not res.error %}
-                Sprsht row {{ res.rowNum }}, 
+    {% comment %}
+    errState = models.CharField(max_length=100, null=True)
+    errmsg = models.CharField(max_length=512, null=True)
+    rowNum = models.IntegerField(null=True)
+    {% endcomment %}
+            Sprsht row {{ res.rowNum }}, 
+            {% if 'error' not in res.errState %}
+                {% comment %}
                 Count Record {{ res.id }}: {{ res.CountDate|date:'Y-m-d '}} | {{ res.MaterialNum }} |
                     {{ res.Counter }} | {{ res.LOCATION }} |
                     {% if res.LocationOnly %}LOCATION ONLY{% else %}{{res.CTD_QTY_Expr }}{% endif %} 
                     added
+                {% endcomment %}
+                Count Record {{ res.errmsg }} added
             {% else %}
-                <b>{{ res }}</b>
+                <b>{{ res.errState }}: {{ res.errmsg }}</b>
             {% endif %}
         </li>
     {% endfor %}
@@ -52,4 +61,20 @@
         </div>
     </div>
     
+    <script>
+        $( document ).ready(function() {
+            const formdata = new FormData();
+            formdata.append('phase', 'resultspresented')
+            csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            $.ajax({
+                type: 'POST', 
+                data: formdata,
+                headers: {'X-CSRFToken': csrftoken},
+                processData: false, 
+                contentType: false, 
+                success: function(data) {}
+                });
+        });    
+    </script>
+
 {% endblock %}

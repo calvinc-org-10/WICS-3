@@ -2,7 +2,7 @@
 {% load widget_tweaks %}
 {% load static %}
 
-{% block tTitle %}Upload SAP File Successful{% endblock %}
+{% block tTitle %}Upload SAP MB52 File Successful{% endblock %}
 
 {% block boddy %}
     <div class="container text-center mx-auto">
@@ -15,7 +15,9 @@
     </div>
     <hr>
 
-    <h4>{{ nRows }} SAP SOH spreadsheet records successfully uploaded with date {{ uploaded_at|date:'Y-m-d' }}!</h4>
+    {% csrf_token %}
+    
+    <h4>{{ nRows }} SAP SOH (MB52) spreadsheet records successfully uploaded with date {{ uploaded_at }}! {# {{ uploaded_at|date:'Y-m-d' }}! #}</h4>
     {% if UplProblems %}
     <h4><u>Problems:</u></h4>
     <ul>
@@ -39,5 +41,21 @@
             </div>
         </div>
     </div>
-    
+
+    <script>
+        $( document ).ready(function() {
+            const formdata = new FormData();
+            formdata.append('phase', 'resultspresented')
+            csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            $.ajax({
+                type: 'POST', 
+                data: formdata,
+                headers: {'X-CSRFToken': csrftoken},
+                processData: false, 
+                contentType: false, 
+                success: function(data) {}
+                });
+        });    
+    </script>
+
 {% endblock %}

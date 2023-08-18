@@ -1,20 +1,24 @@
 import datetime
+import json
 import os, uuid
+import subprocess, signal
 from django import forms
 from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models.query import QuerySet
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 from django.views.generic import ListView
+from django_q.tasks import async_task
 from typing import *
 from cMenu.models import getcParm
 from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate, ExcelWorkbook_fileext, Excelfile_fromqs
 from mathematical_expressions_parser.eval import evaluate
 from openpyxl import load_workbook
 from openpyxl.utils.datetime import from_excel, WINDOWS_EPOCH
-from WICS.models import ActualCounts, MaterialList, CountSchedule, Organizations
+from WICS.models import ActualCounts, MaterialList, CountSchedule, Organizations, UploadSAPResults
+from WICS.models_async_comm import async_comm, set_async_comm_state
 from WICS.procs_SAP import fnSAPList
 
 
@@ -22,274 +26,470 @@ from WICS.procs_SAP import fnSAPList
 ##############################################################
 ##############################################################
 
+##### the suite of procs to support fnUploadCountSpreadsheet
+
+
+def cleanupfld(fld, val, CountSprshtDateEpoch = WINDOWS_EPOCH):
+    """
+    fld is the name of the field in the ActualCount or MaterialList table
+    val is the value to be cleaned for insertion into the fld
+    Returns  {'usefld':usefld, 'cleanval': cleanval}
+        usefld is a boolean indicating that val could/not be cleaned to the correct type
+        cleanval is val in the correct type (if usefld==True)
+    """
+    cleanval = None
+
+    if   fld == 'CountDate': 
+        if isinstance(val,(calvindate, datetime.date, datetime.datetime)):
+            usefld = True
+            cleanval = calvindate(val).as_datetime()
+        elif isinstance(val,int):
+            usefld = True
+            cleanval = from_excel(val,CountSprshtDateEpoch)
+        else:
+            usefld = isDate(val) 
+            if (usefld != False):
+                cleanval = calvindate(usefld).as_datetime()
+                usefld = True
+    elif fld in \
+        ['CTD_QTY_Expr', 
+            ]:
+        if isinstance(val,str):
+            if val[0] == '=':
+                val = val[1:]
+        try:
+            v = evaluate(str(val))
+        except (SyntaxError, NameError, TypeError, ZeroDivisionError):
+            v = "-- INVALID --"
+        usefld = (v!="-- INVALID --")
+        cleanval = str(val) if (v != "--INVALID--") else None
+    elif fld in \
+        ['org_id', 
+            'LocationOnly',
+            'FLAG_PossiblyNotRecieved', 
+            'FLAG_MovementDuringCount',
+            ]:
+        try:
+            cleanval = int(val)
+            usefld = True
+        except:
+            usefld = False
+    elif fld in \
+        ['Material', 
+            'Counter', 
+            'LOCATION', 
+            'Notes', 
+            'TypicalContainerQty', 
+            'TypicalPalletQty',
+            'PKGID_Desc',	
+            'TAGQTY',
+            ]:
+        usefld = (val is not None)
+        if usefld: cleanval = str(val)
+    else:
+        usefld = True
+        cleanval = val
+    
+    return {'usefld':usefld, 'cleanval': cleanval}
+#end def cleanupfld
+
+def proc_UpActCountSprsheet_00InitUpld(reqid):
+    acomm = set_async_comm_state(
+        reqid,
+        processname = 'Upload Counts',
+        statecode = 'reading-spreadsht-init',
+        statetext = 'Initializing',
+        new_async=True,
+        )
+    UploadSAPResults.objects.all().delete()
+
+def proc_UpActCountSprsheet_00CopySpreadsheet(req, reqid):
+    acomm = set_async_comm_state(
+        reqid,
+        statecode = 'uploading-sprsht',
+        statetext = 'Uploading Spreadsheet',
+        )
+
+    # save the file so we can open it as an excel file
+    CountSprshtFile = req.FILES['CEFile']
+    svdir = getcParm('SAP-FILELOC')
+    fName = svdir+"tmpCE"+str(uuid.uuid4())+ExcelWorkbook_fileext
+    with open(fName, "wb") as destination:
+        for chunk in CountSprshtFile.chunks():
+            destination.write(chunk)
+    
+    return fName
+
+def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
+    acomm = set_async_comm_state(
+        reqid,
+        statecode = 'rdng-sprsht',
+        statetext = 'Reading Spreadsheet',
+        )
+
+    NOTdbFld_flags = ['**NOTdbFld**',]
+
+    wb = load_workbook(filename=fName, read_only=True)
+    CountSprshtDateEpoch = wb.epoch
+    if 'Counts' in wb:
+        ws = wb['Counts']
+    else:
+        acomm = set_async_comm_state(
+            reqid,
+            statecode = 'fatalerr',
+            statetext = 'This workbook does not contain a sheet named Counts in the correct format',
+            result = 'FAIL - no Counts sheet',
+            )
+        wb.close()
+        os.remove(fName)
+        return
+    #endif 'Counts' in wb
+
+    SprshtcolmnNames = ws[1]
+    SprshtREQUIREDFLDS = ['Material','CountDate','Counter','LOCATION']     
+        # LocationOnly/CTD_QTY_Expr handled separately since at least one must be present and both can be
+    SprshtcolmnMap = {}
+    Sprsht_SSName_TableName_map = {
+            'CountDate': 'CountDate',
+            'Counter': 'Counter',
+            'LOCATION': 'LOCATION',
+            'org_id': 'org_id',
+            'Material': 'Material',
+            'LocationOnly': 'LocationOnly',
+            'CTD_QTY_Expr': 'CTD_QTY_Expr',
+            'Typ Cntner Qty': 'TypicalContainerQty',
+            'Typ Plt Qty': 'TypicalPalletQty',
+            'Notes': 'Notes',
+            'PKGID_Desc': 'PKGID_Desc',
+            'TAGQTY': 'TAGQTY',
+            'Poss Not Rcvd': 'FLAG_PossiblyNotRecieved',
+            'Mvmt Dur Ct': 'FLAG_MovementDuringCount',
+            'WICSignore': NOTdbFld_flags[0],
+            }
+    for col in SprshtcolmnNames:
+        if col.value in Sprsht_SSName_TableName_map:
+            colkey = Sprsht_SSName_TableName_map[col.value]
+            # has this col.value already been mapped?
+            if (colkey in SprshtcolmnMap and SprshtcolmnMap[colkey] is not None):
+                # yes, that's a problem
+                set_async_comm_state(
+                    reqid,
+                    statecode = 'fatalerr',
+                    statetext = f'SAP Spreadsheet has bad header row - More than one column named {col.value}.  See Calvin to fix this.',
+                    result = 'FAIL - bad spreadsheet',
+                    )
+                wb.close()
+                os.remove(fName)
+                return
+            else:
+                SprshtcolmnMap[colkey] = col.column - 1
+            # endif previously mapped
+        #endif col.value in SAP_SSName_TableName_map
+    #endfor col in SAPcolmnNames
+
+    HeaderGood = all([(reqFld in SprshtcolmnMap) for reqFld in SprshtREQUIREDFLDS])
+    if not HeaderGood:
+        MissingRequiredFields = [reqFld for reqFld in SprshtREQUIREDFLDS if reqFld not in SprshtcolmnMap]
+        set_async_comm_state(
+            reqid,
+            statecode = 'fatalerr',
+            statetext = f'Counts worksheet has bad header row - missing columns {MissingRequiredFields}.  See Calvin to fix this.',
+            result = 'FAIL - bad spreadsheet',
+            )
+        wb.close()
+        os.remove(fName)
+        return
+
+    SprshtRowNum=1
+    nRowsAdded = 0
+    nRowsNoMaterial = 0
+    nRowsErrors = 0
+    ABSMAX_COUNT_ROWS = 5000
+    MAX_COUNT_ROWS = min(ABSMAX_COUNT_ROWS,ws.max_row)
+
+    for row in ws.iter_rows(min_row=SprshtRowNum+1, max_row=MAX_COUNT_ROWS, values_only=True):
+        SprshtRowNum += 1
+        if SprshtRowNum % 100 == 0:
+            set_async_comm_state(
+                reqid,
+                statecode = 'rdng-sprsht',
+                statetext = f'Reading Spreadsheet ... record {SprshtRowNum} of {ws.max_row}',
+                )
+
+        ignoreline = ( ( (NOTdbFld_flags[0] in SprshtcolmnMap) and (row[SprshtcolmnMap[NOTdbFld_flags[0]]]) )
+                       or (row[SprshtcolmnMap['Material']] is None)
+                    )
+        if not ignoreline:
+            matlnum = cleanupfld('Material', row[SprshtcolmnMap['Material']])['cleanval']
+            # if no org given, check that Material unique.
+            if Sprsht_SSName_TableName_map['org_id'] not in SprshtcolmnMap:
+                spshtorg = None
+            else:
+                spshtorg = cleanupfld('org_id', row[SprshtcolmnMap['org_id']])['cleanval']
+            matlorglist = MaterialList.objects.filter(Material=matlnum).values_list('org_id', flat=True)
+            MatlKount = len(matlorglist)
+            MatObj = None
+            err_already_handled = False
+            if MatlKount == 1:
+                MatObj = MaterialList.objects.get(Material=matlnum)
+                spshtorg = MatObj.org_id
+            if MatlKount > 1:
+                if spshtorg is None:
+                    UploadSAPResults(
+                        errState = 'error',
+                        errmsg = f"{matlnum} in multiple org_id's {tuple(matlorglist)}, but no org_id given", 
+                        rowNum = SprshtRowNum
+                        ).save()
+                    nRowsErrors += 1
+                    err_already_handled = True
+                elif spshtorg in matlorglist:
+                    MatObj = MaterialList.objects.get(org_id=spshtorg, Material=matlnum)
+                else:
+                    UploadSAPResults(
+                        errState = 'error',
+                        errmsg = f"{matlnum} in in multiple org_id's {tuple(matlorglist)}, but org_id given ({spshtorg}) is not one of them", 
+                        rowNum = SprshtRowNum
+                        ).save()
+                    nRowsErrors += 1
+                    err_already_handled = True
+                #endif spshtorg is None
+            #endif MatKount > 1
+
+            if not MatObj:
+                if not err_already_handled:
+                    nRowsErrors += 1
+                    UploadSAPResults(
+                        errState = 'error',
+                        errmsg = f'either {matlnum} does not exist in MaterialList or incorrect org_id ({str(spshtorg)}) given', 
+                        rowNum = SprshtRowNum
+                        ).save()
+            else:
+                rowErrs = False
+                requiredFields = {reqFld: False for reqFld in SprshtREQUIREDFLDS}
+                requiredFields['Both LocationOnly and CTD_QTY'] = False
+
+                MatChanged = False
+                SRec = ActualCounts()
+                for fldName, colNum in SprshtcolmnMap.items():
+                    if fldName in NOTdbFld_flags: continue
+                    # check/correct problematic data types
+                    usefld, V = cleanupfld(fldName, row[colNum], CountSprshtDateEpoch=CountSprshtDateEpoch).values()
+                    if (V is not None):
+                        if usefld:
+                            if   fldName == 'CountDate': 
+                                setattr(SRec, fldName, V) 
+                                requiredFields['CountDate'] = True
+                            elif fldName == 'Material': 
+                                setattr(SRec, fldName, MatObj)
+                                requiredFields['Material'] = True
+                            elif fldName == 'Counter': 
+                                setattr(SRec, fldName, V)
+                                requiredFields['Counter'] = True
+                            elif fldName == 'LOCATION': 
+                                setattr(SRec, fldName, V)
+                                requiredFields['LOCATION'] = True
+                            elif fldName == 'LocationOnly': 
+                                setattr(SRec, fldName, makebool(V))
+                                requiredFields['Both LocationOnly and CTD_QTY'] = True
+                            elif fldName == 'CTD_QTY_Expr': 
+                                setattr(SRec, fldName, V)
+                                requiredFields['Both LocationOnly and CTD_QTY'] = True
+                            elif fldName == 'TypicalContainerQty' \
+                            or fldName == 'TypicalPalletQty':
+                                if V == '' or V == None: V = 0
+                                if V != 0 and V != getattr(MatObj,fldName,0): 
+                                    setattr(MatObj, fldName, V)
+                                    MatChanged = True
+                            else:
+                                if hasattr(SRec, fldName): setattr(SRec, fldName, V)
+                            # endif fldname
+                        else:
+                            if fldName!='CTD_QTY_Expr':
+                                # we have to suspend judgement on CTD_QTY_Expr until last, because this could be a LocationOnly count
+                                rowErrs = True
+                                UploadSAPResults(
+                                    errState = 'error',
+                                    errmsg = f'{str(V)} is invalid for {fldName}', 
+                                    rowNum = SprshtRowNum
+                                    ).save()
+                        #endif usefld
+                    #endif (V is not None)
+                # for each column
+                
+                # now we determine if one of LocationOnly or CTD_QTY was given
+                if not requiredFields['Both LocationOnly and CTD_QTY']:
+                    fldName = 'CTD_QTY_Expr'
+                    V = row[SprshtcolmnMap[fldName]]
+                    rowErrs = True
+                    UploadSAPResults(
+                        errState = 'error',
+                        errmsg = f'record is not marked LocationOnly and {str(V)} is invalid for {fldName}', 
+                        rowNum = SprshtRowNum
+                        ).save()
+
+                # are all required fields present?
+                AllRequiredPresent = True
+                for keyname, Prsnt in requiredFields.items():
+                    AllRequiredPresent = AllRequiredPresent and Prsnt
+                    if not Prsnt:
+                        rowErrs = True
+                        UploadSAPResults(
+                            errState = 'error',
+                            errmsg = f'{keyname} missing', 
+                            rowNum = SprshtRowNum
+                            ).save()
+
+                if not rowErrs:
+                    SRec.save()
+                    if MatChanged: MatObj.save()
+                    # res = {'error': False, 'rowNum':SprshtRowNum, 'TypicalQty':MatChanged, 'MaterialNum': str(MatObj) }
+                    # res.update(SRec)      # tack the new record (along with its new pk) onto res
+                    # UplResults.append(res)
+                    resultString = str(SRec)
+                    resultString += ' / LOCATION ONLY'  if SRec.LocationOnly else f' / Qty= {SRec.CTD_QTY_Expr}'
+                    resultString += ' (Typ Cont Qty/Typ Plt Qty also changed)' if MatChanged else ''
+                    UploadSAPResults(
+                        errState = 'success',
+                        errmsg = resultString, 
+                        rowNum = SprshtRowNum
+                        ).save()
+                    nRowsAdded += 1
+                else:
+                    nRowsErrors += 1
+                #endif not rowErrs
+            # endif MatObj/not MatObj
+        else:
+            nRowsNoMaterial += 1
+        #endif not ignoreline
+    # endfor row in ws.iter_rows
+
+    if SprshtRowNum >= ABSMAX_COUNT_ROWS:
+        UploadSAPResults(
+            errState = 'maxrows',
+            errmsg = f'Data in spreadsheet rows {ABSMAX_COUNT_ROWS+1} and beyond are being ignored.', 
+            rowNum = -1
+            ).save()
+    UploadSAPResults(
+        errState = 'nRowsTotal',
+        errmsg = '', 
+        rowNum = SprshtRowNum
+        ).save()
+    UploadSAPResults(
+        errState = 'nRowsAdded',
+        errmsg = '', 
+        rowNum = nRowsAdded
+        ).save()
+    UploadSAPResults(
+        errState = 'nRowsErrors',
+        errmsg = '', 
+        rowNum = nRowsErrors
+        ).save()
+    UploadSAPResults(
+        errState = 'nRowsIgnored',
+        errmsg = '', 
+        rowNum = nRowsNoMaterial
+        ).save()
+
+    # close and kill temp files
+    wb.close()
+    os.remove(fName)
+def done_UpActCountSprsheet_01ReadSheet(t):
+    reqid = t.args[0]
+    statecode = async_comm.objects.get(pk=reqid).statecode
+    if statecode != 'fatalerr':
+        set_async_comm_state(
+            reqid,
+            statecode = 'done-rdng-sprsht',
+            statetext = f'Finished Reading Spreadsheet',
+            )
+        proc_UpActCountSprsheet_99_FinalProc(reqid)
+    #endif stateocde != 'fatalerr'
+
+def proc_UpActCountSprsheet_99_FinalProc(reqid):
+    set_async_comm_state(
+        reqid,
+        statecode = 'done',
+        statetext = 'Finished Processing Spreadsheet',
+        )
+
+def proc_UpActCountSprsheet_99_Cleanup(reqid):
+    # also kill reqid, acomm, qcluster process
+    async_comm.objects.filter(pk=reqid).delete()
+    os.kill(int(reqid), signal.SIGTERM) #or signal.SIGKILL import subprocess
+
+    # delete the temporary table
+    UploadSAPResults.objects.all().delete()
+
 @login_required
 def fnUploadActCountSprsht(req):
 
-    CountSprshtDateEpoch = WINDOWS_EPOCH
-    NOTdbFld_flags = ['**NOTdbFld**',]
-
-    def cleanupfld(fld, val):
-        """
-        fld is the name of the field in the ActualCount or MaterialList table
-        val is the value to be cleaned for insertion into the fld
-        Returns  {'usefld':usefld, 'cleanval': cleanval}
-            usefld is a boolean indicating that val could/not be cleaned to the correct type
-            cleanval is val in the correct type (if usefld==True)
-        """
-        cleanval = None
-
-        if   fld == 'CountDate': 
-            if isinstance(val,(calvindate, datetime.date, datetime.datetime)):
-                usefld = True
-                cleanval = calvindate(val).as_datetime()
-            elif isinstance(val,int):
-                usefld = True
-                cleanval = from_excel(val,CountSprshtDateEpoch)
-            else:
-                usefld = isDate(val) 
-                if (usefld != False):
-                    cleanval = calvindate(usefld).as_datetime()
-                    usefld = True
-        elif fld in \
-            ['CTD_QTY_Expr', 
-             ]:
-            if isinstance(val,str):
-                if val[0] == '=':
-                    val = val[1:]
-            try:
-                v = evaluate(str(val))
-            except (SyntaxError, NameError, TypeError, ZeroDivisionError):
-                v = "-- INVALID --"
-            usefld = (v!="-- INVALID --")
-            cleanval = str(val) if (v != "--INVALID--") else None
-        elif fld in \
-            ['org_id', 
-             'LocationOnly',
-             'FLAG_PossiblyNotRecieved', 
-             'FLAG_MovementDuringCount',
-             ]:
-            try:
-                cleanval = int(val)
-                usefld = True
-            except:
-                usefld = False
-        elif fld in \
-            ['Material', 
-             'Counter', 
-             'LOCATION', 
-             'Notes', 
-             'TypicalContainerQty', 
-             'TypicalPalletQty',
-             'PKGID_Desc',	
-             'TAGQTY',
-             ]:
-            usefld = (val is not None)
-            if usefld: cleanval = str(val)
-        else:
-            usefld = True
-            cleanval = val
-        
-        return {'usefld':usefld, 'cleanval': cleanval}
-    #end def cleanupfld
+    client_phase = req.POST['phase'] if 'phase' in req.POST else None
+    reqid = req.COOKIES['reqid'] if 'reqid' in req.COOKIES else None
 
     if req.method == 'POST':
-        UplResults = []
+        # check any mandatory commits here and change status code
 
-        # save the file so we can open it as an excel file
-        CountSprshtFile = req.FILES['CEFile']
-        svdir = getcParm('SAP-FILELOC')
-        fName = svdir+"tmpCE"+str(uuid.uuid4())+ExcelWorkbook_fileext
-        with open(fName, "wb") as destination:
-            for chunk in CountSprshtFile.chunks():
-                destination.write(chunk)
+        if client_phase=='init-upl':
+            retinfo = HttpResponse()
 
-        wb = load_workbook(filename=fName, read_only=True)
-        CountSprshtDateEpoch = wb.epoch
-        if 'Counts' in wb:
-            ws = wb['Counts']
-        else:
-            UplResults.append({'error':'This workbook does not contain a sheet named Counts in the correct format'})
-            ws = None
+            # start django_q broker
+            reqid = subprocess.Popen(
+                "python manage.py qcluster"
+            ).pid
+            retinfo.set_cookie('reqid',str(reqid))
+            proc_UpActCountSprsheet_00InitUpld(reqid)
 
-        if ws:
-            CountSprshtcolmnNames = ws[1]
-            CountSprshtREQUIREDFLDS = ['Material','CountDate','Counter','LOCATION']     
-                # LocationOnly/CTD_QTY_Expr handled separately since at least one must be present and both can be
-            CountSprshtcolmnMap = {}
-            CountSprsht_SSName_TableName_map = {
-                    'CountDate': 'CountDate',
-                    'Counter': 'Counter',
-                    'LOCATION': 'LOCATION',
-                    'org_id': 'org_id',
-                    'Material': 'Material',
-                    'LocationOnly': 'LocationOnly',
-                    'CTD_QTY_Expr': 'CTD_QTY_Expr',
-                    'Typ Cntner Qty': 'TypicalContainerQty',
-                    'Typ Plt Qty': 'TypicalPalletQty',
-                    'Notes': 'Notes',
-                    'PKGID_Desc': 'PKGID_Desc',
-                    'TAGQTY': 'TAGQTY',
-                    'Poss Not Rcvd': 'FLAG_PossiblyNotRecieved',
-                    'Mvmt Dur Ct': 'FLAG_MovementDuringCount',
-                    'WICSignore': NOTdbFld_flags[0],
-                    }
-            for col in CountSprshtcolmnNames:
-                if col.value in CountSprsht_SSName_TableName_map:
-                    CountSprshtcolmnMap[CountSprsht_SSName_TableName_map[col.value]] = col.column - 1
-            
-            HeaderGood = True
-            for reqFld in CountSprshtREQUIREDFLDS:
-                HeaderGood = HeaderGood and (reqFld in CountSprshtcolmnMap)
-            if not HeaderGood:
-                UplResults.append({'error':'The Counts worksheet in this workbook has bad header row'})
-                ws = None
-        #endif ws
+            # save the file so we can open it as an excel file
+            fName = proc_UpActCountSprsheet_00CopySpreadsheet(req, reqid)
 
-        SprshtRowNum=1
-        nRowsAdded = 0
-        nRowsNoMaterial = 0
-        nRowsErrors = 0
-        
-        if ws:
-            MAX_COUNT_ROWS = 5000
-            for row in ws.iter_rows(min_row=SprshtRowNum+1, max_row=MAX_COUNT_ROWS, values_only=True):
-                SprshtRowNum += 1
+            task01 = async_task(proc_UpActCountSprsheet_01ReadSheet, reqid, fName, hook=done_UpActCountSprsheet_01ReadSheet)
 
-                ignoreline = (NOTdbFld_flags[0] in CountSprshtcolmnMap) and (row[CountSprshtcolmnMap[NOTdbFld_flags[0]]])
-                if not ignoreline:
-                    # if no org given, check that Material unique.
-                    if CountSprsht_SSName_TableName_map['org_id'] not in CountSprshtcolmnMap:
-                        spshtorg = None
-                    else:
-                        spshtorg = cleanupfld('org_id', row[CountSprshtcolmnMap['org_id']])['cleanval']
-                    matlnum = cleanupfld('Material', row[CountSprshtcolmnMap['Material']])['cleanval']
-                    matlorglist = MaterialList.objects.filter(Material=matlnum).values_list('org_id', flat=True)
-                    MatlKount =  len(matlorglist)
-                    MatObj = None
-                    err_already_handled = False
-                    if MatlKount == 1:
-                        MatObj = MaterialList.objects.get(Material=matlnum)
-                        spshtorg = MatObj.org_id
-                    if MatlKount > 1:
-                        if spshtorg is None:
-                            UplResults.append({'error':f"{matlnum} in multiple org_id's {tuple(matlorglist)}, but no org_id given", 'rowNum':SprshtRowNum})
-                            nRowsErrors += 1
-                            err_already_handled = True
-                        elif spshtorg in matlorglist:
-                            MatObj = MaterialList.objects.get(org_id=spshtorg, Material=matlnum)
-                        else:
-                            UplResults.append({'error':f"{matlnum} in in multiple org_id's {tuple(matlorglist)}, but org_id given ({spshtorg}) is not one of them", 'rowNum':SprshtRowNum})
-                            nRowsErrors += 1
-                            err_already_handled = True
-
-                    if matlnum and not MatObj:
-                        if not err_already_handled:
-                            nRowsErrors += 1
-                            UplResults.append({'error':'either ' + matlnum + ' does not exist in MaterialList or incorrect org_id (' + str(spshtorg) + ') given', 'rowNum':SprshtRowNum})
-                    elif matlnum and MatObj:
-                        rowErrs = False
-                        requiredFields = {reqFld: False for reqFld in CountSprshtREQUIREDFLDS}
-                        requiredFields['Both LocationOnly and CTD_QTY'] = False
-
-                        MatChanged = False
-                        SRec = ActualCounts()
-                        for fldName, colNum in CountSprshtcolmnMap.items():
-                            if fldName in NOTdbFld_flags: continue
-                            # check/correct problematic data types
-                            usefld, V = cleanupfld(fldName, row[colNum]).values()
-                            if (V is not None):
-                                if usefld:
-                                    if   fldName == 'CountDate': 
-                                        setattr(SRec, fldName, V) 
-                                        requiredFields['CountDate'] = True
-                                    elif fldName == 'Material': 
-                                        setattr(SRec, fldName, MatObj)
-                                        requiredFields['Material'] = True
-                                    elif fldName == 'Counter': 
-                                        setattr(SRec, fldName, V)
-                                        requiredFields['Counter'] = True
-                                    elif fldName == 'LOCATION': 
-                                        setattr(SRec, fldName, V)
-                                        requiredFields['LOCATION'] = True
-                                    elif fldName == 'LocationOnly': 
-                                        setattr(SRec, fldName, makebool(V))
-                                        requiredFields['Both LocationOnly and CTD_QTY'] = True
-                                    elif fldName == 'CTD_QTY_Expr': 
-                                        setattr(SRec, fldName, V)
-                                        requiredFields['Both LocationOnly and CTD_QTY'] = True
-                                    elif fldName == 'TypicalContainerQty' \
-                                    or fldName == 'TypicalPalletQty':
-                                        if V == '' or V == None: V = 0
-                                        if V != 0 and V != getattr(MatObj,fldName,0): 
-                                            setattr(MatObj, fldName, V)
-                                            MatChanged = True
-                                    else:
-                                        if hasattr(SRec, fldName): setattr(SRec, fldName, V)
-                                    # endif fldname
-                                else:
-                                    if fldName!='CTD_QTY_Expr':
-                                        # we have to suspend judgement on CTD_QTY_Expr until last, because this could be a LocationOnly count
-                                        rowErrs = True
-                                        UplResults.append({'error':str(V)+' is invalid for '+fldName, 'rowNum':SprshtRowNum})
-                                #endif usefld
-                            #endif (V is not None)
-                        # for each column
-                        
-                        # now we determine if one of LocationOnly or CTD_QTY was given
-                        if not requiredFields['Both LocationOnly and CTD_QTY']:
-                            fldName = 'CTD_QTY_Expr'
-                            V = row[CountSprshtcolmnMap[fldName]]
-                            rowErrs = True
-                            UplResults.append({'error':
-                                                    'record is not marked LocationOnly and '+str(V)+' is invalid for '+fldName,
-                                                'rowNum':SprshtRowNum})
-
-                        # are all required fields present?
-                        AllRequiredPresent = True
-                        for keyname, Prsnt in requiredFields.items():
-                            AllRequiredPresent = AllRequiredPresent and Prsnt
-                            if not Prsnt:
-                                rowErrs = True
-                                UplResults.append({'error':keyname+' missing', 'rowNum':SprshtRowNum})
-
-                        if not rowErrs:
-                            SRec.save()
-                            if MatChanged: MatObj.save()
-                            qs = type(SRec).objects.filter(pk=SRec.pk).values().first()
-                            res = {'error': False, 'rowNum':SprshtRowNum, 'TypicalQty':MatChanged, 'MaterialNum': str(MatObj) }
-                            res.update(qs)      # tack the new record (along with its new pk) onto res
-                                #QUESTION:  can I do this directly with SRec??
-                            UplResults.append(res)
-                            nRowsAdded += 1
-                        else:
-                            nRowsErrors += 1
-                        # 
-                    else:       # Material not given
-                        nRowsNoMaterial += 1
-                    # endif matlnum and MatObj/not MatObj
-                else:
-                    nRowsNoMaterial += 1
-                #endif not ignoreline
-            # endfor row
-
-            if SprshtRowNum >= MAX_COUNT_ROWS:
-                UplResults.insert(0,{'error':f'Data in spreadsheet rows {MAX_COUNT_ROWS+1} and beyond are being ignored.'})
-        # endif ws
-
-        # close and kill temp files
-        wb.close()
-        os.remove(fName)
-
-        cntext = {'UplResults':UplResults, 
-                  'ResultStats': {
-                        'nRowsRead': SprshtRowNum - 1,      
-                            # -1 because header doesn't count
-                        'nRowsAdded': nRowsAdded ,
-                        'nRowsNoMaterial': nRowsNoMaterial,
-                        'nRowsErrors': nRowsErrors,
-                    },
+            acomm_fake = {
+                'statecode': 'starting',
+                'statetext': 'Count Spreadsheet Upload Starting',
                 }
-        templt = 'frm_uploadCountEntry_Success.html'
+            retinfo.write(json.dumps(acomm_fake))
+            return retinfo
+        elif client_phase=='waiting':
+            retinfo = HttpResponse()
+
+            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+            stcode = acomm['statecode']
+            if stcode == 'fatalerr':
+                pass
+            retinfo.write(json.dumps(acomm))
+            return retinfo
+        elif client_phase=='wantresults':
+            if UploadSAPResults.objects.filter(errState = 'nRowsTotal').exists(): SprshtRowNum = UploadSAPResults.objects.filter(errState = 'nRowsTotal')[0].rowNum
+            else: SprshtRowNum = 0
+            if UploadSAPResults.objects.filter(errState = 'nRowsAdded').exists(): nRowsAdded = UploadSAPResults.objects.filter(errState = 'nRowsAdded')[0].rowNum
+            else: nRowsAdded = 0
+            if UploadSAPResults.objects.filter(errState = 'nRowsErrors').exists(): nRowsErrors = UploadSAPResults.objects.filter(errState = 'nRowsErrors')[0].rowNum
+            else: nRowsErrors = 0
+            if UploadSAPResults.objects.filter(errState = 'nRowsIgnored').exists(): nRowsNoMaterial = UploadSAPResults.objects.filter(errState = 'nRowsIgnored')[0].rowNum
+            else: nRowsNoMaterial = 0
+            UplResults = UploadSAPResults.objects.exclude(errState__in = ['nRowsAdded','nRowsTotal','nRowsErrors','nRowsIgnored']).order_by('rowNum')
+            cntext = {'UplResults':UplResults, 
+                    'ResultStats': {
+                            'nRowsRead': SprshtRowNum - 1,      
+                                # -1 because header doesn't count
+                            'nRowsAdded': nRowsAdded ,
+                            'nRowsNoMaterial': nRowsNoMaterial,
+                            'nRowsErrors': nRowsErrors,
+                        },
+                    }
+            templt = 'frm_uploadCountEntry_Success.html'
+            return render(req, templt, cntext)
+        elif client_phase=='resultspresented':
+            proc_UpActCountSprsheet_99_Cleanup(reqid)
+            retinfo = HttpResponse()
+            retinfo.delete_cookie('reqid')
+
+            return retinfo
+        else:
+            return
+        #endif client_phase
+
     else:   # req.method != 'POST'
         cntext = {
                 }
@@ -509,8 +709,9 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
         # group by org_id
         org_condition = '(mtl.org_id = ' + str(org.pk) + ')'
 
-        A_Sched_Ctd_from = 'WICS_countschedule cs INNER JOIN ' + VIEW_Material_sql + ' INNER JOIN WICS_actualcounts ac'    
-        A_Sched_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id AND ac.Material_id=mtl.id'    
+        A_Sched_Ctd_from = 'WICS_countschedule cs INNER JOIN ' + VIEW_Material_sql 
+        A_Sched_Ctd_from += ' INNER JOIN (SELECT * FROM WICS_actualcounts WHERE not LocationOnly) ac '    
+        A_Sched_Ctd_joinon = ' cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id AND ac.Material_id=mtl.id'    
         A_Sched_Ctd_where = ''
         if Rptvariation == 'REQ':
             if A_Sched_Ctd_where:  A_Sched_Ctd_where += ' AND ' 
@@ -535,7 +736,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
 
         if Rptvariation is None:
             B_UnSched_Ctd_from = 'WICS_countschedule cs RIGHT JOIN' \
-                ' (WICS_actualcounts ac INNER JOIN ' + VIEW_Material_sql + ' ON ac.Material_id=mtl.id)'
+                ' ((SELECT * FROM WICS_actualcounts WHERE not LocationOnly) ac INNER JOIN ' + VIEW_Material_sql + ' ON ac.Material_id=mtl.id)'
             B_UnSched_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id'
             B_UnSched_Ctd_where = '(cs.id IS NULL)'
             B_UnSched_Ctd_sql = 'SELECT ' + fldlist + ' ' + \
@@ -551,8 +752,8 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
                         'outputrows': CreateOutputRows(B_UnSched_Ctd_qs)
                         })
         
-        C_Sched_NotCtd_Ctd_from = '(WICS_countschedule cs INNER JOIN ' + VIEW_Material_sql + ' ON cs.Material_id=mtl.id)' \
-            ' LEFT JOIN WICS_actualcounts ac'
+        C_Sched_NotCtd_Ctd_from = '(WICS_countschedule cs INNER JOIN ' + VIEW_Material_sql + ' ON cs.Material_id=mtl.id)' 
+        C_Sched_NotCtd_Ctd_from += ' LEFT JOIN (SELECT * FROM WICS_actualcounts WHERE not LocationOnly) ac '    
         C_Sched_NotCtd_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id'
         C_Sched_NotCtd_Ctd_where = '(ac.id IS NULL)'
         if Rptvariation == 'REQ':

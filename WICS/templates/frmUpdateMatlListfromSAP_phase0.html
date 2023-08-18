@@ -19,26 +19,30 @@
         <div id="wait_spinner" class="container" style="display:none">
             <div class="spinner-border text-success"></div>
             Processing... 
+            <br>
+            <span id="retStatecode" style="display:none"></span> <span id="Upload-Status"></span>
         </div>
+        <div id="fatalErrMsg"></div>
     </div>
 </div>
 <hr>
 
 <hr>
-<form method="post" enctype="multipart/form-data">
+<form id="getUpdSprsheet" method="post" enctype="multipart/form-data">
     {% csrf_token %}
     Where is the SAP Material List Spreadsheet? 
-    <p><input type="file"
+    <p><input id="SAPFile" type="file"
         name="SAPFile"
         accept=".xlsx,application/vnd.ms-excel">
        </input>
     </p>
+    <input id="phase" name="phase" type="hidden" value='init-upl'></input>
 
     <!-- form footer -->
     <div class="container">
         <div class="row mx-auto max-width=100%">
             <div class="col-4">
-                <button id="save_btn" type="submit">
+                <button id="save_btn" type="button" onclick="PollBackend();">
                     <img src="{% static 'upload-outbox-line-icon.svg' %}" width="20" height="20"></img>
                     Continue
                 </button>
@@ -57,6 +61,84 @@
 
 <script>
 
+    var intervalID;
+    const POLLING_INTERVAL = 3000;
+
+    function PollBackend(){
+
+        var phase = $("#phase").val()
+        var retStatecode;
+        const fform = document.getElementById("getUpdSprsheet");
+        const formdata = new FormData(fform);
+
+        function SetRetData(data) {
+            $( '#Upload-Status' ).text( data.statetext );
+            $( "#retStatecode" ).text(data.statecode);
+            };
+
+        if (phase == 'init-upl') {
+            $( '#Upload-Status' ).text( "" );
+            $( '#fatalErrMsg' ).text( "" );
+            document.getElementById("wait_spinner").style.display = "block";
+
+            $.ajax({
+                method: 'POST', 
+                data: formdata, 
+                processData: false, 
+                contentType: false, 
+                });
+            $("#phase").val('waiting')
+            intervalID = setInterval(PollBackend,POLLING_INTERVAL);
+            $( "#retStatecode" ).text('waiting');   // fake code to skip rest of this iteration
+        } else if (phase == 'waiting') {
+            $.ajax({
+                method: 'POST', 
+                data: formdata, 
+                dataType: "json",
+                processData: false, 
+                contentType: false, 
+                success: SetRetData,
+                });
+        };
+
+        retStatecode = $( "#retStatecode" ).text();
+        if (retStatecode == "fatalerr") {
+            // kill intervalID = setInterval(PollBackend,1500,'waiting');
+            clearInterval(intervalID);
+
+            $( '#fatalErrMsg' ).text( $("#Upload-Status").text() );
+            $( '#Upload-Status' ).text( "" );
+            document.getElementById("wait_spinner").style.display = "none";
+            
+            $("#phase").val('init-upl')
+            
+            $( '#SAPFile' ).val(null);
+            $( '#SAPFile' ).trigger("focus");
+        }
+        if (retStatecode == "done") {
+            // kill intervalID = setInterval(PollBackend,1500,'waiting');
+            clearInterval(intervalID);
+
+            // switch to results
+            $("#phase").val('wantresults');
+            // change this - normal post, not ajax - is this right?
+            $("#getUpdSprsheet").trigger("submit");
+            /***
+            $.ajax({
+                type: 'POST', 
+                data: formdata, 
+                dataType: "html",
+                processData: false, 
+                contentType: false, 
+                success: function (data) {
+                    document.open();
+                    document.write(data);
+                    document.close();
+                    },
+                });
+            ***/
+        };
+        }
     document.body.onbeforeunload = function() {
         document.getElementById("wait_spinner").style.display = "block";
         }

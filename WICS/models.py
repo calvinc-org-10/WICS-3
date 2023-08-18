@@ -5,6 +5,8 @@ from django.db.models.functions import Concat
 from userprofiles.models import WICSuser
 from cMenu.utils import GroupConcat, dictfetchall, calvindate
 
+from .models_async_comm import *
+
 
 # I'm quite happy with automaintained pk fields, so I don't specify any
 
@@ -87,9 +89,11 @@ class MaterialList(models.Model):
         else:
             return str(self.Material)
 class tmpMaterialListUpdate(models.Model):
+    recStatus = models.CharField(max_length=32, null=True, blank=True)      # Error, Add, Del
+    errmsg = models.CharField(max_length=256, null=True, blank=True)
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True, null=True)
     Material = models.CharField(max_length=100, blank=False)
-    MaterialLink = models.ForeignKey(MaterialList, on_delete=models.RESTRICT, blank=True, null=True)
+    MaterialLink = models.ForeignKey(MaterialList, on_delete=models.SET_NULL, blank=True, null=True)
     Description = models.CharField(max_length=250, blank=True)
     Plant = models.CharField(max_length=20, blank=True, default='')
     SAPMaterialType = models.CharField(max_length=100, blank=True)
@@ -104,32 +108,6 @@ def fnMaterial_id(org_id:int,Material:str) -> str | None:
     except:
         return None
 
-# DIE - no longer needed
-def VIEW_materials_fn():
-    LastCounts_qs = ActualCounts.objects.values('Material').annotate(LastCountDate=Max('CountDate'))
-    LastFoundAt_qs = ActualCounts.objects.values('Material', 'CountDate')\
-        .filter(CountDate=Subquery(LastCounts_qs.filter(Material=OuterRef('Material')).values('LastCountDate')[:1]))\
-        .annotate(FoundAt=GroupConcat('LOCATION',distinct=True, ordering='LOCATION'))
-    NextScheduled_qs = CountSchedule.objects.values('Material')\
-        .filter(CountDate__gt=calvindate()).annotate(NextScheduledCount=Min('CountDate'))
-    ScheduledToday_qs = CountSchedule.objects.values('Material','CountDate')\
-        .filter(CountDate=calvindate())
-
-    return MaterialList.objects.all()\
-        .annotate(
-            PrtType=F('PartType__WhsePartType'),
-            OrgName=F('org__orgname'),
-            Material_org=Case(
-                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material')).exclude(org=OuterRef('org'))),
-                    then=Concat(F('Material'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
-                    ),
-                default=F('Material')
-                ),
-            LastCountDate=Subquery(LastFoundAt_qs.filter(Material=OuterRef('Material')).values('CountDate')[:1]),
-            LastFoundAt=Subquery(LastFoundAt_qs.filter(Material=OuterRef('Material')).values('FoundAt')[:1]),
-            NextScheduledCount=Subquery(NextScheduled_qs.filter(Material=OuterRef('Material')).values('NextScheduledCount')[:1]),
-            ScheduledForToday=Exists(ScheduledToday_qs.filter(Material=OuterRef('Material'))),
-            )
 class VIEW_materials(models.Model):
     id = models.PositiveIntegerField(primary_key=True)
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True, null=True)
@@ -315,6 +293,14 @@ class SAP_SOHRecs(models.Model):
             models.Index(fields=['uploaded_at', 'org', 'MaterialPartNum']),
             models.Index(fields=['Plant']),
         ]
+
+class UploadSAPResults(models.Model):
+    errState = models.CharField(max_length=100, null=True)
+    errmsg = models.CharField(max_length=512, null=True)
+    rowNum = models.IntegerField(null=True)
+
+    def __str__(self):
+        return f'{self.errState}: {self.errmsg} at row {self.rowNum}'
 
 class SAPPlants_org(models.Model):
     SAPPlant = models.CharField(max_length=20, primary_key=True)

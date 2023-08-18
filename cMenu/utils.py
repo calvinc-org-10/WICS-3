@@ -8,6 +8,7 @@ from django.db.models import Aggregate, CharField
 from collections import namedtuple
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, fills, colors
+from openpyxl.utils.datetime import from_excel, WINDOWS_EPOCH
 
 ExcelWorkbook_fileext = ".XLSX"
 
@@ -234,3 +235,44 @@ class GroupConcat(Aggregate):
             **extra
         )
 
+
+class UpldSprdsheet():
+    TargetModel = None
+    SprdsheetDateEpoch = WINDOWS_EPOCH
+
+    def SprdsheetFldDescriptor_creator(self, ModelFldName, AllowedTypes):
+        """
+        ModelFldName (str): the name of the field in the TargetModel
+        AllowedTypes: list of tuples (type, cleanproc).  empty list if any string allowed
+        """
+        return  {
+            # 'SprdsheetName': None,    # nope, this will be the index of SprdsheetFlds
+            'ModelFldName': ModelFldName,
+            'AllowedTypes': AllowedTypes,     
+        }
+    
+    SprdsheetFlds = {}  # key will be the SprdsheetName, value is a SprdsheetFldDescriptor
+
+    def cleanupfld(self, fld, val):
+        usefld = False
+        cleanval = None
+        
+        if fld not in self.SprdsheetFlds:
+            # just feed the value back
+            usefld = True
+            cleanval = val
+        elif not self.SprdsheetFlds[fld]['AllowedTypes']:
+            usefld = (val is not None)
+            if usefld: cleanval = str(val)
+        else:
+            for type, cleanproc in self.SprdsheetFlds[fld]['AllowedTypes']:
+                if isinstance(val, type):
+                    usefld = True
+                    cleanval = cleanproc(val)
+                    break
+                #endif instance(val, type)
+            #endfor type, cleanproc
+        #endif fld not in self.SprdsheetFlds
+
+    def process_spreadsheet(self, SprsheetName):
+        pass
