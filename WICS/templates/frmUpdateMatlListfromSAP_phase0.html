@@ -20,13 +20,17 @@
             <div class="spinner-border text-success"></div>
             Processing... 
             <br>
-            <span id="retStatecode" style="display:none"></span> <span id="Upload-Status"></span>
+        </div>
+        <div>
+        <span id="retStatecode"></span>: <span id="Upload-Status"></span>
         </div>
         <div id="fatalErrMsg"></div>
     </div>
 </div>
 <hr>
-
+<h4>
+    The timing of this process is not easy for Calvin to program, so this is mostly a manual process. <br>
+    Make sure you start the django-q process first!</h4>
 <hr>
 <form id="getUpdSprsheet" method="post" enctype="multipart/form-data">
     {% csrf_token %}
@@ -41,14 +45,26 @@
     <!-- form footer -->
     <div class="container">
         <div class="row mx-auto max-width=100%">
-            <div class="col-4">
-                <button id="save_btn" type="button" onclick="PollBackend();">
+            <div class="col-6">
+                <button id="next_btn-0" type="button" onclick="PollBackend('init-upl');">
                     <img src="{% static 'upload-outbox-line-icon.svg' %}" width="20" height="20"></img>
-                    Continue
+                    Upload
                 </button>
-                <input type="hidden" name="NextPhase" value="02-Upl-Sprsht"></input>
+                <button id="next_btn-1" type="button" onclick="PollBackend('need-ident-exist-matl');">
+                    <span class="bi-search" ></span>
+                    Examine Sprsht for add/deletes
+                </button>
+                <button id="next_btn-2" type="button" onclick="PollBackend('need-add-del');">
+                    <span class="bi-database-fill-add" ></span>
+                    <span class="bi-database-fill-dash" ></span>
+                    Do add/deletes
+                </button>
+                <button id="next_btn-2" type="button" onclick="PollBackend('waiting');">
+                    <span class="bi-hourglass-split" ></span>
+                    Force Poll Cycle
+                </button>
             </div>
-            <div class="col-6"></div>
+            <div class="col-4"></div>
             <div class="col">
                 <button id="close_btn" type="button">
                     <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
@@ -62,83 +78,127 @@
 <script>
 
     var intervalID;
-    const POLLING_INTERVAL = 3000;
+    const POLLING_INTERVAL = 2000;
 
-    function PollBackend(){
+    function start_wait_spinner() { document.getElementById("wait_spinner").style.display = "block"; };
+    function stop_wait_spinner() { document.getElementById("wait_spinner").style.display = "none"; };
 
-        var phase = $("#phase").val()
+    function SetRetData(data) {
+        document.getElementById("Upload-Status").innerHTML = data.statetext;
+        document.getElementById("retStatecode").innerHTML = data.statecode;
+        };
+
+    function PollBackend(phase){
+
+        // var phase = $("#phase").val()
+        $("#phase").val(phase)
         var retStatecode;
         const fform = document.getElementById("getUpdSprsheet");
         const formdata = new FormData(fform);
 
-        function SetRetData(data) {
-            $( '#Upload-Status' ).text( data.statetext );
-            $( "#retStatecode" ).text(data.statecode);
-            };
-
         if (phase == 'init-upl') {
-            $( '#Upload-Status' ).text( "" );
-            $( '#fatalErrMsg' ).text( "" );
-            document.getElementById("wait_spinner").style.display = "block";
+            document.getElementById("Upload-Status").innerHTML = "";
+            document.getElementById("fatalErrMsg").innerHTML = "";
+            start_wait_spinner()
 
             $.ajax({
                 method: 'POST', 
                 data: formdata, 
                 processData: false, 
                 contentType: false, 
+                dataType: "json",
+                success: SetRetData,
                 });
             $("#phase").val('waiting')
-            intervalID = setInterval(PollBackend,POLLING_INTERVAL);
-            $( "#retStatecode" ).text('waiting');   // fake code to skip rest of this iteration
+            intervalID = setInterval(PollBackend,POLLING_INTERVAL,'waiting');
+            // setTimeout recursion may be better - see note below
         } else if (phase == 'waiting') {
             $.ajax({
                 method: 'POST', 
                 data: formdata, 
-                dataType: "json",
                 processData: false, 
                 contentType: false, 
+                dataType: "json",
                 success: SetRetData,
                 });
+        } else if (phase == 'need-ident-exist-matl') {
+            start_wait_spinner()
+
+            $.ajax({
+                method: 'POST', 
+                data: formdata, 
+                processData: false, 
+                contentType: false, 
+                dataType: "json",
+                success: SetRetData,
+                });
+            $("#phase").val('waiting')
+            intervalID = setInterval(PollBackend,POLLING_INTERVAL,'waiting');
+        } else if (phase == 'need-add-del') {
+            start_wait_spinner()
+
+            $.ajax({
+                method: 'POST', 
+                data: formdata, 
+                processData: false, 
+                contentType: false, 
+                dataType: "json",
+                success: SetRetData,
+                });
+            $("#phase").val('waiting')
+            intervalID = setInterval(PollBackend,POLLING_INTERVAL,'waiting');
+        } else if (phase == 'wantresults') {
+            // code won't make it here; normal reuqest submitted immediately on entering this phase (see retStatecode == 'done')
         };
 
-        retStatecode = $( "#retStatecode" ).text();
+        retStatecode = document.getElementById("retStatecode").innerHTML;
+        // the following retStatecodes are NOOPs:
+        // rdng-sprsht-init, starting, uploading-sprsht, rdng-sprsht, get-matl-link, add-matl, done-add-matl, del-matl, done-del-matl
         if (retStatecode == "fatalerr") {
             // kill intervalID = setInterval(PollBackend,1500,'waiting');
             clearInterval(intervalID);
 
             $( '#fatalErrMsg' ).text( $("#Upload-Status").text() );
             $( '#Upload-Status' ).text( "" );
-            document.getElementById("wait_spinner").style.display = "none";
+            stop_wait_spinner();
             
             $("#phase").val('init-upl')
             
             $( '#SAPFile' ).val(null);
             $( '#SAPFile' ).trigger("focus");
-        }
-        if (retStatecode == "done") {
+
+            // await user action
+        } else if (retStatecode == "done-rdng-sprsht") {
+            clearInterval(intervalID);  // stop polling
+            stop_wait_spinner();
+            
+            $("#phase").val('need-ident-exist-matl')
+            
+            $( '#SAPFile' ).prop("disabled", true);
+
+            $("#next_btn").text("Phase 1 processing (identify new/deleted matls)")
+
+            // await user action            
+        } else if (retStatecode == "get-matl-link-done") {
+            clearInterval(intervalID);
+            stop_wait_spinner();
+            
+            $("#phase").val('need-add-del')
+            
+            $("#next_btn").text("Phase 2 processing (do add/deletes)")
+
+            // await user action            
+        } else if (retStatecode == "done") {
             // kill intervalID = setInterval(PollBackend,1500,'waiting');
             clearInterval(intervalID);
 
             // switch to results
             $("#phase").val('wantresults');
-            // change this - normal post, not ajax - is this right?
+            // normal post, not ajax - result will replace this page
             $("#getUpdSprsheet").trigger("submit");
-            /***
-            $.ajax({
-                type: 'POST', 
-                data: formdata, 
-                dataType: "html",
-                processData: false, 
-                contentType: false, 
-                success: function (data) {
-                    document.open();
-                    document.write(data);
-                    document.close();
-                    },
-                });
-            ***/
         };
-        }
+    }
+
     document.body.onbeforeunload = function() {
         document.getElementById("wait_spinner").style.display = "block";
         }
@@ -150,4 +210,20 @@
 
 </script>
 
+{% comment %}
+Ensure that execution duration is shorter than interval frequency
+If there is a possibility that your logic could take longer to execute than the interval time, it is recommended that you recursively call a named function using setTimeout(). For example, if using setInterval() to poll a remote server every 5 seconds, network latency, an unresponsive server, and a host of other issues could prevent the request from completing in its allotted time. As such, you may find yourself with queued up XHR requests that won't necessarily return in order.
+
+In these cases, a recursive setTimeout() pattern is preferred:
+
+(function loop() {
+  setTimeout(() => {
+    // Your logic here
+
+    loop();
+  }, delay);
+})();
+In the above snippet, a named function loop() is declared and is immediately executed. loop() is recursively called inside setTimeout() after the logic has completed executing. While this pattern does not guarantee execution on a fixed interval, it does guarantee that the previous interval has completed before recursing.
+
+{% endcomment %}
 {% endblock %}

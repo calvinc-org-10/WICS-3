@@ -21,6 +21,7 @@ from WICS.models import ActualCounts, MaterialList, CountSchedule, Organizations
 from WICS.models_async_comm import async_comm, set_async_comm_state
 from WICS.procs_SAP import fnSAPList
 
+_MAX_LISTRECS = 5000
 
 ##############################################################
 ##############################################################
@@ -415,7 +416,8 @@ def proc_UpActCountSprsheet_99_FinalProc(reqid):
 def proc_UpActCountSprsheet_99_Cleanup(reqid):
     # also kill reqid, acomm, qcluster process
     async_comm.objects.filter(pk=reqid).delete()
-    os.kill(int(reqid), signal.SIGTERM) #or signal.SIGKILL import subprocess
+    os.kill(int(reqid), signal.SIGTERM)
+    os.kill(int(reqid), signal.SIGKILL)
 
     # delete the temporary table
     UploadSAPResults.objects.all().delete()
@@ -434,7 +436,7 @@ def fnUploadActCountSprsht(req):
 
             # start django_q broker
             reqid = subprocess.Popen(
-                "python manage.py qcluster"
+                ['python', f'{django_settings.BASE_DIR}/manage.py', 'qcluster']
             ).pid
             retinfo.set_cookie('reqid',str(reqid))
             proc_UpActCountSprsheet_00InitUpld(reqid)
@@ -512,7 +514,7 @@ class ActualCountListForm(LoginRequiredMixin, ListView):
         return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
-        return ActualCounts.objects.all().order_by(*self.ordering)
+        return ActualCounts.objects.all().order_by(*self.ordering)[:_MAX_LISTRECS]
         # return super().get_queryset()
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:

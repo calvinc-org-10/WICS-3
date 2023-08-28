@@ -25,14 +25,13 @@ class Organizations(models.Model):
 
 class WhsePartTypes(models.Model):
     WhsePartType = models.CharField(max_length=50)
-    PartTypePriority = models.SmallIntegerField()
+    PartTypePriority = models.SmallIntegerField(null=True)
     InactivePartType = models.BooleanField(blank=True, default=False)
 
     class Meta:
         ordering = ['WhsePartType']
         constraints = [
                 models.UniqueConstraint(fields=['WhsePartType'], name='PTypeUNQ_PType'),
-                models.UniqueConstraint(fields=['PartTypePriority'], name='PTypeUNQ_PTypePrio'),
             ]
 
     def __str__(self) -> str:
@@ -63,15 +62,15 @@ class MaterialList(models.Model):
     Material = models.CharField(max_length=100)
     Description = models.CharField(max_length=250, blank=True, default='')
     PartType = models.ForeignKey(WhsePartTypes, null=True, on_delete=models.RESTRICT, default=None)
-    Plant = models.CharField(max_length=20, blank=True, default='')
-    SAPMaterialType = models.CharField(max_length=100, blank=True, default='')
-    SAPMaterialGroup = models.CharField(max_length=100, blank=True, default='')
+    Plant = models.CharField(max_length=20, null=True, blank=True, default='')
+    SAPMaterialType = models.CharField(max_length=100, null=True, blank=True, default='')
+    SAPMaterialGroup = models.CharField(max_length=100, null=True, blank=True, default='')
     Price = models.FloatField(null=True, blank=True, default=0.0)
     PriceUnit = models.PositiveIntegerField(null=True, blank=True, default=1)
-    Currency = models.CharField(max_length=20, blank=True, default='')
+    Currency = models.CharField(max_length=20, null=True, blank=True, default='')
     TypicalContainerQty = models.CharField(max_length=100, null=True, blank=True, default=None)
     TypicalPalletQty = models.CharField(max_length=100, null=True, blank=True, default=None)
-    Notes = models.CharField(max_length=250, blank=True, default='')
+    Notes = models.CharField(max_length=250, null=True, blank=True, default='')
 
     class Meta:
         ordering = ['org','Material']
@@ -94,13 +93,21 @@ class tmpMaterialListUpdate(models.Model):
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True, null=True)
     Material = models.CharField(max_length=100, blank=False)
     MaterialLink = models.ForeignKey(MaterialList, on_delete=models.SET_NULL, blank=True, null=True)
-    Description = models.CharField(max_length=250, blank=True)
-    Plant = models.CharField(max_length=20, blank=True, default='')
-    SAPMaterialType = models.CharField(max_length=100, blank=True)
-    SAPMaterialGroup = models.CharField(max_length=100, blank=True)
+    Description = models.CharField(max_length=250, blank=True, null=True)
+    Plant = models.CharField(max_length=20, null=True, blank=True, default='')
+    SAPMaterialType = models.CharField(max_length=100, null=True, blank=True)
+    SAPMaterialGroup = models.CharField(max_length=100, null=True, blank=True)
     Price = models.FloatField(null=True, blank=True)
     PriceUnit = models.PositiveIntegerField(null=True, blank=True)
-    Currency = models.CharField(max_length=20, blank=True)
+    Currency = models.CharField(max_length=20, null=True, blank=True)
+    delMaterialLink = models.IntegerField(null=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['org','Material']),
+            models.Index(fields=['recStatus']),
+            models.Index(fields=['delMaterialLink']),
+            ]
 
 def fnMaterial_id(org_id:int,Material:str) -> str | None:
     try:
@@ -145,10 +152,10 @@ class CountSchedule(models.Model):
       # the requestor can type whatever they want here, but WICS will record the userid behind-the-scenes
     Requestor_userid = models.ForeignKey(WICSuser, on_delete=models.SET_NULL, null=True)
     RequestFilled = models.BooleanField(null=True, default=0)
-    Counter = models.CharField(max_length=250, blank=True)
-    Priority = models.CharField(max_length=50, blank=True)
-    ReasonScheduled = models.CharField(max_length=250, blank=True)
-    Notes = models.CharField(max_length=250, blank=True)
+    Counter = models.CharField(max_length=250, null=True, blank=True)
+    Priority = models.CharField(max_length=50, null=True, blank=True)
+    ReasonScheduled = models.CharField(max_length=250, null=True, blank=True)
+    Notes = models.CharField(max_length=250, null=True, blank=True)
 
     class Meta:
         ordering = ['CountDate', 'Material']
@@ -185,18 +192,18 @@ def VIEW_countschedule():
 ###########################################################
 
 class ActualCounts(models.Model):
-    CountDate = models.DateField(null=False)
-    CycCtID = models.CharField(max_length=100, blank=True)
+    CountDate = models.DateField(null=False, blank=False)
+    CycCtID = models.CharField(max_length=100, null=True, blank=True)
     Material = models.ForeignKey(MaterialList, on_delete=models.RESTRICT)
     Counter = models.CharField(max_length=250, blank=False, null=False)
     LocationOnly = models.BooleanField(blank=True, default=False)
-    CTD_QTY_Expr = models.CharField(max_length=500, blank=True)
-    LOCATION = models.CharField(max_length=250, blank=True)
-    PKGID_Desc = models.CharField(max_length=250, blank=True)
-    TAGQTY = models.CharField(max_length=250, blank=True)
+    CTD_QTY_Expr = models.CharField(max_length=500, null=True, blank=True)
+    LOCATION = models.CharField(max_length=250, blank=False)
+    PKGID_Desc = models.CharField(max_length=250, null=True, blank=True)
+    TAGQTY = models.CharField(max_length=250, null=True, blank=True)
     FLAG_PossiblyNotRecieved = models.BooleanField(blank=True, default=False)
     FLAG_MovementDuringCount = models.BooleanField(blank=True, default=False)
-    Notes = models.CharField(max_length = 250, blank=True)
+    Notes = models.CharField(max_length=250, null=True, blank=True)
 
     class Meta:
         ordering = ['CountDate', 'Material']
@@ -272,15 +279,15 @@ class SAP_SOHRecs(models.Model):
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True)
     MaterialPartNum = models.CharField(max_length=100)
     Material = models.ForeignKey(MaterialList,on_delete=models.SET_NULL,null=True)
-    Description = models.CharField(max_length=250, blank=True)
-    Plant = models.CharField(max_length=20, blank=True)
-    MaterialType = models.CharField(max_length=50, blank=True)
-    StorageLocation = models.CharField(max_length=20, blank=True)
-    BaseUnitofMeasure = models.CharField(max_length=20, blank=True)
-    Amount = models.FloatField(blank=True)
-    Currency = models.CharField(max_length=20, blank=True)
-    ValueUnrestricted = models.FloatField(blank=True)
-    SpecialStock = models.CharField(max_length=20, blank=True)
+    Description = models.CharField(max_length=250, null=True, blank=True)
+    Plant = models.CharField(max_length=20, null=True, blank=True)
+    MaterialType = models.CharField(max_length=50, null=True, blank=True)
+    StorageLocation = models.CharField(max_length=20, null=True, blank=True)
+    BaseUnitofMeasure = models.CharField(max_length=20, null=True, blank=True)
+    Amount = models.FloatField(null=True, blank=True)
+    Currency = models.CharField(max_length=20, null=True, blank=True)
+    ValueUnrestricted = models.FloatField(null=True, blank=True)
+    SpecialStock = models.CharField(max_length=20, null=True, blank=True)
     Blocked = models.FloatField(blank=True, null=True)
     ValueBlocked = models.FloatField(blank=True, null=True)
     Batch = models.CharField(max_length=20, blank=True, null=True)
@@ -337,7 +344,7 @@ class WorksheetZones(models.Model):
 
 class Location_WorksheetZone(models.Model):
     location = models.CharField(max_length=50,blank=False)
-    zone = models.ForeignKey('WorksheetZones', on_delete=models.RESTRICT)
+    zone = models.ForeignKey(WorksheetZones, on_delete=models.RESTRICT)
 
 ###########################################################
 ###########################################################

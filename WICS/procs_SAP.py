@@ -1,19 +1,19 @@
 import os, uuid, re as regex
+import random
 import subprocess, signal
 import json
-from datetime import datetime
 from functools import partial
 from django import forms
 from django.contrib.auth.decorators import login_required
+from django.conf import settings as django_settings
 from django.db import connection, transaction
 from django.db.models import Max, OuterRef, Subquery
 from django.http import HttpResponse, HttpResponseNotModified
 from django.shortcuts import render
-from django_q.tasks import async_task, AsyncTask, async_chain, Chain, result_group, result
+from django_q.tasks import async_task
 from openpyxl import load_workbook
 from cMenu.models import getcParm
-from cMenu.utils import calvindate, dictfetchall, ExcelWorkbook_fileext
-from userprofiles.models import WICSuser
+from cMenu.utils import calvindate, ExcelWorkbook_fileext
 import WICS.globals
 from WICS.models import SAP_SOHRecs, SAPPlants_org, UnitsOfMeasure, UploadSAPResults  #, VIEW_SAP
 from WICS.models import WhsePartTypes, MaterialList, tmpMaterialListUpdate
@@ -76,7 +76,7 @@ def proc_UpSAPSpreadsheet_00CopyUpSAPSpreadsheet(req, reqid):
     with open(fName, "wb") as destination:
         for chunk in SAPFile.chunks():
             destination.write(chunk)
-    
+
     return fName
 
 def proc_UpSAPSpreadsheet_01ReadSheet(reqid, fName, UplDate):
@@ -101,7 +101,7 @@ def proc_UpSAPSpreadsheet_01ReadSheet(reqid, fName, UplDate):
     SAP_SSName_TableName_map = {
             _SStName_Material: _TblName_Material,  # Material+org will translate to a Material_id
             _SStName_Plant: _TblName_Plant,
-            'Material description': 'Description', 
+            'Material description': 'Description',
             'Material type': 'MaterialType',
             'Storage location': 'StorageLocation',
             'Base Unit of Measure': 'BaseUnitofMeasure',
@@ -171,7 +171,7 @@ def proc_UpSAPSpreadsheet_01ReadSheet(reqid, fName, UplDate):
             if not MatlRec:
                 UploadSAPResults(
                     errState = 'error',
-                    errmsg = f'either {MatlNum}  does not exist in MaterialList or incorrect Plant ({str(row[SAPcolmnMap[_TblName_Plant]])} given', 
+                    errmsg = f'either {MatlNum}  does not exist in MaterialList or incorrect Plant ({str(row[SAPcolmnMap[_TblName_Plant]])} given',
                     rowNum = SprshtRowNum
                     ).save()
             else:
@@ -194,12 +194,12 @@ def proc_UpSAPSpreadsheet_01ReadSheet(reqid, fName, UplDate):
 
     UploadSAPResults(
         errState = 'nRowsTotal',
-        errmsg = '', 
+        errmsg = '',
         rowNum = SprshtRowNum
         ).save()
     UploadSAPResults(
         errState = 'nRowsAdded',
-        errmsg = '', 
+        errmsg = '',
         rowNum = nRowsAdded
         ).save()
 
@@ -228,7 +228,8 @@ def proc_UpSAPSpreadsheet_99_FinalProc(reqid):
 def proc_UpSAPSpreadsheet_99_Cleanup(reqid):
     # also kill reqid, acomm, qcluster process
     async_comm.objects.filter(pk=reqid).delete()
-    os.kill(int(reqid), signal.SIGTERM) #or signal.SIGKILL import subprocess
+    os.kill(int(reqid), signal.SIGTERM)
+    os.kill(int(reqid), signal.SIGKILL)
 
     # delete the temporary table
     UploadSAPResults.objects.all().delete()
@@ -248,7 +249,7 @@ def fnUploadSAP(req):
 
             # start django_q broker
             reqid = subprocess.Popen(
-                "python manage.py qcluster"
+                ['python', f'{django_settings.BASE_DIR}/manage.py', 'qcluster']
             ).pid
             retinfo.set_cookie('reqid',str(reqid))
             proc_UpSAPSpreadsheet_00InitUpSAP(reqid)
@@ -284,7 +285,7 @@ def fnUploadSAP(req):
                 nRowsTotal = 0
             UplResults = UploadSAPResults.objects.exclude(errState__in = ['nRowsAdded','nRowsTotal'])
             cntext = {
-                'uploaded_at':UplDate, 
+                'uploaded_at':UplDate,
                 'nRows':nRowsAdded,
                 'nRowsRead':nRowsTotal,
                 'UplProblems': UplResults,
@@ -306,7 +307,7 @@ def fnUploadSAP(req):
         # .first().values('LastSAPDate')['LastSAPDate']
 
         form = UploadSAPForm()
-        cntext = {'form': form, 
+        cntext = {'form': form,
                 'LastSAPUploadDate': LastSAPUpload['LastSAPDate'],
                 }
         templt = 'frm_upload_SAP.html'
@@ -390,7 +391,7 @@ def proc_MatlListSAPSprsheet_00CopyUMLSpreadsheet(req, reqid):
     with open(fName, "wb") as destination:
         for chunk in SAPFile.chunks():
             destination.write(chunk)
-    
+
     return fName
 
 def proc_MatlListSAPSprsheet_01ReadSpreadsheet(reqid, fName):
@@ -407,8 +408,8 @@ def proc_MatlListSAPSprsheet_01ReadSpreadsheet(reqid, fName):
     SAPcolmnNames = ws[1]
     SAPcol = {'Plant':None,'Material': None}
     SAP_SSName_TableName_map = {
-            'Material': 'Material', 
-            'Material description': 'Description', 
+            'Material': 'Material',
+            'Material description': 'Description',
             'Plant': 'Plant',
             'Material type': 'SAPMaterialType',
             'Material Group': 'SAPMaterialGroup',
@@ -449,9 +450,9 @@ def proc_MatlListSAPSprsheet_01ReadSpreadsheet(reqid, fName):
             tmpMaterialListUpdate(
                 recStatus = 'err-MatlNum',
                 errmsg = f'error: {MatNum!a} is an unusable part number. It contains invalid characters and cannot be added to WICS',
-                Material = row[SAPcol['Material']], 
+                Material = row[SAPcol['Material']],
                 # MaterialLink = MaterialLink,
-                Description = row[SAPcol['Description']], 
+                Description = row[SAPcol['Description']],
                 Plant = row[SAPcol['Plant']],
                 SAPMaterialType = row[SAPcol['SAPMaterialType']],
                 SAPMaterialGroup = row[SAPcol['SAPMaterialGroup']],
@@ -464,9 +465,9 @@ def proc_MatlListSAPSprsheet_01ReadSpreadsheet(reqid, fName):
             _org = SAPPlants_org.objects.filter(SAPPlant=row[SAPcol['Plant']])[0].org
             tmpMaterialListUpdate(
                 org = _org,
-                Material = row[SAPcol['Material']], 
+                Material = row[SAPcol['Material']],
                 # MaterialLink = MaterialLink,
-                Description = row[SAPcol['Description']], 
+                Description = row[SAPcol['Description']],
                 Plant = row[SAPcol['Plant']],
                 SAPMaterialType = row[SAPcol['SAPMaterialType']],
                 SAPMaterialGroup = row[SAPcol['SAPMaterialGroup']],
@@ -474,23 +475,22 @@ def proc_MatlListSAPSprsheet_01ReadSpreadsheet(reqid, fName):
                 PriceUnit = row[SAPcol['PriceUnit']],
                 Currency = row[SAPcol['Currency']]
                 ).save()
-        # endif invalid Material 
+        # endif invalid Material
     # endfor
     wb.close()
     os.remove(fName)
 def done_MatlListSAPSprsheet_01ReadSpreadsheet(t):
     reqid = t.args[0]
     statecode = async_comm.objects.get(pk=reqid).statecode
+    # print(f't.success= {t.success}')
+    # print(f'tresult (type {type(t.result)}) = {t.result}')
+    #DOITNOW!!! handle not t.success, t.result
     if statecode != 'fatalerr':
         set_async_comm_state(
             reqid,
             statecode = 'done-rdng-sprsht',
             statetext = f'Finished Reading Spreadsheet',
             )
-        # this call is here because 02 CANNOT start before 01 is finished
-        task02 = async_task(proc_MatlListSAPSprsheet_02_identifyexistingMaterial, reqid, hook=done_MatlListSAPSprsheet_02_identifyexistingMaterial)
-        # the hook of 02(identify) will trigger 03(Remove) and 04(Add) and 99(End)
-    #endif stateocde != 'fatalerr'
 
 def proc_MatlListSAPSprsheet_02_identifyexistingMaterial(reqid):
     set_async_comm_state(
@@ -503,97 +503,87 @@ def proc_MatlListSAPSprsheet_02_identifyexistingMaterial(reqid):
     UpdMaterialLinkSQL += "     WICS_tmpmateriallistupdate.recStatus = 'FOUND' "
     UpdMaterialLinkSQL += ' where WICS_tmpmateriallistupdate.org_id = MasterMaterials.org_id '
     UpdMaterialLinkSQL += '   and WICS_tmpmateriallistupdate.Material = MasterMaterials.Material '
-    # tmpMaterialListUpdate.objects.all().update(MaterialLink=Subquery(MaterialList.objects.filter(org=OuterRef('org'), Material=OuterRef('Material'))[0]))
     with connection.cursor() as cursor:
         cursor.execute(UpdMaterialLinkSQL)
-    set_async_comm_state(
-        reqid,
-        statecode = 'get-matl-link-done',
-        statetext = f'Finished linking SAP MM60 list to existing WICS Materials',
-        )
-def done_MatlListSAPSprsheet_02_identifyexistingMaterial(t):
-    reqid = t.args[0]
 
-    task03 = async_task(proc_MatlListSAPSprsheet_03_Remove, reqid,)
-    task04 = async_task(proc_MatlListSAPSprsheet_04_Add, reqid,)
-
-def proc_MatlListSAPSprsheet_03_Remove(reqid):
     set_async_comm_state(
         reqid,
         statecode = 'id-del-matl',
         statetext = f'Identifying WICS Materials no longer in SAP MM60 Materials',
         )
-    MustKeepMatlsCond = []
-    MustKeepMatlsCond.append(('.SEL.','id NOT IN (SELECT DISTINCT MaterialLink_id AS Material_id FROM WICS_tmpmateriallistupdate WHERE MaterialLink_id IS NOT NULL)'))
-    MustKeepMatlsCond.append(('.DEL.','(org_id, Material) IN (SELECT DISTINCT org_id, Material FROM WICS_tmpmateriallistupdate WHERE recStatus like "DEL%")'))
-    MustKeepMatlsCond.append(('.SEL.','id NOT IN (SELECT DISTINCT Material_id FROM WICS_actualcounts)'))
-    MustKeepMatlsCond.append(('.SEL.','id NOT IN (SELECT DISTINCT Material_id FROM WICS_countschedule)'))
-    MustKeepMatlsCond.append(('.SEL.','id NOT IN (SELECT DISTINCT Material_id FROM WICS_sap_sohrecs)'))
     MustKeepMatlsSelCond = ''
-    MustKeepMatlsDelCond = ''
-    for sqlsttyp, phr in MustKeepMatlsCond:
-        if 'SEL' in sqlsttyp:
-            if MustKeepMatlsSelCond: MustKeepMatlsSelCond += ' AND '
-            MustKeepMatlsSelCond += f'({phr})'
-        if 'DEL' in sqlsttyp:
-            if MustKeepMatlsDelCond: MustKeepMatlsDelCond += ' AND '
-            MustKeepMatlsDelCond += f'({phr})'
+    if MustKeepMatlsSelCond: MustKeepMatlsSelCond += ' AND '
+    MustKeepMatlsSelCond += 'id NOT IN (SELECT DISTINCT tmucopy.MaterialLink_id AS Material_id FROM WICS_tmpmateriallistupdate tmucopy WHERE tmucopy.MaterialLink_id IS NOT NULL)'
+    if MustKeepMatlsSelCond: MustKeepMatlsSelCond += ' AND '
+    MustKeepMatlsSelCond += 'id NOT IN (SELECT DISTINCT Material_id FROM WICS_actualcounts)'
+    if MustKeepMatlsSelCond: MustKeepMatlsSelCond += ' AND '
+    MustKeepMatlsSelCond += 'id NOT IN (SELECT DISTINCT Material_id FROM WICS_countschedule)'
+    if MustKeepMatlsSelCond: MustKeepMatlsSelCond += ' AND '
+    MustKeepMatlsSelCond += 'id NOT IN (SELECT DISTINCT Material_id FROM WICS_sap_sohrecs)'
 
-    DeleteMatlsSelectSQL = "INSERT INTO WICS_tmpmateriallistupdate (recStatus, MaterialLink_id, org_id, Material, Description, Plant "
+    DeleteMatlsSelectSQL = "INSERT INTO WICS_tmpmateriallistupdate (recStatus, delMaterialLink, MaterialLink_id, org_id, Material, Description, Plant "
     DeleteMatlsSelectSQL += ", SAPMaterialType, SAPMaterialGroup, Currency  ) "    # these can go once I set null=True on these fields
-    DeleteMatlsSelectSQL += " SELECT  concat('DEL ',FORMAT(id,0)), NULL, org_id, Material, Description, Plant "
+    DeleteMatlsSelectSQL += " SELECT  concat('DEL ',FORMAT(id,0)), id, NULL, org_id, Material, Description, Plant "
     DeleteMatlsSelectSQL += ", SAPMaterialType, SAPMaterialGroup, Currency  "    # these can go once I set null=True on these fields
     DeleteMatlsSelectSQL += " FROM WICS_materiallist"
     DeleteMatlsSelectSQL += f" WHERE ({MustKeepMatlsSelCond})"
-    print('SELECT: ',DeleteMatlsSelectSQL)
     with connection.cursor() as cursor:
         cursor.execute(DeleteMatlsSelectSQL)
 
     set_async_comm_state(
         reqid,
-        statecode = 'del-matl-2',
+        statecode = 'id-add-matl',
+        statetext = f'Identifying SAP MM60 Materials new to WICS',
+        )
+    MarkAddMatlsSelectSQL = "UPDATE WICS_tmpmateriallistupdate"
+    MarkAddMatlsSelectSQL += " SET recStatus = 'ADD'"
+    MarkAddMatlsSelectSQL += " WHERE (MaterialLink_id IS NULL) AND (recStatus is NULL)"
+    with connection.cursor() as cursor:
+        cursor.execute(MarkAddMatlsSelectSQL)
+        transaction.on_commit(partial(done_MatlListSAPSprsheet_02_identifyexistingMaterial,reqid))
+def done_MatlListSAPSprsheet_02_identifyexistingMaterial(reqid):
+    set_async_comm_state(
+        reqid,
+        statecode = 'get-matl-link-done',
+        statetext = f'Finished linking SAP MM60 list to existing WICS Materials',
+        )
+
+def proc_MatlListSAPSprsheet_03_Remove(reqid):
+    MustKeepMatlsDelCond = ''
+    if MustKeepMatlsDelCond: MustKeepMatlsDelCond += ' AND '
+    MustKeepMatlsDelCond += 'id IN (SELECT DISTINCT delMaterialLink FROM WICS_tmpmateriallistupdate WHERE recStatus like "DEL%")'
+
+    set_async_comm_state(
+        reqid,
+        statecode = 'del-matl',
         statetext = f'Removing WICS Materials no longer in SAP MM60 Materials',
         )
     # do the Removals
     DeleteMatlsDoitSQL = "DELETE FROM WICS_materiallist"
     DeleteMatlsDoitSQL += f" WHERE ({MustKeepMatlsDelCond})"
-    print('DELETE:', DeleteMatlsDoitSQL)
     with connection.cursor() as cursor:
         cursor.execute(DeleteMatlsDoitSQL)
         transaction.on_commit(partial(done_MatlListSAPSprsheet_03_Remove,reqid))
 def done_MatlListSAPSprsheet_03_Remove(reqid):
-    key = f'MatlX{reqid}'
-    statecodeVal = ".03."
-    if async_comm.objects.filter(pk=key).exists():
-        MatlXval = async_comm.objects.get(pk=key).statecode + statecodeVal
-    else:
-        MatlXval = statecodeVal
+    mandatorytaskdonekey = f'MatlX{reqid}'
+    statecodeVal = ".03D."
+    existingstatecode = ''
+    if async_comm.objects.filter(pk=mandatorytaskdonekey).exists(): existingstatecode = async_comm.objects.get(pk=mandatorytaskdonekey).statecode
+    MatlXval = existingstatecode + statecodeVal
     set_async_comm_state(
-        key, 
+        mandatorytaskdonekey,
         statecode = MatlXval,
         statetext = '',
         new_async = True
         )
     set_async_comm_state(
         reqid,
-        statecode = 'del-matl-done',
+        statecode = 'done-del-matl',
         statetext = f'Finished Removing WICS Materials no longer in SAP MM60 Materials',
         )
+    proc_MatlListSAPSprsheet_03_Add(reqid)
 
-def proc_MatlListSAPSprsheet_04_Add(reqid):
-    set_async_comm_state(
-        reqid,
-        statecode = 'id-add-matl',
-        statetext = f'Identifying SAP MM60 Materials new to WICS',
-        )
-
-    # first pass, for presentation in results - orgname rather than org
-    MarkAddMatlsSelectSQL = "UPDATE WICS_tmpmateriallistupdate"
-    MarkAddMatlsSelectSQL += " SET recStatus = 'ADD'"
-    MarkAddMatlsSelectSQL += " WHERE (MaterialLink_id IS NULL) AND (recStatus is NULL)"
-    with connection.cursor() as cursor:
-        cursor.execute(MarkAddMatlsSelectSQL)
-
+def proc_MatlListSAPSprsheet_03_Add(reqid):
     set_async_comm_state(
         reqid,
         statecode = 'add-matl',
@@ -627,26 +617,24 @@ def proc_MatlListSAPSprsheet_04_Add(reqid):
     UpdMaterialLinkSQL += ' where WICS_tmpmateriallistupdate.org_id = MasterMaterials.org_id '
     UpdMaterialLinkSQL += '   and WICS_tmpmateriallistupdate.Material = MasterMaterials.Material '
     UpdMaterialLinkSQL += "   and (MaterialLink_id IS NULL) AND (recStatus = 'ADD')"
-    # tmpMaterialListUpdate.objects.all().update(MaterialLink=Subquery(MaterialList.objects.filter(org=OuterRef('org'), Material=OuterRef('Material'))[0]))
     with connection.cursor() as cursor:
         cursor.execute(UpdMaterialLinkSQL)
-        transaction.on_commit(partial(done_MatlListSAPSprsheet_04_Add,reqid))
-def done_MatlListSAPSprsheet_04_Add(reqid):
-    key = f'MatlX{reqid}'
-    statecodeVal = ".04."
-    if async_comm.objects.filter(pk=key).exists():
-        MatlXval = async_comm.objects.get(pk=key).statecode + statecodeVal
-    else:
-        MatlXval = statecodeVal
+        transaction.on_commit(partial(done_MatlListSAPSprsheet_03_Add,reqid))
+def done_MatlListSAPSprsheet_03_Add(reqid):
+    mandatorytaskdonekey = f'MatlX{reqid}'
+    statecodeVal = ".03A."
+    existingstatecode = ''
+    if async_comm.objects.filter(pk=mandatorytaskdonekey).exists(): existingstatecode = async_comm.objects.get(pk=mandatorytaskdonekey).statecode
+    MatlXval = existingstatecode + statecodeVal
     set_async_comm_state(
-        key, 
+        mandatorytaskdonekey,
         statecode = MatlXval,
         statetext = '',
         new_async = True
         )
     set_async_comm_state(
         reqid,
-        statecode = 'add-matl-done',
+        statecode = 'done-add-matl',
         statetext = f'Finished Adding SAP MM60 Materials new to WICS',
         )
 
@@ -660,7 +648,10 @@ def proc_MatlListSAPSprsheet_99_FinalProc(reqid):
 def proc_MatlListSAPSprsheet_99_Cleanup(reqid):
     # also kill reqid, acomm, qcluster process
     async_comm.objects.filter(pk=reqid).delete()
-    os.kill(int(reqid), signal.SIGTERM) #or signal.SIGKILL import subprocess
+
+    # when we can start django-q programmatically, this is where we kill that process
+    # os.kill(int(reqid), signal.SIGTERM)
+    # os.kill(int(reqid), signal.SIGKILL)
 
     # delete the temporary table
     tmpMaterialListUpdate.objects.all().delete()
@@ -675,42 +666,47 @@ def fnUpdateMatlListfromSAP(req):
         # check if the mandatory commits have been done and change the status code if so
         if reqid is not None:
             mandatory_commit_key = f'MatlX{reqid}'
-            mandatory_commit_list = ['03', '04']
+            mandatory_commit_list = ['03A', '03D']
             if async_comm.objects.filter(pk=mandatory_commit_key).exists():
                 mandatory_commits_recorded = async_comm.objects.get(pk=mandatory_commit_key).statecode
                 if all((c in mandatory_commits_recorded) for c in mandatory_commit_list):
                     proc_MatlListSAPSprsheet_99_FinalProc(reqid)
                     async_comm.objects.filter(pk=mandatory_commit_key).delete()
 
+        retinfo = HttpResponse()
         if client_phase=='init-upl':
-            retinfo = HttpResponse()
-
             # start django_q broker
-            reqid = subprocess.Popen(
-                "python manage.py qcluster"
-            ).pid
-            # reqid = uuid.uuid4()
+            # reqid = subprocess.Popen(
+            #     ['python', f'{django_settings.BASE_DIR}/manage.py', 'qcluster']
+            # ).pid
+            reqid = random.randint(1, 100000000000)
             retinfo.set_cookie('reqid',str(reqid))
+
             proc_MatlListSAPSprsheet_00InitUMLasync_comm(reqid)
 
             UMLSSName = proc_MatlListSAPSprsheet_00CopyUMLSpreadsheet(req, reqid)
-            task01 = async_task(proc_MatlListSAPSprsheet_01ReadSpreadsheet, reqid, UMLSSName, hook=done_MatlListSAPSprsheet_01ReadSpreadsheet)
-
-            acomm_fake = {
-                'statecode': 'starting',
-                'statetext': 'SAP MM60 Update Starting',
-                }
-            retinfo.write(json.dumps(acomm_fake))
-            return retinfo
-        elif client_phase=='waiting':
-            retinfo = HttpResponse()
+            async_task(proc_MatlListSAPSprsheet_01ReadSpreadsheet, reqid, UMLSSName, hook=done_MatlListSAPSprsheet_01ReadSpreadsheet)
 
             acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
-            stcode = acomm['statecode']
-            if stcode == 'fatalerr':
-                pass
             retinfo.write(json.dumps(acomm))
             return retinfo
+        elif client_phase=='waiting':
+            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+            retinfo.write(json.dumps(acomm))
+            return retinfo
+        elif client_phase=='need-ident-exist-matl':
+            async_task(proc_MatlListSAPSprsheet_02_identifyexistingMaterial, reqid, )
+
+            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+            retinfo.write(json.dumps(acomm))
+            return retinfo
+        elif client_phase=='need-add-del':
+            async_task(proc_MatlListSAPSprsheet_03_Remove, reqid, )
+
+            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+            retinfo.write(json.dumps(acomm))
+            return retinfo
+            pass
         elif client_phase=='wantresults':
             ImpErrList = tmpMaterialListUpdate.objects.filter(recStatus__startswith='err')
             AddedMatlsList = tmpMaterialListUpdate.objects.filter(recStatus='ADD')
@@ -722,9 +718,10 @@ def fnUpdateMatlListfromSAP(req):
                 }
             templt = 'frmUpdateMatlListfromSAP_done.html'
             return render(req, templt, cntext)
+        elif client_phase=='cleanup-after-failure':
+            pass
         elif client_phase=='resultspresented':
             proc_MatlListSAPSprsheet_99_Cleanup(reqid)
-            retinfo = HttpResponse()
             retinfo.delete_cookie('reqid')
 
             return retinfo
