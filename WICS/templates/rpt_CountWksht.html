@@ -60,7 +60,7 @@
         {% if not forloop.first %}
             {# print summary of Materials for previous Counter #}
             {% for M in CtSchd %}
-            {% if forloop.first %}<hr><div class="fs-4" style="break-before: page;"><u>{{itm.prevCounter}} Materials</u><ul>{% endif %}
+            {% if forloop.first %}<hr><div class="fs-4" style="break-before: page;"><u>{{itm.prevCounter|default:""}} Materials</u><ul>{% endif %}
                 {% if M.Counter == itm.prevCounter %}
                 <li>{{ M.Material_org }}</li>
                 {% endif %}
@@ -71,7 +71,7 @@
             {% for L in LocationList %}
             {% if forloop.first %}
                 <hr><div class="fs-4" style="break-before: page;">
-                <u>{{itm.prevCounter}} Locations</u>
+                <u>{{itm.prevCounter|default:""}} Locations</u>
                 <div class="small"><i>Material may be in locations not listed here</i></div>
                 <ul>
             {% endif %}
@@ -89,7 +89,7 @@
         <div class="row max-width=100%">
             <div class="col-11">
                 <h2>
-                    {{ itm.Counter }} Counting Agenda/Worksheet for {{ CountDate|date:'Y-m-d' }}
+                    {{ itm.Counter|default:"" }} Counting Agenda/Worksheet for {{ CountDate|date:'Y-m-d' }}
                 </h2>
             </div>
             <div class="col-1 text-end">
@@ -114,7 +114,7 @@
             {{ itm.Material.PartType.WhsePartType|default:"NO PART TYPE" }} |
             Prio: <b>{{ itm.Priority|default:"---" }}</b> |
             Sched Counter: {{ itm.Counter|default:"---" }} |
-            {{ itm.Material.Description }}
+            {{ itm.Material.Description|default:"" }}
         </div>
     </div>
     <div class="row g-0">
@@ -186,7 +186,7 @@
     {% if forloop.last %}
         {# print summary of Materials for previous Counter #}
         {% for M in CtSchd %}
-        {% if forloop.first %}<hr><div class="fs-4" style="break-before: page;"><u>{{itm.prevCounter}} Materials</u><ul>{% endif %}
+        {% if forloop.first %}<hr><div class="fs-4" style="break-before: page;"><u>{{itm.prevCounter|default:""}} Materials</u><ul>{% endif %}
             {% if M.Counter == itm.Counter %}
             <li>{{ M.Material_org }}</li>
             {% endif %}
@@ -197,7 +197,7 @@
         {% for L in LocationList %}
         {% if forloop.first %}
             <hr><div class="fs-4" style="break-before: page;">
-            <u>{{itm.prevCounter}} Locations</u>
+            <u>{{itm.prevCounter|default:""}} Locations</u>
             <div class="small"><i>Material may be in locations not listed here</i></div>
             <ul>
         {% endif %}

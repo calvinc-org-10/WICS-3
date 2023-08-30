@@ -1,8 +1,8 @@
 {% extends "WICS_common.html" %}
-{% load widget_tweaks %}
 {% load static %}
 
-{% block tTitle %}{% if variation == 'REQ' %}Requested {% endif %}Count Summary{% endblock %}
+
+{% block tTitle %}Counting Agenda/Worksheet{% endblock %}
 {% block tHeader %}
 <style>
     @page {
@@ -10,256 +10,243 @@
         margin: 0;
         padding: 0;
     }
+    .header {
+      position: fixed;
+      top: 0;
+    }
+    .footer {
+      position: fixed;
+      bottom: 0;
+    }
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+    }
 </style>
 {% endblock %}
 
 {% block boddy %}
-<div class="container text-center mx-auto d-print-none"> <!-- form header with date chooser -->
-    <!-- GoTo Date -->
-    <div class="container-fluid text-center bg-info">   <!-- wait spinner and choose date container -->
-        <div class="row">
-            <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
-            <div class="col-1"></div>
-            <div class="col-6">
-                <h3>{{ CountDate|date:"l" }} <input id="CtDate" type="Date" value="{{ CountDate|date:'Y-m-d' }}" onchange="newCtDate();" size="5"></input></h3>
+<!-- menu head -->
+<div class="container text-center mx-auto d-print-none">
+    <div class="row max-width=100%">
+        <div class="col-10">
+            <h2>
+                Counting Agenda/Worksheet for
+                <span class="container">
+                    <input type="date" id="gotoID" onchange="loadDate();" value="{{ CountDate|date:'Y-m-d' }}">
+                </span>
+            </h2>
+            SAP Date: {{ SAP_Updated_at }}
+        </div>
+        <div class="col-2 text-end">
+            {{ user.get_full_name }}
+            <br>
+            <img src={% static 'WICS-Logo.png' %} width="150" height="70">
+        </div>
+    </div>
+</div>
+<div class="container text-center mx-auto d-print-none">
+    <div class="row"> <!-- status messages -->
+        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+    </div>
+</div>
+
+<hr>
+<!-- body -->
+
+<div class="container mx-auto">
+{% for itm in CtSchd %}
+    {% ifchanged itm.Counter %}
+        {% if not forloop.first %}
+            {# print summary of Materials for previous Counter #}
+            {% for M in CtSchd %}
+            {% if forloop.first %}<hr><div class="fs-4" style="break-before: page;"><u>{{itm.prevCounter|default:""}} Materials</u><ul>{% endif %}
+                {% if M.Counter == itm.prevCounter %}
+                <li>{{ M.Material_org }}</li>
+                {% endif %}
+            {% if forloop.last %}</ul></div>{% endif %}
+            {% endfor %}
+
+            {# print summary of locations for previous Counter #}
+            {% for L in LocationList %}
+            {% if forloop.first %}
+                <hr><div class="fs-4" style="break-before: page;">
+                <u>{{itm.prevCounter|default:""}} Locations</u>
+                <div class="small"><i>Material may be in locations not listed here</i></div>
+                <ul>
+            {% endif %}
+            {% if L.Counter == itm.prevCounter %}
+            <li>{{ L.FoundAt }} | {{ L.CountDate }} | {{ L.Material_org }}</li>
+            {% endif %}
+            {% if forloop.last %}</ul></div>{% endif %}
+            {% endfor %}
+
+            <!-- close off the previous counter-->
             </div>
-            <div class="col-4 text-right">
-                SAP Date {{ SAPDate }}
+            <!-- <hr> -->
+        {% endif %}
+        <div class="container" style="break-after: page;">
+        <div class="row max-width=100%">
+            <div class="col-11">
+                <h2>
+                    {{ itm.Counter|default:"" }} Counting Agenda/Worksheet for {{ CountDate|date:'Y-m-d' }}
+                </h2>
+            </div>
+            <div class="col-1 text-end">
+                <img src={% static 'WICS-Logo.png' %} width="150" height="70">
             </div>
         </div>
-    </div>   <!-- wait spinner and choose date container -->
-</div>  <!-- form header -->
+    {% endifchanged %}
 
-<div id="mainReport" class="container-fluid mx-auto"  style="height:350px; overflow:auto;" >
-    {% for RptSection in SummaryReport %}
-        {% ifchanged RptSection.org %}
-            {% if not forloop.first %}
-                <hr>
-                </div>  <!-- org container -->
-            {% else %}
-            {% endif %}
-            <div style="break-after: page;">    <!-- org container -->
-                <div class="container text-center mx-auto"> <!-- org header -->
-                    <div class="row">
-                        <div class="col-5 fs-3 text-end">
-                            <br>Counts {% if variation == 'REQ' %}Requested{% else %}Scheduled and Done{% endif %}
-                        </div>
-                        <div class="col-5 text-start">
-                            <img src={% static 'WICS-Logo.png' %} width="200" height="100">
-                        </div>
-                        <div class="col-2 text-end"> {{ user.get_full_name }} </div>
-                    </div>
-                    <h1><u> {{ RptSection.org.orgname }} </u></h1>
-                </div>    <!-- org header -->
-        {% endifchanged %}
-        <hr>
-        <h3><u>{{ RptSection.Title }}</u></h3>
-        {% for ent in RptSection.outputrows %}
-            {% ifchanged ent.Material_id %}
-                <div style="break-inside: avoid;">   <!-- avoid page breaks for a single Material sheet -->
-                    <div class="CtSummDetail">
-                    <div class="row g-0 calvin-smalltext">
-                        <div class="col-1">Count Date</div>
-                        <div class="col-1">Cyc Ct ID</div>
-                        <div class="col-2">Material</div>
-                        <div class="col-3">Counter</div>
-                        <div class="col-2">LOCATION</div>
-                        <div class="col-1">PKG ID / Desc</div>
-                        <div class="col-1">TAG QTY</div>
-                    </div>
-            {% endifchanged %}
-                {% if ent.type == 'Detail' %}
-                    <div class="row g-0 calvin-smalltext">
-                        <div class="col-1">{{ CountDate|date:"m/d" }}</div>
-                        <div class="col-1">{{ ent.CycCtID }}</div>
-                        <div class="col-2">{{ ent.Material }}</div>
-                        <div class="col-3">{{ ent.ActCounter }}</div>
-                        <div class="col-2">{{ ent.LOCATION }}</div>
-                        <div class="col-1">{{ ent.PKGID }}</div>
-                        <div class="col-1">{{ ent.TAGQTY }}</div>
-                    </div>
-                    <div class="row g-0 small">
-                        <div class="col-11 small text-end">
-                            {% if ent.ActCountNotes %}
-                                <b>Count Notes: </b>{{ ent.ActCountNotes }}
-                            {% endif %}
-                            <b>Actual Count: </b> {{ ent.CTD_QTY_Expr }}
-                        </div>
-                        <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
-                    </div>
-                    {% if ent.PossNotRec or ent.MovDurCt %}
-                    <div class="text-center">
-                        {% if ent.PossNotRec %}<b>POSSIBLY NOT RECIEVED</b>{% endif %}
-                        {% if ent.MovDurCt %}<b>MOVEMENT DURING COUNT</b>{% endif %}
-                    </div>
-                    {% endif %}
-                {% elif ent.type == 'Summary' %}
-                    </div>  <!-- class CtSummDetail -->
-                    <div class="CtSummSummary">
-                    <div>
-                        <b>SAP</b> {{SAPDate}}:
-                        {% for s in ent.SAPNum %}{{ s }}{% endfor %}, 
-                        Typical Container Qty = {{ ent.TypicalContainerQty }}, 
-                        Typical Pallet Qty = {{ ent.TypicalPalletQty }}
-                    </div>
-                    <div class="row g-0">
-                        <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
-                        <div class="col-1">Counted</div>
-                        <div class="col-1">SAP</div>
-                        <div class="col-1">Diff</div>
-                        <div class="col-1">Acc %</div>
-                        <div class="col-1"></div>
-                        <div class="col-1"></div>
-                        <div class="col-1"></div>
-                    </div>
-                    <div class="row g-0">
-                        <div class="col-5">Part Type {{ ent.PartType }}</div>
-                        <div class="col-1">{{ ent.CountTotal }}</div>
-                        <div class="col-1">{{ ent.SAPTotal }}</div>
-                        <div class="col-1">{{ ent.Diff }}</div>
-                        <div class="col-1 
-                            {% if ent.Accuracy < AccuracyCutoff.DANGER  %} bg-danger
-                            {% elif ent.Accuracy > AccuracyCutoff.SUCCESS %} bg-success
-                            {% elif ent.Accuracy > AccuracyCutoff.WARNING %} bg-warning
-                            {% endif %}
-                        "><b>{{ ent.Accuracy|floatformat:2 }}%</b></div>
-                        <div class="col-1"></div>
-                        <div class="col-1"></div>
-                        {% if variation != 'REQ' %}
-                        <div class="col-1">
-                            <button type="button" class="btnSchCt d-print-none" value="{{ ent.Material_id }}"><small>Schedule Count</small></button>
-                        </div>
-                        {% endif %}
-                    </div>
-                    <div class="row g-0">
-                        Scheduled Counter: {{ ent.SchedCounter|default:'----' }}
-                        {% if ent.Requestor  %}
-                            | Requestor: {{ ent.Requestor }} | RequestFilled: {{ ent.RequestFilled|yesno|upper }}
-                        {% endif %}
-                    </div>
-                    {% if ent.ReasonScheduled %}
-                    <div class="row g-0 small">
-                        <div class="col"><b>Reason Scheduled: </b>{{ ent.ReasonScheduled }}</div>
-                    </div>
-                    {% endif %}
-                    {% if ent.SchedNotes %}
-                    <div class="row g-0 small">
-                        <div class="col"><b>Schedule Notes: </b>{{ ent.SchedNotes }}</div>
-                    </div>
-                    {% endif %}
-                    </div>  <!-- class CtSummSummary -->
-                    <hr>
-                    </div>     <!-- avoid page breaks for previous Material sheet -->
-                {% else %}
-                    Unknown lineout.type {{ ent.type }}<br>
+    <div style="break-inside: avoid;">  <!-- avoid page breaks for a single Material sheet -->
+    <div class="row g-0 max-width=100%">
+        <div class="col-7">
+            {{ itm.MaterialBarCode|safe }}
+        </div>
+        <div class="col-4 fs-5">
+            {{ itm.Material.org }} Material
+            {{ itm.Material_org }}
+        </div>
+    </div>
+    <div class="row g-0">
+        <div class="col-11">
+            {{ CountDate|date:'Y-m-d' }} |
+            {{ itm.Material.PartType.WhsePartType|default:"NO PART TYPE" }} |
+            Prio: <b>{{ itm.Priority|default:"---" }}</b> |
+            Sched Counter: {{ itm.Counter|default:"---" }} |
+            {{ itm.Material.Description|default:"" }}
+        </div>
+    </div>
+    <div class="row g-0">
+        <div class="col-11">
+        Typical Container Qty = {{ itm.Material.TypicalContainerQty }},
+        Typical Pallet Qty = {{ itm.Material.TypicalPalletQty }} |
+        Last Found On {{ itm.LastCountDate|default_if_none:"---" }} At {{ itm.LastFoundAt|default:"---" }}
+        </div>
+    </div>
+    <div class="row g-0 calvin-smalltext">
+        <div class="col-12">
+        dbid {{ itm.pk }} |
+        Requestor: {{ itm.Requestor }} | RequestFilled: {{ itm.RequestFilled|yesno:"yes,no,---" }} |
+        Reason Scheduled: {{ itm.ReasonScheduled }} | Notes: {{ itm.Notes }} | SAP Qty: {{ itm.SAPQty }}
+        {% if itm.Material.Notes %}
+        <br>
+        Material Notes: {{ itm.Material.Notes }}
+        {% endif %}
+        </div>
+    </div>
+    <br>
+    <div class="row g-0 fs-3">
+        <div class="col-8">Act Cntr: ________________________</div>
+        <div class="col">Date: _____________</div>
+    </div>
+    <div class="row g-0">
+        <table>
+            <thead>
+            <tr>
+                <th style="width:20%">LOCATION</th>
+                <th style="width:60%">CTD_QTY_Expr</th>
+                <th style="width:20%">Notes</th>
+            </tr>
+            </thead>
+            <tbody>
+            {% for L in LocationList %}
+            {% if forloop.first %}<ul>{% endif %}
+                {% if L.Material == itm.Material.pk %}
+                <tr style="height:60px">
+                    <td style="vertical-align:top;">{{ L.FoundAt }}</td>
+                    <td></td>
+                    <td></td>
+                </tr>
                 {% endif %}
+            {% if forloop.last %}</ul>{% endif %}
+            {% endfor %}
+            <tr style="height:60px">
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr style="height:60px">
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr style="height:60px">
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            <tr style="height:60px">
+                <td></td>
+                <td></td>
+                <td></td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <hr>
+    </div>  <!-- style="break-inside: avoid;">  {!-- avoid page breaks for a single Material sheet -->
+    {% if forloop.last %}
+        {# print summary of Materials for previous Counter #}
+        {% for M in CtSchd %}
+        {% if forloop.first %}<hr><div class="fs-4" style="break-before: page;"><u>{{itm.prevCounter|default:""}} Materials</u><ul>{% endif %}
+            {% if M.Counter == itm.Counter %}
+            <li>{{ M.Material_org }}</li>
+            {% endif %}
+        {% if forloop.last %}</ul></div>{% endif %}
         {% endfor %}
-    {% endfor %}
-</div>  <!-- final org container -->
-</div>  <!-- mainReport -->
+
+        {# print summary of locations for previous Counter #}
+        {% for L in LocationList %}
+        {% if forloop.first %}
+            <hr><div class="fs-4" style="break-before: page;">
+            <u>{{itm.prevCounter|default:""}} Locations</u>
+            <div class="small"><i>Material may be in locations not listed here</i></div>
+            <ul>
+        {% endif %}
+        {% if L.Counter == itm.Counter %}
+        <li>{{ L.FoundAt }} | {{ L.CountDate }} | {{ L.Material_org }}</li>
+        {% endif %}
+        {% if forloop.last %}</ul></div>{% endif %}
+        {% endfor %}
+
+        <!-- close off the previous counter-->
+        </div>
+        <hr class="d-print-none">
+    {% endif %}
+{% endfor %}
+</div>
+
 <!-- form footer -->
-<div class="container">
-    <div class="row mx-auto max-width=100% d-print-none">
-        <div class="col-6"></div>
-        <div class="col-4">
-            <button id="download_btn" type="button" class="d-print-none btn btn-light btn-outline-secondary">
-                <a href="{% static ExcelFileName %}" download>
-                    D/L sprdsht
-                </a>
-            </button>
-            <button id="swap_detail_disp_btn" type="button" class="d-print-none" onclick="swap_detail_disp();">Hide Detail</button>
-            <button id="swap_prt_disp_btn" type="button" class="d-print-none" onclick="swap_prt_disp();">Print Version</button>
+<div class="container d-print-none">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-10">
         </div>
         <div class="col-2">
-            <button id="close_btn" type="button">
+            <button
+                id="close_btn"
+                type="button"
+                onclick="window.close();">
                 <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
                 Close Form
             </button>
         </div>
-    </div>  <!-- the (only) row in form footer container -->
-</div>  <!-- form footer container -->
+    </div>
+</div>
 
 <script>
-    var mainscroll = "height:350px; overflow:auto;"
+function loadDate() {
+    // send #gotoID back into the url
+    dVal = $("#gotoID").val().replace(" ","%20")
 
-    //---------
+    newRec = "{% url 'CountWorksheet' 'passedDate' %}"
+    newRec = newRec.replace("/passedDate","/"+dVal);
+    document.getElementById("wait_spinner").style.display = "block";
+    window.location = newRec;
 
-    document.body.onbeforeunload = function() {
-        document.getElementById("wait_spinner").style.display = "block";
-        }
-
-    //---------
-
-    function confirmLeave(){
-        // this is not an input form; we're always ready to leave
-        return true;
-    };
-
-    //---------
-
-    document.getElementById("close_btn").addEventListener("click",
-        function(evobj){
-            if (confirmLeave()) {
-                window.close()
-            }
-        });
-
-    //---------
-
-    $(".btnSchCt").on("click",
-        function() {
-            dVal = (new Date())                         // today
-            dVal.setDate(dVal.getDate()+1)              // tomorrow
-            dVal = dVal.toISOString().substring(0,10)   // make it a string
-
-            thisMtlGPN = this.value
-
-            newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
-            newRec = newRec.replace("/passedMatlNum","/"+thisMtlGPN);
-            newRec = newRec.replace("/passedCountDate","/"+dVal);
-            window.open(newRec,'_blank')
-        });
-
-    //---------
-
-    function newCtDate() {
-        {% if variation is None %}
-        var newRec = "{% url 'CountSummaryReport' 'PCD' %}".replace('/PCD','/'+$('#CtDate').val())
-        {% else %}
-        var newRec = "{% url 'CountSummaryReport-v' 'VARI' 'PCD' %}".replace('/PCD','/'+$('#CtDate').val()).replace('/VARI','/{{variation}}')
-        {% endif %}
-        window.location = newRec;
-    }
-
-    //---------
-
-    function swap_prt_disp() {
-        // remove scroll from mainReport so it can be printed or put it back for a scrolling window
-        let scrollval = $("#mainReport").attr("style");
-        if (scrollval==undefined) {
-            $("#mainReport").attr("style",mainscroll)
-            $("#swap_prt_disp_btn").html("Print Version")
-        } else {
-            $("#mainReport").removeAttr("style")
-            $("#swap_prt_disp_btn").html("Display Version")
-        }
-    }
-
-    //---------
-
-    function swap_detail_disp() {
-        // Hide/Show detail records
-        let detailvis = $(".CtSummDetail").attr("style");
-        if (detailvis==undefined) {
-            $(".CtSummDetail").css("display","none")
-            $("#swap_detail_disp_btn").html("Show Detail")
-        } else {
-            $(".CtSummDetail").removeAttr("style")
-            $("#swap_detail_disp_btn").html("Hide Detail")
-        }
-    }
+};
 
 </script>
 
 {% endblock %}
-
