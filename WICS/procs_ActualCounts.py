@@ -8,6 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models.query import QuerySet
 from django.http import HttpRequest, HttpResponse
+from django import http
 from django.shortcuts import render
 from django.views.generic import ListView
 from django_q.tasks import async_task
@@ -508,6 +509,7 @@ class ActualCountListForm(LoginRequiredMixin, ListView):
     ordering = ['-CountDate', 'Material']
     context_object_name = 'ActCtList'
     template_name = 'frm_ActualCountList.html'
+    # http_method_names = ['get', 'post', ]   #'put', 'patch', 'delete', 'head', 'options', 'trace']
     
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
@@ -522,11 +524,29 @@ class ActualCountListForm(LoginRequiredMixin, ListView):
 
         return cntext
 
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
+    
     # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
     #     return super().get(request, *args, **kwargs)
 
-    # def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
-    #     return HttpResponse('Not needed!!')
+    def post(self, req: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        # is there a request to copy a count?
+        if ('copyCountFromid' in req.POST) and ('copyCountToDate' in req.POST):
+            copyCountFromid = req.POST['copyCountFromid']
+            copyCountToDate = req.POST['copyCountToDate']
+            copyCountRec = ActualCounts.objects.get(pk=copyCountFromid)
+            copyCountRec.pk = None
+            copyCountRec.CountDate = copyCountToDate
+            copyCountRec.save()
+        # is there a request to delete a count
+        if ('deleteCountid' in req.POST) :
+            deleteCountid = req.POST['deleteCountid']
+            ActualCounts.objects.filter(pk=deleteCountid).delete()
+        
+        return http.HttpResponseNotModified()
+
+
 
 
 #####################################################################

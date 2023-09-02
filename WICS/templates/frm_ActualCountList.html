@@ -18,13 +18,19 @@
     </div>
 <div class="col-2 text-end"> {{ user.get_full_name }} </div>
 </div>
+<div class="row"> <!-- status messages -->
+    <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+</div>
+</div>
+
+<div class="container">
+{% csrf_token %}
 <!-- header row -->
 <div class="row g-0">
     <div class="col-1"></div>
     <div class="col-7 text-start">
         Count Date | Counter | Material | LOCATION | Counted Quantity
     </div> 
-    <div class="col-4">Notes</div>
 </div>
 <hr>
 <div class="container" style="height:350px; overflow-y:auto; overflow-x:clip">
@@ -33,7 +39,7 @@
         <div class="col-1">
             {{ itm.id }}  
         </div>
-        <div class="col-6 text-start">
+        <div class="col-8 text-start">
             {{ itm.CountDate }} | 
             {{ itm.Counter }} |
             {{ itm.Material }} |
@@ -43,16 +49,22 @@
             {% else %}
                 <b>LOCATION ONLY</b>
             {% endif %}
+            {% if itm.Notes %}
+                <br>
+                {{ itm.Notes }}
+            {% endif %}
         </div>
-        <div class="col-4 text-start">{{ itm.Notes }}</div>
-        <div class="col-1">
+        <div class="col-2">
+            <!--TODO: Make all of these buttons work the same way -->
             <button id="edit{{ itm.id }}" class="edit" value="{{ itm.id }}" type="button">Edit</button>
+            <button type="button" onclick="CopyCount({{itm.id}})">Copy Count</button>
+            <button type="button" onclick="DeleteCount({{itm.id}})">Delete Count</button>
         </div>
     </div>
     <hr>
     {% endfor %}
 </div>
-
+</div>
 <!-- form footer -->
 <hr>
 <div class="container">
@@ -79,6 +91,7 @@
     </div>
 </div>
 
+{% comment %}
 <!-- Modal -->
 <!-- currently not used, but leave here in case needed later -->
 <div class="modal-sm fade" id="modalRemvCheck" role="dialog">
@@ -104,6 +117,11 @@
         </div>
     </div>
 </div>
+{% endcomment %}
+
+<div id="modalGeneric" class="modal" >
+</div>
+
 
 <script>
     $(".edit").on("click",loadCountEntryRec)
@@ -123,6 +141,91 @@
         newRec = "{% url 'CountEntryForm' %}"
         window.open(newRec,'_blank');
     };
+
+    function CopyCount(idToCopy) {
+        const newdateid = "newcopy-date";
+        const todayDate = new Date();   // I STILL hate date manipulation!! Can't we all just agree on a standard???
+        const todayStr = todayDate.toISOString().slice(0,10)
+        $("#modalGeneric").dialog("option","title","Copy to what Date?");
+        document.getElementById("modalGeneric").innerHTML = '<input type="date" name="'+newdateid+'" id="'+newdateid+'" value="'+todayStr+'"></input>'
+
+        $("#modalGeneric").dialog("option","buttons", 
+            { 
+                "OK" : function() {
+                    d = $("#"+newdateid).val();
+
+                    const formdata = new FormData();
+                    formdata.append('copyCountFromid', idToCopy);
+                    formdata.append('copyCountToDate', d);
+
+                    // location.reload()
+                    const req = new XMLHttpRequest();
+                    req.addEventListener("loadend", (evnt) => {
+                        location.reload();
+                    });
+                    const thisurl= location.href; // "{% url 'ActualCountList' %}";
+                    req.open("POST", thisurl);
+                    csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    req.setRequestHeader('X-CSRFToken', csrftoken);
+
+                    document.getElementById("wait_spinner").style.display = "block";
+                    req.send(formdata);
+
+                    $(this).dialog("close");
+                },
+                "Cancel" : function() {
+                    $(this).dialog("close"); 
+                }
+            } );
+        $("#modalGeneric").dialog("open");
+
+    };
+
+    function DeleteCount(idToDelete) {
+        $("#modalGeneric").dialog("option","title","Really Deelte Count?");
+        document.getElementById("modalGeneric").innerHTML = 'Are you <b>SURE</b> you want to delete count '+idToDelete+"?"
+
+        $("#modalGeneric").dialog("option","buttons", 
+            { 
+                "No" : function() {
+                    $(this).dialog("close"); 
+                },
+                "Yes" : function() {
+                    const formdata = new FormData();
+                    formdata.append('deleteCountid', idToDelete);
+
+                    // location.reload()
+                    const req = new XMLHttpRequest();
+                    req.addEventListener("loadend", (evnt) => {
+                        location.reload();
+                    });
+                    const thisurl= location.href; // "{% url 'ActualCountList' %}";
+                    req.open("POST", thisurl);
+                    csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                    req.setRequestHeader('X-CSRFToken', csrftoken);
+
+                    document.getElementById("wait_spinner").style.display = "block";
+                    req.send(formdata);
+
+                    $(this).dialog("close");
+                },
+            } );
+        $("#modalGeneric").on("dialogopen", (evnt) => { console.log(this); });
+        $("#modalGeneric").dialog("open");
+
+    };
+
+    // handle Modal
+    $("#modalGeneric").dialog({
+        autoOpen: false,
+        closeOnEscape: false,
+        modal: true,
+        hide: "puff",
+        position: {
+            my: "top center", at: "top center"
+        }
+    });
+
 </script>
 
 {% endblock %}

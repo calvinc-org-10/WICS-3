@@ -1,12 +1,13 @@
 from django.contrib.auth.decorators import login_required
-from django.db.models import OuterRef, Subquery, Exists, Value
+from django.db.models import Value
 from django.forms import modelformset_factory
+from django import http # for the various HttpResponses
 from django.shortcuts import render
 from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
 from WICS.forms import CountEntryForm, CountScheduleRecordForm, RequestCountScheduleRecordForm
 from WICS.forms import RelatedMaterialInfo, RelatedScheduleInfo
-from WICS.models import MaterialList, VIEW_materials, ActualCounts
+from WICS.models import VIEW_materials, ActualCounts
 from WICS.procs_CountSchedule import fnCountScheduleRecordExists
 
 
@@ -526,4 +527,5 @@ def fnRequestedCountEditListView(req, ShowFilledRequests = True):
             }
     templt = 'frm_RequestCountScheduleEditList.html'
     return render(req, templt, cntext)
+
 

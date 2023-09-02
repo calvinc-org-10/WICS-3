@@ -28,9 +28,9 @@ urlpatterns = [
     path('inituser', userinit.inituser , name='initWICSuser'),
     path('logout',logout.WICSlogout, name='WICSlogout'),
 
-    path('phptest00', phptest.showtestAjax , name='phptest00'),
-    path('phptest01', phptest.testAjax , name='phptest01'),
-    path('tmp-test-00',test00.testMLview.as_view()),
+    # path('phptest00', phptest.showtestAjax , name='phptest00'),
+    # path('phptest01', phptest.testAjax , name='phptest01'),
+    # path('tmp-test-00',test00.testMLview.as_view()),
 
     path('ActualCountList',
             procs_ActualCounts.ActualCountListForm.as_view(), name='ActualCountList'),

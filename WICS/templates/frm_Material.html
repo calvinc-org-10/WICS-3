@@ -224,9 +224,17 @@ button:focus {
                             <span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
                             {% endwith %}
                         </div>
-                        <div class="col-2">{% render_field ff.LOCATION size="10" %}</div>
-                        <div class="col-1">{{ ff.FLAG_PossiblyNotRecieved }} {{ ff.FLAG_MovementDuringCount }}</div>
+                        <div class="col-2">
+                            {% render_field ff.LOCATION size="8" %}
+                            {{ ff.FLAG_PossiblyNotRecieved }} 
+                            {{ ff.FLAG_MovementDuringCount }}
+                        </div>
                         <div class="col-2">{% render_field ff.Notes size="30" %}</div>
+                        <div class="col-1">
+                            <button type="button" onclick="CopyCount({{forloop.counter0}})">
+                                Copy Count
+                            </button>
+                        </div>
                     </div>
                     {% endfor %}
                 </div>
@@ -530,6 +538,44 @@ button:focus {
         } else {
             LeaveProc();
         }
+    };
+
+    function CopyCount(n) {
+        const newdateid = "newcopy-date";
+        const todayDate = new Date();   // I STILL hate date manipulation!! Can't we all just agree on a standard???
+        const todayStr = todayDate.toISOString().slice(0,10)
+        $("#modalGeneric").dialog("option","title","Copy to what Date?");
+        document.getElementById("modalGeneric").innerHTML = '<input type="date" name="'+newdateid+'" id="'+newdateid+'" value="'+todayStr+'"></input>'
+
+        $("#modalGeneric").dialog("option","buttons", 
+            { 
+                "OK" : function() {
+                    d = $("#"+newdateid).val();
+
+                    const formdata = new FormData(fmMain);
+                    idToCopy = "id_"+"{{countset.prefix}}-"+n+"-id";
+                    formdata.append('copyCountFromid', document.getElementById(idToCopy).value);
+                    formdata.append('copyCountToDate', d);
+
+                    // location.reload()
+                    const req = new XMLHttpRequest();
+                    req.addEventListener("loadend", (evnt) => {
+                        location.reload();
+                        });
+                    const thisurl="{% url 'MatlFormRecNum' frmMain.instance.pk %}";
+                    req.open("POST", thisurl);
+
+                    document.getElementById("wait_spinner").style.display = "block";
+                    req.send(formdata);
+
+                    $(this).dialog("close");
+                },
+                "Cancel" : function() {
+                    $(this).dialog("close"); 
+                }
+            } );
+        $("#modalGeneric").dialog("open");
+
     };
 
     // handle Modal

@@ -164,6 +164,15 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
                     queryset=modelSubs[1].objects.order_by('-CountDate'))
                     # queryset=modelSubs[1].objects.filter(CountDate__gte=HistoryCutoffDate).order_by('-CountDate'))
 
+        # is there a request to copy a count?
+        if ('copyCountFromid' in req.POST) and ('copyCountToDate' in req.POST):
+            copyCountFromid = req.POST['copyCountFromid']
+            copyCountToDate = req.POST['copyCountToDate']
+            copyCountRec = ActualCounts.objects.get(pk=copyCountFromid)
+            copyCountRec.pk = None
+            copyCountRec.CountDate = copyCountToDate
+            copyCountRec.save()
+
         if mtlFm.is_valid() and countSet.is_valid() and schedSet.is_valid():
             if mtlFm.has_changed():
                 try:
