@@ -22,9 +22,11 @@
         {% csrf_token %}
         {{ ulist.management_form }}
         <!-- form main -->
+        {% if ulist.non_form_errors %}
         <div class="row">
             {{ ulist.non_form_errors }}
         </div>
+        {% endif %}
         <hr>
         <div class="row">
             <div class="col-9">
