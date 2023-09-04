@@ -129,6 +129,10 @@
         dbid {{ itm.pk }} |
         Requestor: {{ itm.Requestor }} | RequestFilled: {{ itm.RequestFilled|yesno:"yes,no,---" }} |
         Reason Scheduled: {{ itm.ReasonScheduled }} | Notes: {{ itm.Notes }} | SAP Qty: {{ itm.SAPQty }}
+        {% if itm.Material.Notes %}
+        <br>
+        Material Notes: {{ itm.Material.Notes }}
+        {% endif %}
         </div>
     </div>
     <br>
