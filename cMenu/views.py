@@ -1,5 +1,4 @@
-import asyncio
-import logging
+from typing import Any, Dict
 from datetime import datetime
 import zoneinfo
 from django import forms, db
@@ -7,35 +6,62 @@ from django.conf import settings as django_settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, permission_required
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import QuerySet
+from django.db.models import QuerySet, Min
 from django.forms import formset_factory, modelformset_factory, CharField
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import HttpRequest
-from django.http.response import HttpResponseBase, HttpResponse, HttpResponseRedirect,HttpResponseNotAllowed
-from django.urls import reverse
+from django.http.response import HttpResponseBase, HttpResponse
+from django.urls import reverse, resolve
 from django.utils.decorators import classonlymethod
 from django.utils.text import slugify
 from django.views.generic import View, ListView
 from django.views.generic.edit import ModelFormMixin
 from django.views.generic.list import MultipleObjectMixin
-from typing import Any, Dict
 from cMenu.utils import WrapInQuotes, Excelfile_fromqs, ExcelWorkbook_fileext
 from cMenu import menucommand_handlers
 from cMenu.menucommand_handlers import MENUCOMMAND
 from cMenu.models import menuCommands, menuItems, menuGroups, cParameters, cGreetings
+from userprofiles.views import fnWICSuserForm
 from sysver import sysver
 from django_support.settings import sysver_key
 
-# imports below are WICS-specific
-from userprofiles.models import WICSuser
+##################################################################################
+##################################################################################
 
-# Create your views here.
+def DefaultMenu(menuGroup):
+    if menuGroups.objects.filter(pk=menuGroup).exists():
+        if menuItems.objects.filter(MenuGroup = menuGroup, OptionNumber = 0).exists():
+            DEFLTmenuNum = menuItems.objects.filter(MenuGroup = menuGroup, OptionNumber = 0).aggregate(menuNum=Min('MenuID'))['menuNum']
+            return (DEFLTmenuNum, None)
+        else:
+            return (None, f'MenuGroup {menuGroup} has no menu')
+    else:
+        return (None, f'No such MenuGroup as {menuGroup}')
+    #endif menuGroup exists
+
+##################################################################################
+##################################################################################
 
 @login_required
 def LoadMenu(req, menuGroup, menuNum):
-# DOCUMENT THIS!!!   ADD COMMENTS!!!  EXPLAIN IT!!!
-    mnItem_qset = menuItems.objects.filter(MenuGroup = menuGroup, MenuID = menuNum).values('OptionNumber','OptionText','Command','Argument')
-    mnuName = mnItem_qset.get(OptionNumber=0)['OptionText']
+    if menuItems.objects.filter(MenuGroup = menuGroup, MenuID = menuNum, OptionNumber=0).exists():
+        mnItem_qset = menuItems.objects.filter(MenuGroup = menuGroup, MenuID = menuNum).values('OptionNumber','OptionText','Command','Argument')
+        mnuName = mnItem_qset.get(OptionNumber=0)['OptionText']
+    else:
+        menuNumtuple = DefaultMenu(menuGroup)
+        if menuNumtuple[0] is not None:
+            messages.add_message(req,
+                messages.WARNING,
+                f'Menu {menuNum} does not exist')
+            # subst the default menu for the one asked for
+            menuNum = menuNumtuple[0]
+        else:
+            messages.add_message(req,
+                messages.WARNING,
+                menuNumtuple[1])
+            # there's no menu - go to login screen instead
+            return redirect("WICSlogout")
+        #endif menuNumtruple[0] is None
 
     mnItem_list = ['<span class="btn btn-lg btn-outline-transparent mx-auto"></span>' for i in range(20)]
     for m in mnItem_qset:
@@ -50,7 +76,6 @@ def LoadMenu(req, menuGroup, menuNum):
             if m['Command'] != MENUCOMMAND.ExitApplication.value:
                 mHTML = mHTML + " target=" + WrapInQuotes("_blank")
         # endif
-        # mHTML = mHTML + " class=" + WrapInQuotes("btn btn-lg bd-btn-lg btn-outline-secondary mx-auto") + ">" + m['OptionText'] + "</a>"
         mHTML = mHTML + " class=" + WrapInQuotes("btn btn-lg btn-outline-secondary mx-auto") + ">" + m['OptionText'] + "</a>"
         mnItem_list[m['OptionNumber']-1] = mHTML
 
@@ -69,6 +94,9 @@ def LoadMenu(req, menuGroup, menuNum):
     return render(req, templt, context=cntext)
 
 
+##################################################################################
+##################################################################################
+
 def HandleMenuCommand(req,CommandNum,CommandArg):
     retHTTP = "Command " + menuCommands.objects.get(Command=CommandNum).__str__() + " will be performed with Argument " + CommandArg
 
@@ -78,26 +106,26 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
     #     retHTTP = LoadMenu(req, WUsrMenuGroup,int(CommandArg))
     # else
     if CommandNum == MENUCOMMAND.FormBrowse.value :
-        retHTTP = menucommand_handlers.FormBrowse(req, CommandArg)  # replace this with the url reverse
+        retHTTP = FormBrowse(req, CommandArg)  # replace this with the url reverse
     elif CommandNum == MENUCOMMAND.OpenTable.value :
-        retHTTP = menucommand_handlers.ShowTable(req, CommandArg)
+        retHTTP = ShowTable(req, CommandArg)
     elif CommandNum == MENUCOMMAND.RunCode.value :
         fn = getattr(menucommand_handlers, CommandArg)
         retHTTP = fn(req)
     elif CommandNum == MENUCOMMAND.RunSQLStatement.value:
-        return HttpResponseRedirect(reverse('RunSQL'))
+        return redirect('RunSQL')
     elif CommandNum == MENUCOMMAND.ConstructSQLStatement.value:
         pass
     elif CommandNum == MENUCOMMAND.ChangePW.value:
-        return HttpResponseRedirect(reverse('change_password'))
+        return redirect('change_password')
     elif CommandNum == MENUCOMMAND.EditMenu.value :
-        return HttpResponseRedirect(reverse('EditMenu_init'))
+        return redirect('EditMenu_init')
     elif CommandNum == MENUCOMMAND.EditParameters.value :
-        return HttpResponseRedirect(reverse('EditParms'))
+        return redirect('EditParms')
     elif CommandNum == MENUCOMMAND.EditGreetings.value :
-        return HttpResponseRedirect(reverse('Greetings'))
+        return redirect('Greetings')
     elif CommandNum == MENUCOMMAND.ExitApplication.value :
-        return HttpResponseRedirect(reverse('WICSlogout'))
+        return redirect('WICSlogout')
     else:
         pass
 
@@ -107,10 +135,18 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
         return HttpResponse(retHTTP)
 
 
+##################################################################################
+##################################################################################
+
+@permission_required('SUPERUSER', raise_exception=True)
+def EditMenu_init(req):
+    # calculate initial MenuGroup, MenuID
+    menuGrp = menuItems.objects.filter(OptionNumber = 0).aggregate(menuGrp=Min('MenuGroup'))['menuGrp']
+    menuNum = menuItems.objects.filter(MenuGroup = menuGrp, OptionNumber = 0).aggregate(menuNum=Min('MenuID'))['menuNum']
+    return EditMenu(req, menuGrp, menuNum)
+
 @permission_required('SUPERUSER', raise_exception=True)
 def EditMenu(req, menuGroup, menuNum):
-# DOCUMENT THIS!!!   ADD COMMENTS!!!  EXPLAIN IT!!!
-
     # things go bonkers if these are strings
     menuGroup = int(menuGroup)
     menuNum = int(menuNum)
@@ -126,6 +162,11 @@ def EditMenu(req, menuGroup, menuNum):
 
     mnItem_qset = menuItems.objects.filter(MenuGroup = menuGroup, MenuID = menuNum)     #.values('OptionNumber','OptionText','Command','Argument')
     mnuGroupRec = menuGroups.objects.get(id=menuGroup)
+    if not mnItem_qset.exists():
+        messages.add_message(req,
+                    messages.ERROR,
+                    f'menu {menuGroup},{menuNum} does not exist')
+        return redirect('EditMenu_init')
 
     mnItem_list = [{'OptionText':'',
                     'Command':'',
@@ -194,7 +235,8 @@ def EditMenu(req, menuGroup, menuNum):
                 or thisItem['Command'] \
                 or thisItem['Argument']:
                     # mnRec does not exist, but mnItem_list is new (has values)
-                    mnRec = menuItems(MenuGroup_id = menuGroup,
+                    mnRec = menuItems(
+                        MenuGroup_id = menuGroup,
                         MenuID = menuNum,
                         OptionNumber = i,
                         OptionText = thisItem['OptionText'],
@@ -235,7 +277,7 @@ def EditMenu(req, menuGroup, menuNum):
                 else:
                     pass    # targetGroup is already None
 
-                if targetGroup==None or targetMenu==None or targetOption==None:
+                if targetGroup is None or targetMenu is None or targetOption is None:
                     if changed_data: changed_data += ", "
                     changed_data += "Could not interpret option " + str(i) + " " + MoveORCopy + " target " + thisItem.get('CopyTarget')
                 else:
@@ -270,13 +312,14 @@ def EditMenu(req, menuGroup, menuNum):
                             mnItem_list[targetOption-1]['OptionText'] = mnRec.OptionText
                             mnItem_list[targetOption-1]['Command'] = mnRec.Command_id
                             mnItem_list[targetOption-1]['Argument'] = mnRec.Argument
-    else:
+    else: #reqest.method != 'POST'
         for m in mnItem_qset:
             mnItem_list[m.OptionNumber-1]['OptionText'] = m.OptionText
             mnItem_list[m.OptionNumber-1]['Command'] = m.Command_id
             mnItem_list[m.OptionNumber-1]['Argument'] = m.Argument
     # endif request.method = 'POST'
 
+    # build representation of menu for display
     fullMenuHTML = ""
     for i_0based in range(10):
         i = i_0based + 1
@@ -313,20 +356,8 @@ def EditMenu(req, menuGroup, menuNum):
         fullMenuHTML += "</div>"
         fullMenuHTML += "</div>"
 
-        # fullMenuHTML += "<div class='row'>"
-        # fullMenuHTML += "<div class='col m-1'> Argument: "
-        # fullMenuHTML += "<input type='text' size='20' name='Argument-" + istr + "'"
-        # if mnItem_list[i_0based]['Argument']: fullMenuHTML += " value = '" + mnItem_list[i_0based]['Argument'] + "'"
-        # fullMenuHTML += "></input></div>"
-        # fullMenuHTML += "<div class='col m-1'> Argument: "
-        # fullMenuHTML += "<input type='text' size='20' name='Argument-" + i2str + "'"
-        # if mnItem_list[i_0based+10]['Argument']: fullMenuHTML += " value = '" + mnItem_list[i_0based+10]['Argument'] + "'"
-        # fullMenuHTML += "></input></div>"
-        # fullMenuHTML += "</div>"
-
         fullMenuHTML += "<div class='row'>"
         fullMenuHTML += "<div class='col m-1'>"
-        #fullMenuHTML += "----<input type='radio' name='CopyTo-" + istr + "' value=''>"
         fullMenuHTML += " Copy<input type='radio' name='CopyTo-" + istr + "' value='copy'>"
         fullMenuHTML += " Move<input type='radio' name='CopyTo-" + istr + "' value='move'>"
         fullMenuHTML += " to <input type='text' name='CopyTarget-" + istr + "' size='5'>"
@@ -334,7 +365,6 @@ def EditMenu(req, menuGroup, menuNum):
         fullMenuHTML += " Remove:<input type='checkbox' name='Remove-" + istr + "'>"
         fullMenuHTML += "</div>"
         fullMenuHTML += "<div class='col m-1'>"
-        #fullMenuHTML += "----<input type='radio' name='CopyTo-" + i2str + "' value=''>"
         fullMenuHTML += " Copy<input type='radio' name='CopyTo-" + i2str + "' value='copy'>"
         fullMenuHTML += " Move<input type='radio' name='CopyTo-" + i2str + "' value='move'>"
         fullMenuHTML += " to <input type='text' name='CopyTarget-" + i2str + "' size='5'>"
@@ -362,27 +392,30 @@ def EditMenu(req, menuGroup, menuNum):
     return render(req, templt, context=cntext)
 
 
+##################################################################################
+##################################################################################
+
 @permission_required('SUPERUSER', raise_exception=True)
 def MenuCreate(req, menuGroup, menuNum, fromGroup=None, fromMenu=None):
 
     # things go bonkers if these are strings
     menuGroup = int(menuGroup)
     menuNum = int(menuNum)
-    if fromGroup: fromGroup = int(fromGroup)
-    if fromMenu: fromMenu = int(fromMenu)
+    if fromGroup is not None: fromGroup = int(fromGroup)
+    if fromMenu is not None: fromMenu = int(fromMenu)
 
     # the new menu must not currently exist
     if menuItems.objects.filter(MenuGroup_id=menuGroup, MenuID=menuNum).exists():
         # nope, cannot create an already existing menu
         messages.add_message(req,
                     messages.ERROR,
-                    'menu {},{} exists - it cannot be created'.format(menuGroup,menuNum))
-        return HttpResponseRedirect(reverse('EditMenu_init'))
+                    f'menu {menuGroup},{menuNum} exists - it cannot be created')
+        return redirect('EditMenu_init')
     else:
         # create the new MenuGroup, if need be
         menuGroupObj, isnew = menuGroups.objects.get_or_create(id=menuGroup, defaults={'GroupName':'New Menu Group'})
-        if fromMenu:
-            if not fromGroup: fromGroup = menuGroup
+        if fromMenu is not None:
+            if fromGroup is None: fromGroup = menuGroup
             for mItm in menuItems.objects.filter(MenuGroup_id=fromGroup, MenuID=fromMenu):
                 menuItems(
                     MenuGroup = menuGroupObj,
@@ -392,7 +425,7 @@ def MenuCreate(req, menuGroup, menuNum, fromGroup=None, fromMenu=None):
                     Command = mItm.Command,
                     Argument = mItm.Argument
                 ).save()
-        else:
+        else:   # fromMenu is None; create new Menu from scratch
             menuItems(
                 MenuGroup = menuGroupObj,
                 MenuID = menuNum,
@@ -407,9 +440,13 @@ def MenuCreate(req, menuGroup, menuNum, fromGroup=None, fromMenu=None):
                 Command_id = MENUCOMMAND.LoadMenu.value,
                 Argument = 0
             ).save()
-            
-        return HttpResponseRedirect(reverse('EditMenu', kwargs={'menuGroup':menuGroup, 'menuNum':menuNum}))
+        #endif fromMenu is not None
 
+        return redirect('EditMenu', kwargs={'menuGroup':menuGroup, 'menuNum':menuNum})
+    #endif menuItems.objects.filter(MenuGroup_id=menuGroup, MenuID=menuNum).exists()
+
+##################################################################################
+##################################################################################
 
 @permission_required('SUPERUSER', raise_exception=True)
 def MenuRemove(req, menuGroup, menuNum):
@@ -422,9 +459,80 @@ def MenuRemove(req, menuGroup, menuNum):
     menuItems.objects.filter(MenuGroup_id=menuGroup, MenuID=menuNum).delete()
 
     # redirect to url:EditMenu at end
-    #return HttpResponseRedirect(reverse('EditMenu', kwargs={'menuGroup':menuGroup, 'menuNum':menuNum}))
-    return HttpResponseRedirect(reverse('EditMenu_init'))
+    #return redirect('EditMenu', kwargs={'menuGroup':menuGroup, 'menuNum':menuNum}))
+    return redirect('EditMenu_init')
 
+#########################################################################
+#########################################################################
+
+def LoadAdmin(req):
+    return redirect('/admin/')
+
+#########################################################################
+#########################################################################
+
+def FormBrowse(req, formname):
+    urlIndex = 0
+    viewIndex = 1
+
+    FormNameToURL_Map = {}
+    # FormNameToURL_Map['menu Argument'.lower()] = (url, view)
+    FormNameToURL_Map['l10-wics-uadmin'.lower()] = (None, fnWICSuserForm)
+    FormNameToURL_Map['l6-wics-uadmin'.lower()] = FormNameToURL_Map['l10-wics-uadmin']
+    FormNameToURL_Map['django-admin'.lower()] = (None, LoadAdmin)
+    FormNameToURL_Map['frmcount-schedulehistory-by-counterdate'.lower()] = ('CountScheduleList', None)
+    FormNameToURL_Map['frmcountentry'.lower()] = ('CountEntryForm', None)
+    FormNameToURL_Map['frmUploadCountEntry'.lower()] = ('UploadActualCountSprsht', None)
+    FormNameToURL_Map['frmUploadCountSched'.lower()] = ('UploadCountSchedSprsht', None)
+    FormNameToURL_Map['frmcountsummarypreview'.lower()] = ('CountSummaryReport', None)
+    FormNameToURL_Map['frmrequestedcountsummary'.lower()] = ('CountSummaryReport-v-init', None)
+    FormNameToURL_Map['frmimportsap'.lower()] = ('UploadSAPSprSht', None)
+    FormNameToURL_Map['frmmaterial'.lower()] = ('MatlForm', None)
+    FormNameToURL_Map['frmParts-By-Type-with-LastCounts'.lower()] = ('MatlByPartType', None)
+    FormNameToURL_Map['rptMaterialByLastCount'.lower()] = ('MatlByLastCountDate', None)
+    FormNameToURL_Map['rptMaterialByDESCValue'.lower()] = ('MatlByDESCValue', None)
+    FormNameToURL_Map['frmRandCountScheduler'.lower()] = (None, None)
+    FormNameToURL_Map['matllistupdt'.lower()] = ('UpdateMatlListfromSAP', None)
+    FormNameToURL_Map['frmCountScheduleEntry'.lower()] = ('CountScheduleForm', None)
+    FormNameToURL_Map['frmRequestCountScheduleEntry'.lower()] = ('RequestCountScheduleForm', None)
+    FormNameToURL_Map['frmRequestedCountListEdit'.lower()] = ('RequestCountListEdit', None)
+    FormNameToURL_Map['rptCountWorksheet'.lower()] = ('CountWorksheet', None)
+    FormNameToURL_Map['rptMaterialLocations'.lower()] = ('MaterialLocations', None)
+    FormNameToURL_Map['LocationList'.lower()] = ('LocationList', None)
+    FormNameToURL_Map['sap'.lower()] = ('showtable-SAP', None)
+    FormNameToURL_Map['tblActualCounts'.lower()] = ('ActualCountList', None)
+    FormNameToURL_Map['PartTypeFm'.lower()] = ('PartTypeForm', None)
+
+    # theForm = 'Form ' + formname + ' is not built yet.  Calvin needs more coffee.'
+    theForm = None
+    formname = formname.lower()
+    if formname in FormNameToURL_Map:
+        if FormNameToURL_Map[formname][urlIndex]:
+            url = FormNameToURL_Map[formname][urlIndex]
+            theView = resolve(reverse(url)).func
+            theForm = theView(req)
+        elif FormNameToURL_Map[formname][viewIndex]:
+            fn = FormNameToURL_Map[formname][viewIndex]
+            theForm = fn(req)
+
+    if not theForm:
+        templt = "UnderConstruction.html"
+        cntext = {
+            'formname': formname,
+            }
+        theForm = render(req, templt, cntext)
+
+    # must be rendered if theForm came from a class-based-view
+    if hasattr(theForm,'render'): theForm = theForm.render()
+    return theForm
+
+def ShowTable(req, tblname):
+    # showing a table is nothing more than another form
+    return FormBrowse(req,tblname)
+
+
+##################################################################################
+##################################################################################
 
 class fm_cRawSQL(forms.Form):
     inputSQL = forms.CharField(widget=forms.Textarea(attrs={'cols':120}))
@@ -476,47 +584,25 @@ def fn_cRawSQL(req):
 
             cntext['OrigSQL'] = SForm.cleaned_data['inputSQL']
 
-            templt = "show_raw_SQL.html"                
+            templt = "show_raw_SQL.html"
         else:
             SForm = fm_cRawSQL(req.POST)
 
             cntext['form'] = SForm
-            messages.add_message(req, messages.WARNING,message=sqlerr) 
+            messages.add_message(req, messages.WARNING,message=sqlerr)
             templt = "enter_raw_SQL.html"
     else:
         SForm = fm_cRawSQL()
 
         cntext['form'] = SForm
         templt = "enter_raw_SQL.html"
-        
+
 
     return render(req, templt, context=cntext)
 
-    
 
-# class cParmFormList(LoginRequiredMixin, ListView):
-#     model = cParameters
-#     template_name = 'cParameters.html'
-#     context_object_name = 'plist'
-#     extra_context = {}
-
-#     def setup(self, request: HttpRequest, *args: Any, **kwargs: Any) -> None:
-#         return super().setup(request, *args, **kwargs)
-
-#     def post():
-#         pass
-
-# class cParmForm(forms.ModelForm):
-#     class Meta:
-#         model = cParameters
-#         fields = '__all__'
-# class cParmForm2(forms.Form):
-#     ParmName = forms.CharField()
-#     ParmValue = forms.CharField()
-#     UserModifiable = forms.BooleanField()
-#     Comments = forms.CharField()
-
-
+##################################################################################
+##################################################################################
 
 @permission_required('SUPERUSER', raise_exception=True)
 def fncParmForm(req):
@@ -537,11 +623,11 @@ def fncParmForm(req):
         if pFormSet.is_valid():
             pFormSet.save()
             changes['changed'] = None
-            if pFormSet.changed_objects: changes['changed'] = pFormSet.changed_objects 
+            if pFormSet.changed_objects: changes['changed'] = pFormSet.changed_objects
             changes['deleted'] = None
-            if pFormSet.deleted_objects: changes['deleted'] = pFormSet.deleted_objects 
+            if pFormSet.deleted_objects: changes['deleted'] = pFormSet.deleted_objects
             changes['added'] = None
-            if pFormSet.new_objects: changes['added'] = pFormSet.new_objects 
+            if pFormSet.new_objects: changes['added'] = pFormSet.new_objects
             templt = 'cParameters-success.html'
         else:
             # reveal the errors and try again
@@ -552,8 +638,8 @@ def fncParmForm(req):
     #endif
 
     cntext = {
-        'plist': pFormSet, 
-        'Changes': changes, 
+        'plist': pFormSet,
+        'Changes': changes,
         }
     return render(req, templt, cntext)
 
@@ -570,9 +656,9 @@ def fn_cGreetings(req):
     context_object_name = 'GreetingsList'
     template_name = 'cGreetings.html'
     success_template_name = 'cGreetings.html'
-    formset_class = modelformset_factory(mdlClass, 
+    formset_class = modelformset_factory(mdlClass,
                                          widgets={'Greeting': forms.Textarea(attrs={'cols':100,'rows':4})},
-                                         fields=mdlFields, 
+                                         fields=mdlFields,
                                          can_delete=True)
     formset = None
     queryset = mdlClass.objects.all()
@@ -583,8 +669,8 @@ def fn_cGreetings(req):
         # formset = formset_class(queryset=queryset)
         formset = formset_class()
         cntext = {
-            context_object_name: formset, 
-            'changes': changes, 
+            context_object_name: formset,
+            'changes': changes,
             }
         return render(req, template_name, cntext)
 
@@ -594,22 +680,22 @@ def fn_cGreetings(req):
         if formset.is_valid():
             formset.save()
             changes['changed'] = None
-            if formset.changed_objects: changes['changed'] = formset.changed_objects 
+            if formset.changed_objects: changes['changed'] = formset.changed_objects
             changes['deleted'] = None
-            if formset.deleted_objects: changes['deleted'] = formset.deleted_objects 
+            if formset.deleted_objects: changes['deleted'] = formset.deleted_objects
             changes['added'] = None
-            if formset.new_objects: changes['added'] = formset.new_objects 
+            if formset.new_objects: changes['added'] = formset.new_objects
 
             # reset formset to reflect changes
             formset = formset_class()
 
         cntext = {
-            context_object_name: formset, 
-            'changes': changes, 
+            context_object_name: formset,
+            'changes': changes,
             }
         return render(req, success_template_name, cntext)
 
-   
+
     if req.method == 'POST':
         processedForm = process_post()
     else:

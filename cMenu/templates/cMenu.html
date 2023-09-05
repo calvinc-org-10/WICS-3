@@ -18,6 +18,15 @@
             </div>
             <div class="col-3 text-end">{{ user.get_full_name }}</div>
         </div>
+        {% if messages %}
+        <div class="row">
+        <ul class="messages">
+            {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        </div>
+        {% endif %}
     </div>
 
     <!-- menu body -->

@@ -101,7 +101,7 @@
             <input type="number" name="NewMnuID" id="NewMnuID" class="text ui-widget-content ui-corner-all">
    
             <!-- Allow form submission with keyboard without duplicating the dialog button -->
-            <input type="submit" tabindex="-1" style="position:absolute; top:-1000px">
+            <!-- <input type="submit" tabindex="-1" style="position:absolute; top:-1000px"> -->
         </fieldset>
     </form>
 </div>
@@ -119,12 +119,22 @@
         autoOpen: false,
         closeOnEscape: false,
         modal: true,
-        // do I need a button to close this?
-    })
+        buttons: {
+            "OK": function() {
+                NewMenuID_chosen();
+                $(this).dialog("close");
+            },
+            "Cancel":  function() {
+                $(this).dialog("close");
+            }
+        }
+    });
+    /* 
     $("#get-MenuID-dialog").find( "form" ).on( "submit", function( event ) {
         event.preventDefault();
         NewMenuID_chosen();
     });
+    */
    
     $("#yesno-dialog").dialog({
         autoOpen: false,
