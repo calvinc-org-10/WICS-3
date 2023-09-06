@@ -59,69 +59,80 @@ def fnWICSuserForm(req):
     nChangedRecs = 0
     
     if req.method == 'POST':
-        initdata = load_initial_WICSuserForm()
-        uFormSet = uFormSet_class(req.POST, initial=initdata)
-        if uFormSet.is_valid():
-            for f in uFormSet:
-                if f.has_changed():
-                    nChangedRecs += 1
-                    if f.cleaned_data['uid'] is not None:
-                        # raise Exception("uid = " + str(f.cleaned_data['uid']) + " and f.fields = " + str(f.fields['uid']))
-                        uRec = User.objects.get(pk=f.cleaned_data['uid'])
-                        uFldMap =  {
-                            "uname": "username",
-                            "fname": "first_name",
-                            "lname": "last_name",
-                            "email": "email",
-                            "superuser": "is_superuser",
-                            "admin": "is_staff",
-                            "active": "is_active"
-                            }
-                        for fld in f.changed_data:
-                            if fld == "uid": pass # raise error!!!  N E V E R change the uid or WICSuid!
-                            if fld in uFldMap: setattr(uRec, uFldMap[fld], f.cleaned_data[fld])
-                        #endfor
-                    else:   # we need a new User record
-                        # raise Exception("OK, I'm trying to create a new urec")
-                        uRec = User.objects.create_user(
-                            username=f.cleaned_data['uname'],
-                            email=f.cleaned_data['email'],
-                            first_name=f.cleaned_data['fname'],
-                            last_name=f.cleaned_data['lname'],
-                            is_superuser=f.cleaned_data['superuser'],
-                            is_staff=f.cleaned_data['admin'],
-                            is_active=f.cleaned_data['active']
-                            )
-                    #endif
-                    uRec.set_password(_defaultPW)
-                    uRec.save()
-                    if f.cleaned_data['WICSuid'] is not None:
-                        WuRec = WICSuser.objects.get(pk=f.cleaned_data['WICSuid'])
-                        uFldMap =  {
-                            "menuGroup": "menuGroup"
-                            }
-                        for fld in f.changed_data:
-                            if fld == "WICSuid": pass # raise error!!!  N E V E R change the uid or WICSuid!
-                            if fld in uFldMap: setattr(WuRec, uFldMap[fld], f.cleaned_data[fld])
-                        #endfor
-                        # guarantee the user is correctly set
-                        WuRec.user = uRec
-                    else:
-                        WuRec = WICSuser(
-                            menuGroup=f.cleaned_data['menuGroup'],
-                            user=uRec
-                            )
-                    #endif
-                    WuRec.save()
-                #endif
-            #endfor
+        if 'delusrid' in req.POST and req.POST['delusrid']:
+            WICSuobj = WICSuser.objects.get(pk=req.POST['delusrid'])
+            uobj = WICSuobj.user
+            WICSuobj.delete()
+            uobj.delete()
+
             # reload the form so that changes may be seen
             initdata = load_initial_WICSuserForm()
             uFormSet = uFormSet_class(initial=initdata)
-        else:
-            # reveal the errors and try again
-            pass
-        #endif uFormSet.is_valid():
+        else: # not deleting a user
+            initdata = load_initial_WICSuserForm()
+            uFormSet = uFormSet_class(req.POST, initial=initdata)
+            if uFormSet.is_valid():
+                for f in uFormSet:
+                    if f.has_changed():
+                        nChangedRecs += 1
+                        if f.cleaned_data['uid'] is not None:
+                            # raise Exception("uid = " + str(f.cleaned_data['uid']) + " and f.fields = " + str(f.fields['uid']))
+                            uRec = User.objects.get(pk=f.cleaned_data['uid'])
+                            uFldMap =  {
+                                "uname": "username",
+                                "fname": "first_name",
+                                "lname": "last_name",
+                                "email": "email",
+                                "superuser": "is_superuser",
+                                "admin": "is_staff",
+                                "active": "is_active"
+                                }
+                            for fld in f.changed_data:
+                                if fld == "uid": pass # raise error!!!  N E V E R change the uid or WICSuid!
+                                if fld in uFldMap: setattr(uRec, uFldMap[fld], f.cleaned_data[fld])
+                            #endfor
+                        else:   # we need a new User record
+                            # raise Exception("OK, I'm trying to create a new urec")
+                            uRec = User.objects.create_user(
+                                username=f.cleaned_data['uname'],
+                                email=f.cleaned_data['email'],
+                                first_name=f.cleaned_data['fname'],
+                                last_name=f.cleaned_data['lname'],
+                                is_superuser=f.cleaned_data['superuser'],
+                                is_staff=f.cleaned_data['admin'],
+                                is_active=f.cleaned_data['active']
+                                )
+                        #endif
+                        uRec.set_password(_defaultPW)
+                        uRec.save()
+                        if f.cleaned_data['WICSuid'] is not None:
+                            WuRec = WICSuser.objects.get(pk=f.cleaned_data['WICSuid'])
+                            uFldMap =  {
+                                "menuGroup": "menuGroup"
+                                }
+                            for fld in f.changed_data:
+                                if fld == "WICSuid": pass # raise error!!!  N E V E R change the uid or WICSuid!
+                                if fld in uFldMap: setattr(WuRec, uFldMap[fld], f.cleaned_data[fld])
+                            #endfor
+                            # guarantee the user is correctly set
+                            WuRec.user = uRec
+                        else:
+                            WuRec = WICSuser(
+                                menuGroup=f.cleaned_data['menuGroup'],
+                                user=uRec
+                                )
+                        #endif
+                        WuRec.save()
+                    #endif
+                #endfor
+                # reload the form so that changes may be seen
+                initdata = load_initial_WICSuserForm()
+                uFormSet = uFormSet_class(initial=initdata)
+            else:
+                # reveal the errors and try again
+                pass
+            #endif uFormSet.is_valid():
+        #endif 'delusrid' in req.POST and req.POST['delusrid']: (i.e. - user being deleted)
     else:
         initdata = load_initial_WICSuserForm()
         uFormSet = uFormSet_class(initial=initdata)

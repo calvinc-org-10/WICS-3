@@ -18,7 +18,7 @@
 
     <!-- form body -->
     <div class="container text-center">
-    <form method="post">  <!-- action=?? - not needed - submit will submit to calling view -->
+    <form id="mainForm" name="mainForm" method="post">  <!-- action=?? - not needed - submit will submit to calling view -->
         {% csrf_token %}
         {{ ulist.management_form }}
         <!-- form main -->
@@ -51,8 +51,8 @@
                     {% render_field u.admin %}
                     {% render_field u.active %}
                     {% render_field u.last_login size="20" %}
-                    <button type="button" onclick="chpw('{{ u.uname.value }}')">Change Password</button>
-                    <button style="visibility:hidden">Remove (keep??)</button>
+                    <button type="button" onclick="chpw('{{ u.uname.value }}');">Change Password</button>
+                    <button type="button" onclick="delusr({{ u.WICSuid.value }});">Remove user</button>
                 </li>
                 <hr>
             {% endfor %}
@@ -82,6 +82,7 @@
             </div>
         </div>
 
+        <input type="hidden" id="delusrid" name="delusrid"></input>
         <div id="empty_form" hidden>
             <li>
                 {% render_field ulist.empty_form.showuid size="4" %}
@@ -107,14 +108,20 @@
             // check against max-forms before allowing add
             $('#form_set').append($('#empty_form').html().replace(/__prefix__/g, form_idx).replace("hidden",""))
             $('#id_form-TOTAL_FORMS').val(parseInt(form_idx) + 1)
-        }
+        };
         function chpw(usNm) {
 
             pwForm = "{% url 'change_password_u' 'nname' %}"
             pwForm = pwForm.replace("/nname","/"+usNm);
             window.open(pwForm,'_blank');
     
-        }
+        };
+        function delusr(uid) {
+            // confirm
+
+            document.getElementById("delusrid").value = uid;
+            document.forms['mainForm'].submit();
+        };
     </script>
 
 
