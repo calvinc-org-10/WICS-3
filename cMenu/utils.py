@@ -197,12 +197,13 @@ def Excelfile_fromqs(qset, flName, freezecols = 0):
         qlist = qset
     else:
         return None
-    if not isinstance(qlist[0],dict):
-        # review this later ...
-        try:
-            qlist = [n.__dict__ for n in qlist]
-        except:
-            return None
+    if qlist:
+        if not isinstance(qlist[0],dict):
+            # review this later ...
+            try:
+                qlist = [n.__dict__ for n in qlist]
+            except:
+                qlist = []
 
     # create empty workbook with an empty worksheet
     wb = Workbook()
