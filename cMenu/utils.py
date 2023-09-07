@@ -1,5 +1,6 @@
 from __future__ import annotations      # to allow calvindate (or any other class) to refer to itself.  See https://stackoverflow.com/questions/40925470/python-how-to-refer-a-class-inside-itself
 import datetime
+from itertools import chain
 from datetime import date, timedelta
 from dateutil.parser import parse
 from dateutil.rrule import *
@@ -168,6 +169,17 @@ def int_to_rgb(rgb_int):
     blue = rgb_int & 0xFF
     return (red,green,blue)
 
+def modelobj_to_dict(modelobj):
+    # opts = modelobj._meta
+    # data = {}
+    # for f in chain(opts.concrete_fields, opts.private_fields):
+    #     data[f.name] = f.value_from_object(modelobj)
+    # for f in opts.many_to_many:
+    #     data[f.name] = [i.id for i in f.value_from_object(modelobj)]
+
+    data = {key:val for key, val in modelobj.__dict__.items() if key not in ['_state']}
+    return data
+
 def Excelfile_fromqs(qset, flName, freezecols = 0):
     """
     qset: a queryset or list of dictionaries
@@ -181,8 +193,16 @@ def Excelfile_fromqs(qset, flName, freezecols = 0):
     # far easier to process a list of dictionaries, so...
     if isinstance(qset,QuerySet):
         qlist = qset.values()
-    else:
+    elif isinstance(qset,list):
         qlist = qset
+    else:
+        return None
+    if not isinstance(qlist[0],dict):
+        # review this later ...
+        try:
+            qlist = [n.__dict__ for n in qlist]
+        except:
+            return None
 
     # create empty workbook with an empty worksheet
     wb = Workbook()

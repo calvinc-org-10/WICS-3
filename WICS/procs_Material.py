@@ -2,6 +2,7 @@ import datetime
 from datetime import MINYEAR
 from operator import attrgetter
 from django import forms, urls
+from django.conf import settings as django_settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -15,7 +16,7 @@ from django.http import HttpResponse, HttpRequest, HttpResponseRedirect
 from django.shortcuts import render
 from django.views.generic import ListView
 from cMenu.models import getcParm
-from cMenu.utils import calvindate
+from cMenu.utils import modelobj_to_dict, calvindate, ExcelWorkbook_fileext, Excelfile_fromqs
 from mathematical_expressions_parser.eval import evaluate
 from userprofiles.models import WICSuser
 from WICS.globals import _defaultOrg
@@ -326,9 +327,21 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         cntext = super().get_context_data(**kwargs)
+
+        qs = self.get_queryset()
+        qs_listofdict = [modelobj_to_dict(qsobj) for qsobj in qs]
+
+        ExcelFileNamePrefix = self.rptName+' '
+        svdir = django_settings.STATIC_ROOT if django_settings.STATIC_ROOT is not None else django_settings.STATICFILES_DIRS[0]
+        fName_base = '/tmpdl/'+ExcelFileNamePrefix + f'{calvindate():%Y-%m-%d}'
+        fName = svdir + fName_base
+        ExcelFileName = Excelfile_fromqs(qs_listofdict, fName)
+
         cntext['SAPDate'] = self.SAPDate
         cntext['rptName'] = self.rptName
         cntext['groupBy'] = self.groupBy
+        cntext['FilSavLoc'] = ExcelFileName
+        cntext['ExcelFileName'] = fName_base+ExcelWorkbook_fileext
         return cntext
 
 #####################################################################

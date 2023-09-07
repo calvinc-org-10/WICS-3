@@ -18,7 +18,7 @@
     {% csrf_token %}
     <h4>
         {{ ResultStats.nRowsRead }} spreadsheet rows read <br>
-        {{ ResultStats.nRowsNoMaterial }} rows skipped - no Material given or WICSIgnore = 1 <br> 
+        {{ ResultStats.nRowsNoMaterial }} rows skipped (no Material given or WICSIgnore set) <br> 
         {{ ResultStats.nRowsErrors }}  rows with errors <br>
         {{ ResultStats.nRowsAdded }} Count Entry records successfully uploaded <br>
     </h4>
