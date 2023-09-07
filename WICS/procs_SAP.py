@@ -171,7 +171,7 @@ def proc_UpSAPSpreadsheet_01ReadSheet(reqid, fName, UplDate):
             if not MatlRec:
                 UploadSAPResults(
                     errState = 'error',
-                    errmsg = f'either {MatlNum}  does not exist in MaterialList or incorrect Plant ({str(row[SAPcolmnMap[_TblName_Plant]])} given',
+                    errmsg = f'either {MatlNum}  does not exist in MaterialList or incorrect Plant ({str(row[SAPcolmnMap[_TblName_Plant]])}) given',
                     rowNum = SprshtRowNum
                     ).save()
             else:
