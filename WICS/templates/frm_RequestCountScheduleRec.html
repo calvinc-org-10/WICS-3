@@ -71,12 +71,11 @@ button:focus {
         <!-- put initial focus on Material and/or init CountDate to today(local) -->
         <div class="container-fluid m-2">
         <div class="row g-0">
-            <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" tabindex="-1" size="6" onchange="loadExtraInfo();" %}</div>
+            <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" autofocus=True size="6" onchange="loadExtraInfo();" %}</div>
             <div class="col-4">Material:
                 {# {% render_field frmMain.Material onchange="loadExtraInfo()" %}</div> #}
                 <input list="Material-list"
                     id="{{frmMain.Material.id_for_label}}" name="{{frmMain.Material.html_name}}"
-                    tabindex="1" autofocus
                     onfocus="$(this).select();"
                     onchange="loadExtraInfo();"
                     value="{{matlchoiceForm.gotoItem}}"

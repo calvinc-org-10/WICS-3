@@ -7,6 +7,7 @@ from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
 from WICS.forms import CountEntryForm, CountScheduleRecordForm, RequestCountScheduleRecordForm
 from WICS.forms import RelatedMaterialInfo, RelatedScheduleInfo
+from WICS.procs_misc import HolidayList
 from WICS.models import VIEW_materials, ActualCounts
 from WICS.procs_CountSchedule import fnCountScheduleRecordExists
 
@@ -241,7 +242,9 @@ def _fnCountSchedRecViewCommon(req, variation,
 
     # defauls parms
     if recNum is None: recNum = 0
-    if reqDate is None: reqDate = calvindate().today()
+    if reqDate is None: 
+        skipdates = HolidayList()
+        reqDate = calvindate().nextWorkdayAfter(extraNonWorkdayList=skipdates)
 
     # the string 'None' is not the same as the value None
     if MatlNum=='None' or MatlNum is None: MatlNum=0

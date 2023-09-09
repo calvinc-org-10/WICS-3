@@ -3,7 +3,7 @@ from cMenu.utils import calvindate
 
 def HolidayList():
     # hardcoded until Holiday table is built and utilized
-    HList = {
+    HList = [
         calvindate('2023-01-02').as_datetime(),
         calvindate('2023-01-16').as_datetime(),
         calvindate('2023-02-20').as_datetime(),
@@ -16,6 +16,6 @@ def HolidayList():
         calvindate('2023-12-25').as_datetime(),
         calvindate('2023-12-26').as_datetime(),
         calvindate('2024-01-01').as_datetime(),
-        }
+    ]
     return HList
 
