@@ -6,22 +6,34 @@
 {% block tHeader %}
 {% endblock %}
 {% block boddy %}
-    <!-- form head -->
+    <!-- HTML body head -->
     <div class="container">
         {{ PW }} is default PW for new users
         <div class="row max-width=100%">
             <div class="col-3 text-start"></div>
             <div class="col-6 text-center"><h1>WICS User Administration</h1></div>
             <div class="col-3 text-end">{{ user.get_full_name }}</div>
-        </div>
-    </div>
+        </div> <!-- row -->
+        <div class="row"> <!-- status messages -->
+            <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+            {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div> <!-- row -->
+    
+    </div> <!-- form head -->
 
     <!-- form body -->
-    <div class="container text-center">
     <form id="mainForm" name="mainForm" method="post">  <!-- action=?? - not needed - submit will submit to calling view -->
+
+    <div class="container text-center"> <!-- user Form header -->
         {% csrf_token %}
         {{ ulist.management_form }}
-        <!-- form main -->
+
         {% if ulist.non_form_errors %}
         <div class="row">
             {{ ulist.non_form_errors }}
@@ -29,79 +41,80 @@
         {% endif %}
         <hr>
         <div class="row">
-            <div class="col-9">
-                ID - UserName - Menu Group - First Name - Last Name - email - 
-            </div>
-            <div class="col">
-                superuser? - administrator? - active? - Last Login
-            </div>
+                ID --------- UserName --------- Menu Group ----------------------- First Name ------------------ Last Name -------------------- email --- 
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; super? - admin? - actv? &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --- Last Login
         </div>
+        <hr>
+    </div> <!-- User form header -->
+    <div class="container" style="height:300px; overflow: auto;"> <!-- user Form body - scrollable list of users -->
         <div class="row">
             <ul id="form_set">
             {% for u in ulist %}
                 {% if u.errors %}{{ u.errors }}{% endif %}  
                 <li>
-                    {% render_field u.showuid size="4" %}
+                    {% render_field u.showuid size="3" %}
                     {% render_field u.uname size="12" %}
-                    {% render_field u.menuGroup %}  <!-- size will be # of dropdowns.  How to specify width? -->
+                    {% render_field u.menuGroup style="width:15em" %}  
                     {% render_field u.fname size="20" %}
                     {% render_field u.lname size="20" %}
                     {% render_field u.email size="20" %}
                     {% render_field u.superuser %}
                     {% render_field u.admin %}
                     {% render_field u.active %}
-                    {% render_field u.last_login size="20" %}
+                    {% render_field u.last_login size="15" %}
                     <button type="button" onclick="chpw('{{ u.uname.value }}');">Change Password</button>
-                    <button type="button" onclick="delusr({{ u.WICSuid.value }});">Remove user</button>
+                    <button type="button" onclick="delusr({{ u.WICSuid.value }}, '{{ u.uname.value }}');">Remove user</button>
                 </li>
                 <hr>
             {% endfor %}
             </ul>
+        </div> <!-- row -->
+    </div> <!-- user Form body - scrollable list of users -->
+
+    <!-- form footer -->
+    <div class="container">
+        <div class="row mx-auto max-width=100%">
+            <div class="col-5">
+                <button type="submit">
+                    <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                    Save changes
+                </button>
+                <button id="add-user" type="button" onclick="create_empty_user()">
+                    Add user
+                </button>
+            </div>
+            <div class="col-5"></div>
+            <div class="col">
+                <button type="button" onclick="window.close();">
+                    <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                    Close Form
+                </button>
             </div>
         </div>
-
-        <!-- form footer -->
-        <div class="container">
-            <div class="row mx-auto max-width=100%">
-                <div class="col-5">
-                    <button type="submit">
-                        <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
-                        Save changes
-                    </button>
-                    <button id="add-user" type="button" onclick="create_empty_user()">
-                        Add user
-                    </button>
-                </div>
-                <div class="col-5"></div>
-                <div class="col">
-                    <button type="button" onclick="window.close();">
-                        <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
-                        Close Form
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <input type="hidden" id="delusrid" name="delusrid"></input>
-        <div id="empty_form" hidden>
-            <li>
-                {% render_field ulist.empty_form.showuid size="4" %}
-                {% render_field ulist.empty_form.uname size="12" %}
-                {% render_field ulist.empty_form.menuGroup %}  <!-- size will be # of dropdowns.  How to specify width? -->
-                {% render_field ulist.empty_form.fname size="20" %}
-                {% render_field ulist.empty_form.lname size="20" %}
-                {% render_field ulist.empty_form.email size="20" %}
-                {% render_field ulist.empty_form.superuser %}
-                {% render_field ulist.empty_form.admin %}
-                {% render_field ulist.empty_form.active %}
-                {% render_field ulist.empty_form.last_login size="20" %}
-            </li>
-            <hr>
-        </div>
-
-    </form>
     </div>
 
+    <input type="hidden" id="delusrid" name="delusrid"></input>
+    <div id="empty_form" hidden>
+        <li>
+            {% render_field ulist.empty_form.showuid size="4" %}
+            {% render_field ulist.empty_form.uname size="12" %}
+            {% render_field ulist.empty_form.menuGroup %}  <!-- size will be # of dropdowns.  How to specify width? -->
+            {% render_field ulist.empty_form.fname size="20" %}
+            {% render_field ulist.empty_form.lname size="20" %}
+            {% render_field ulist.empty_form.email size="20" %}
+            {% render_field ulist.empty_form.superuser %}
+            {% render_field ulist.empty_form.admin %}
+            {% render_field ulist.empty_form.active %}
+            {% render_field ulist.empty_form.last_login size="20" %}
+        </li>
+        <hr>
+    </div>
+
+    </form>
+
+    <div id="modalGeneric" class="modal" >
+    </div>
+    
     <script>
         function create_empty_user() {
             var form_idx = $('#id_form-TOTAL_FORMS').val()
@@ -116,13 +129,43 @@
             window.open(pwForm,'_blank');
     
         };
-        function delusr(uid) {
+        function delusr(uid, uname) {
             // confirm
+            $("#modalGeneric").dialog("option","title","Really Remove User?");
+            document.getElementById("modalGeneric").innerHTML = 'Are you <b>SURE</b> you want to remove user '+uname+"?"
+    
+            $("#modalGeneric").dialog("option","buttons", 
+                { 
+                    "No" : function() {
+                        $(this).dialog("close"); 
+                    },
+                    "Yes" : function() {
+                        document.getElementById("delusrid").value = uid;
+                        document.forms['mainForm'].submit();
 
-            document.getElementById("delusrid").value = uid;
-            document.forms['mainForm'].submit();
+                        $(this).dialog("close");
+                    },
+                } );
+
+            $("#modalGeneric").dialog("open");
         };
-    </script>
+
+    // set up Modal
+    $("#modalGeneric").dialog({
+        autoOpen: false,
+        closeOnEscape: false,
+        modal: true,
+        hide: "puff",
+        position: {
+            my: "top center", at: "top center"
+        }
+    });
+
+    window.addEventListener("beforeunload",  function(event) {
+        document.getElementById("wait_spinner").style.display = "block";
+    });
+
+</script>
 
 
 {% endblock %}
