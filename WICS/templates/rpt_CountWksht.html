@@ -111,7 +111,11 @@
     <div class="row g-0">
         <div class="col-11">
             {{ CountDate|date:'Y-m-d' }} |
-            {{ itm.Material.PartType.WhsePartType|default:"NO PART TYPE" }} |
+            {% if itm.Material.PartType %}
+                {{ itm.Material.PartType.WhsePartType|default:"NO PART TYPE" }} |
+            {% else %}
+                NO PART TYPE |
+            {% endif %}
             Prio: <b>{{ itm.Priority|default:"---" }}</b> |
             Sched Counter: {{ itm.Counter|default:"---" }} |
             {{ itm.Material.Description|default:"" }}
