@@ -491,6 +491,7 @@ def done_MatlListSAPSprsheet_01ReadSpreadsheet(t):
             statecode = 'done-rdng-sprsht',
             statetext = f'Finished Reading Spreadsheet',
             )
+        proc_MatlListSAPSprsheet_11_DoStep2(reqid)
 
 def proc_MatlListSAPSprsheet_02_identifyexistingMaterial(reqid):
     set_async_comm_state(
@@ -547,6 +548,7 @@ def done_MatlListSAPSprsheet_02_identifyexistingMaterial(reqid):
         statecode = 'get-matl-link-done',
         statetext = f'Finished linking SAP MM60 list to existing WICS Materials',
         )
+    proc_MatlListSAPSprsheet_11_DoStep3(reqid)
 
 def proc_MatlListSAPSprsheet_03_Remove(reqid):
     MustKeepMatlsDelCond = ''
@@ -638,20 +640,36 @@ def done_MatlListSAPSprsheet_03_Add(reqid):
         statetext = f'Finished Adding SAP MM60 Materials new to WICS',
         )
 
+def proc_MatlListSAPSprsheet_11_DoStep2(reqid):
+# elif client_phase=='need-ident-exist-matl':
+    proc_MatlListSAPSprsheet_02_identifyexistingMaterial(reqid)
+
+    # acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+    # retinfo.write(json.dumps(acomm))
+    # return retinfo
+
+def proc_MatlListSAPSprsheet_11_DoStep3(reqid):
+# elif client_phase=='need-add-del':
+    proc_MatlListSAPSprsheet_03_Remove(reqid)
+
+    # acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+    # retinfo.write(json.dumps(acomm))
+    # return retinfo
+
 def proc_MatlListSAPSprsheet_99_FinalProc(reqid):
     set_async_comm_state(
         reqid,
         statecode = 'done',
         statetext = 'Finished Processing Spreadsheet',
         )
-
+    
 def proc_MatlListSAPSprsheet_99_Cleanup(reqid):
     # also kill reqid, acomm, qcluster process
     async_comm.objects.filter(pk=reqid).delete()
 
     # when we can start django-q programmatically, this is where we kill that process
-    # os.kill(int(reqid), signal.SIGTERM)
-    # os.kill(int(reqid), signal.SIGKILL)
+    os.kill(int(reqid), signal.SIGTERM)
+    os.kill(int(reqid), signal.SIGKILL)
 
     # delete the temporary table
     tmpMaterialListUpdate.objects.all().delete()
@@ -676,10 +694,10 @@ def fnUpdateMatlListfromSAP(req):
         retinfo = HttpResponse()
         if client_phase=='init-upl':
             # start django_q broker
-            # reqid = subprocess.Popen(
-            #     ['python', f'{django_settings.BASE_DIR}/manage.py', 'qcluster']
-            # ).pid
-            reqid = random.randint(1, 100000000000)
+            reqid = subprocess.Popen(
+                ['python', f'{django_settings.BASE_DIR}/manage.py', 'qcluster']
+            ).pid
+            # reqid = random.randint(1, 100000000000)
             retinfo.set_cookie('reqid',str(reqid))
 
             proc_MatlListSAPSprsheet_00InitUMLasync_comm(reqid)
@@ -694,19 +712,6 @@ def fnUpdateMatlListfromSAP(req):
             acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
             retinfo.write(json.dumps(acomm))
             return retinfo
-        elif client_phase=='need-ident-exist-matl':
-            async_task(proc_MatlListSAPSprsheet_02_identifyexistingMaterial, reqid, )
-
-            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
-            retinfo.write(json.dumps(acomm))
-            return retinfo
-        elif client_phase=='need-add-del':
-            async_task(proc_MatlListSAPSprsheet_03_Remove, reqid, )
-
-            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
-            retinfo.write(json.dumps(acomm))
-            return retinfo
-            pass
         elif client_phase=='wantresults':
             ImpErrList = tmpMaterialListUpdate.objects.filter(recStatus__startswith='err')
             AddedMatlsList = tmpMaterialListUpdate.objects.filter(recStatus='ADD')

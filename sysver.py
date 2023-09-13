@@ -1,13 +1,14 @@
 _base_ver_major=3
 _base_ver_minor=2
-_base_ver_patch=4
-_ver_date='2023-09-06'
+_base_ver_patch=5
+_ver_date='2023-09-13'
 _base_ver = str(_base_ver_major) +'.'+ str(_base_ver_minor) +'.'+ str(_base_ver_patch)
 sysver = {
     'DEV': 'DEV'+_base_ver, 
     'PROD':_base_ver,
     } 
 
+# 3.2.5 - 2023-09-13 Attempt to make MaterialList Update a self-transitioning process, with no need for intervention
 # 3.2.4 - 2023-09-06 Button to output Material Listings to spreadsheet
 # 3.2.3 - 2023-09-05 First draft of Remove User 
 # 3.2.2 - 2023-09-02 Put Copy Count button on Matl Form and Actual Count List.  Added Del Count button to Actual Count List
