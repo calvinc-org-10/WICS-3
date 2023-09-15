@@ -535,7 +535,7 @@ def ShowTable(req, tblname):
 ##################################################################################
 
 class fm_cRawSQL(forms.Form):
-    inputSQL = forms.CharField(widget=forms.Textarea(attrs={'cols':120}))
+    inputSQL = forms.CharField(widget=forms.Textarea(attrs={'cols':120, 'rows':4}))
 
 
 @login_required

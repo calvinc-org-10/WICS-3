@@ -31,7 +31,6 @@ Enter SQL to run (only SELECT statements are supported)
 <form id="FmMain" class="trackformchanges" method="post">
     {% csrf_token %}
     {{ form }}
-    <hr>
     <div class="container">
         <div class="row mx-auto max-width=100%">
             <div class="col-4">
@@ -50,6 +49,13 @@ Enter SQL to run (only SELECT statements are supported)
         </div>
     </div>
 </form>
+</div>
+<br>
+<hr>
+
+<h2><u>Hints</u></h2>
+<div class="container mx-auto" style="height:240px; overflow: auto;">   <!-- table and field name hints -->
+    {% include 'WICS_tablehints.html' %}
 </div>
 
 <script>

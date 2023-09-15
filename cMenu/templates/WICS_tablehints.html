@@ -1,0 +1,17 @@
+L10: org_id = 1, L6:  org_id = 2
+<br><br>
+<h4><u>WICS_materiallist</u></h4>
+id, org_id, Material, Description, PartType_id, Plant, SAPMaterialType, SAPMaterialGroup, Price, PriceUnit, Currency, TypicalContainerQty, TypicalPalletQty, Notes
+
+<h4><u>VIEW_materials</u></h4>
+id, org_id, Material, Description, PartType_id, Plant, SAPMaterialType, SAPMaterialGroup, Price, PriceUnit, Currency, TypicalContainerQty, TypicalPalletQty, Notes, PartTypeName, OrgName, LastCountDate, LastFoundAt, Material_org, NextScheduledCount, ScheduledForToday
+
+<h4><u>WICS_countschedule</u></h4>
+id, CountDate, Material_id, Requestor, Requestor_userid_id, RequestFilled, Counter, Priority, ReasonScheduled, Notes
+
+<h4><u>WICS_actualcounts</u></h4>
+id, CountDate, CycCtID, Material_id, Counter, LocationOnly, CTD_QTY_Expr, LOCATION, PKGID_Desc, TAGQTY, FLAG_PossiblyNotRecieved, FLAG_MovementDuringCount, Notes
+
+<h4><u>WICS_sap_sohrecs</u></h4>
+id, uploaded_at, org_id, MaterialPartNum, Material_id, Description, Plant, MaterialType, StorageLocation, BaseUnitofMeasure, Amount, Currency, ValueUnrestricted, SpecialStock, Blocked, ValueBlocked, Batch, Vendor
+
