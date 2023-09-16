@@ -116,7 +116,10 @@
                 });
             $("#phase").val('waiting')
             intervalID = setInterval(PollBackend,POLLING_INTERVAL,'waiting');
-            // setTimeout recursion may be better - see note below
+            
+            // disable buttons
+            document.getElementById("SAPFile").disabled = true
+            document.getElementById("next_btn-0").disabled = true
         } else if (phase == 'waiting') {
             $.ajax({
                 method: 'POST', 
