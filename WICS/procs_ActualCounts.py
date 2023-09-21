@@ -344,9 +344,6 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
                 if not rowErrs:
                     SRec.save()
                     if MatChanged: MatObj.save()
-                    # res = {'error': False, 'rowNum':SprshtRowNum, 'TypicalQty':MatChanged, 'MaterialNum': str(MatObj) }
-                    # res.update(SRec)      # tack the new record (along with its new pk) onto res
-                    # UplResults.append(res)
                     resultString = str(SRec)
                     resultString += ' / LOCATION ONLY'  if SRec.LocationOnly else f' / Qty= {SRec.CTD_QTY_Expr}'
                     resultString += ' (Typ Cont Qty/Typ Plt Qty also changed)' if MatChanged else ''
@@ -509,7 +506,6 @@ class ActualCountListForm(LoginRequiredMixin, ListView):
     ordering = ['-CountDate', 'Material']
     context_object_name = 'ActCtList'
     template_name = 'frm_ActualCountList.html'
-    # http_method_names = ['get', 'post', ]   #'put', 'patch', 'delete', 'head', 'options', 'trace']
     
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
@@ -545,8 +541,6 @@ class ActualCountListForm(LoginRequiredMixin, ListView):
             ActualCounts.objects.filter(pk=deleteCountid).delete()
         
         return http.HttpResponseNotModified()
-
-
 
 
 #####################################################################
@@ -713,18 +707,6 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
     date_condition = '(ac.CountDate = ' + datestr + ' OR cs.CountDate = ' + datestr + ') '
     order_by = 'Matl_PartNum'
 
-    #VIEW_Material_sql = "(select MATL.id AS id, MATL.org_id AS org_id, MATL.Material AS Material, MATL.Description AS Description,"
-    #VIEW_Material_sql += "  MATL.Notes AS Notes, MATL.PartType_id AS PartType_id,"
-    #VIEW_Material_sql += "  MATL.TypicalContainerQty AS TypicalContainerQty, MATL.TypicalPalletQty AS TypicalPalletQty,"
-    #VIEW_Material_sql += "  PTYPE.WhsePartType AS PartType, ORG.orgname AS OrgName,"
-    #VIEW_Material_sql += "  if((exists "
-    #VIEW_Material_sql += "         (select * from WICS_materiallist numdups where ((numdups.Material = MATL.Material) and (numdups.org_id <> MATL.org_id)))) , "
-    #VIEW_Material_sql += "       concat(MATL.Material, ' (', ORG.orgname, ')') , "
-    #VIEW_Material_sql += "       MATL.Material "
-    #VIEW_Material_sql += "     ) AS Material_org "
-    #VIEW_Material_sql += "from "
-    #VIEW_Material_sql += "  ((WICS_materiallist MATL join WICS_organizations ORG on (MATL.org_id = ORG.id)) left join WICS_whseparttypes `PTYPE` on MATL.PartType_id = `PTYPE`.id) "
-    #VIEW_Material_sql += " ) mtl "
     VIEW_Material_sql = "VIEW_materials mtl "
 
     for org in Organizations.objects.all():

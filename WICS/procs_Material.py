@@ -37,13 +37,6 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
 
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
-        #TODO: Lose the view in the sql below
-        # get last count date (incl LocationOnly) for each Material (prefetch_related?)
-        #sqlLFA = "SELECT MATL.id, MATL.OrgName, MATL.Material, MATL.Description, MATL.PartType_id, LFA.CountDate AS LFADate, LFA.FoundAt AS LFALocation,"
-        #sqlLFA += " MATL.Notes, 0 AS SAPList, FALSE AS DoNotShow"
-        #sqlLFA += " FROM VIEW_LastFoundAt LFA JOIN VIEW_materials MATL ON LFA.Material_id = MATL.id"
-        #sqlLFA += " ORDER BY MATL.org_id, MATL.Material"
-        #qs = MaterialList.objects.raw(sqlLFA)
         qs = VIEW_materials.objects.all().annotate(
                         SAPList=Value(0),
                         DoNotShow=Value(False),
@@ -76,7 +69,6 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
             'showSAP': False,
             })
         return cntext
-
 
 
 @login_required
@@ -149,7 +141,6 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
         # process mtlFm AND subforms.
 
         # process forms
-        # mtlFm = FormMain(req.POST, instance=currRec,  initial=initialvals['main'],  prefix=prefixvals['main'])
         mtlFm = FormMain(req.POST, instance=currRec,  prefix=prefixvals['main'])
         mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.all().order_by('WhsePartType')
         countSubFm_class = inlineformset_factory(modelMain,modelSubs[0],
@@ -295,7 +286,6 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
 
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
-        #self.queryset = MaterialList.objects.order_by(*self.ordering).annotate(LFADate=Value(0), LFALocation=Value(''), SAPQty=Value(0), HasSAPQty=Value(False), SAPValue=Value(0), SAPCurrency=Value(''))
         self.queryset = VIEW_materials.objects.order_by(*self.ordering).annotate(SAPQty=Value(0), HasSAPQty=Value(False), SAPValue=Value(0), SAPCurrency=Value(''), UnitValue=Value(0))
 
         # it's more efficient to pull this all now and store it for the upcoming qs request
@@ -425,7 +415,6 @@ def fnLocationList(req):
 
 MatlSubFm_fldlist = ['id','org','Material', 'Description', 'PartType', 'Price', 'PriceUnit', 'TypicalContainerQty', 'TypicalPalletQty', 'Notes']
 
-
 @login_required
 def fnPartTypesForm(req, recNum = -1, gotoRec=False):
     # get current record
@@ -457,17 +446,6 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
     }
     chgd_dat = {'main':None, 'matl': None, }
 
-    # we cannot use VIEW_materials because inlineformset_factory needs a real FK to PartTypes
-    # but I want Material_org to present to the user, so...
-    #TODO: use the tools I've already built for other forms
-    #MaterialList_qs = MaterialList.objects.all().select_related('org')\
-    #    .annotate(Material_org=
-    #              Case(
-    #                When(Exists(Subquery(MaterialList.objects.exclude(org=OuterRef('org')))),then=Concat(F('org__orgname'),Value(' '),F('Material'),output_field=models.CharField())),
-    #                default=F('Material'),
-    #                )
-    #            )\
-    #    .order_by('Material_org')
     MaterialList_qs = VIEW_materials.objects.all().select_related('org').order_by('Material_org')
 
     if req.method == 'POST':

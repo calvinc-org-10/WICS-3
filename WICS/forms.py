@@ -90,7 +90,7 @@ class CountScheduleRecordForm(forms.ModelForm):
 class RequestCountScheduleRecordForm(forms.ModelForm):
     id = forms.IntegerField(required=False, widget=forms.HiddenInput)
     CountDate = forms.DateField(required=True, 
-        initial=calvindate().nextWorkdayAfter(extraNonWorkdayList=HolidayList()).as_datetime
+        initial=calvindate().nextWorkdayAfter(extraNonWorkdayList=HolidayList()).as_datetime()
         )
     Requestor = forms.CharField(max_length=100, required=True)
       # the requestor can type whatever they want here, but WICS will record the userid behind-the-scenes
