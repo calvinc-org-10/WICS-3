@@ -169,18 +169,30 @@ def fnUploadCountSchedSprsht(req):
                 else:
                     spshtorg = cleanupfld('org_id', row[SprshtcolmnMap['org_id']])['cleanval']
                 matlnum = cleanupfld('Material', row[SprshtcolmnMap['Material']])['cleanval']
-                MatlKount =  MaterialList.objects.filter(Material=matlnum).count() 
+                matlorglist = MaterialList.objects.filter(Material=matlnum).values_list('org_id', flat=True)
+                MatlKount = len(matlorglist)
                 MatObj = None
                 err_already_handled = False
-                if spshtorg is None:
-                    if MatlKount > 1:
-                        UplResults.append({'error':matlnum+" is in multiple org_id's, but no org_id given ", 'rowNum':SprshtRowNum})
-                        err_already_handled = True
                 if MatlKount == 1:
                     MatObj = MaterialList.objects.get(Material=matlnum)
                     spshtorg = MatObj.org_id
-                if MaterialList.objects.filter(org_id=spshtorg, Material=matlnum).exists():
-                    MatObj = MaterialList.objects.get(org_id=spshtorg, Material=matlnum)
+                if MatlKount > 1:
+                    if spshtorg is None:
+                        UplResults.append({
+                            'error': f"{matlnum} in multiple org_id's {tuple(matlorglist)}, but no org_id given", 
+                            'rowNum': SprshtRowNum,
+                            })
+                        err_already_handled = True
+                    elif spshtorg in matlorglist:
+                        MatObj = MaterialList.objects.get(org_id=spshtorg, Material=matlnum)
+                    else:
+                        UplResults.append({
+                            'error': f"{matlnum} in in multiple org_id's {tuple(matlorglist)}, but org_id given ({spshtorg}) is not one of them", 
+                            'rowNum': SprshtRowNum,
+                            })
+                        err_already_handled = True
+                    #endif spshtorg is None
+                #endif MatKount > 1
 
                 if matlnum and not MatObj:
                     if not err_already_handled:
