@@ -179,7 +179,7 @@ def fnUploadCountSchedSprsht(req):
                 if MatlKount == 1:
                     MatObj = MaterialList.objects.get(Material=matlnum)
                     spshtorg = MatObj.org_id
-                if MatlKount > 1:
+                if MaterialList.objects.filter(org_id=spshtorg, Material=matlnum).exists():
                     MatObj = MaterialList.objects.get(org_id=spshtorg, Material=matlnum)
 
                 if matlnum and not MatObj:
