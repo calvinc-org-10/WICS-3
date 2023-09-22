@@ -33,14 +33,14 @@
         </div>
     </div>
     <div class="row g-0">
-        <div class="col-4">
+        <div class="col-3">
             {% if itm.Requestor_userid_id %}
-            Requestor: {{ itm.Requestor }} |
+            Requestor: {{ itm.Requestor|default:'' }} |
             Req. Filled: {{ itm.RequestFilled|yesno }}
             {% endif %}
         </div>
-        <div class="col-4">{{ itm.ScheduleNotes }}</div>
-        <div class="col-3">
+        <div class="col-6">{{ itm.ScheduleNotes }}</div>
+        <div class="col-2">
             <button id="edit{{ itm.id }}" class="edit" value="{{ itm.id }}" type="button">Edit</button>
         </div>
     </div>
