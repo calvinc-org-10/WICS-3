@@ -66,7 +66,7 @@ class CountScheduleRecordForm(forms.ModelForm):
     class Meta:
         model = CountSchedule
         fields = ['id', 'CountDate', 'Counter', 'Priority', 'ReasonScheduled', 'Requestor', 'RequestFilled', 'Notes']
-    def save(self):
+    def save(self, savingUser = None):
         if not self.is_valid():
             return None
         dbmodel = self.Meta.model
@@ -81,6 +81,9 @@ class CountScheduleRecordForm(forms.ModelForm):
             if fldnm=='id': continue
             elif fldnm=='Material':
                 setattr(rec,fldnm, M)
+            elif fldnm=='Requestor':
+                setattr(rec, fldnm, self.cleaned_data[fldnm])
+                rec.Requestor_userid = savingUser
             else:
                 setattr(rec, fldnm, self.cleaned_data[fldnm])
         
@@ -108,7 +111,7 @@ class RequestCountScheduleRecordForm(forms.ModelForm):
         fields = ['id', 'CountDate', 'Requestor', 'Counter', 'Priority', 'ReasonScheduled', 'Notes']
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    def save(self, savingUser) -> CountSchedule:
+    def save(self, savingUser = None) -> CountSchedule:
         if not self.is_valid():
             return None
         dbmodel = self.Meta.model

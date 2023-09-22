@@ -302,10 +302,10 @@ def _fnCountSchedRecViewCommon(req, variation,
         # if mainFm.is_valid() and matlSubFm.is_valid() and schedFm.is_valid():
         if mainFm.is_valid() and matlSubFm.is_valid():
             if mainFm.has_changed():
-                if variation=='REQ':
-                    s = mainFm.save(requser)    #pylint: disable=E1120
+                if variation=='REQ' or 'Requestor' in mainFm.changed_data:
+                    s = mainFm.save(requser)    #pylint: disable=no-value-for-parameter
                 else:
-                    s = mainFm.save()    #pylint: disable=E1120
+                    s = mainFm.save()    #pylint: disable=no-value-for-parameter
                 chgd_dat['main'] = []
                 for chgdfld in mainFm.changed_data:
                     chgd_dat['main'].append(chgdfld+'='+str(mainFm.cleaned_data[chgdfld]))
