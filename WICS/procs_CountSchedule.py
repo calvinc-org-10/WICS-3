@@ -1,18 +1,24 @@
 import datetime
 import os, uuid
+import subprocess, signal
 import re as regex
+import json
+from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import Value, Subquery, OuterRef
 from django.db.models.query import QuerySet
 from django.http import HttpResponse, HttpRequest
 from django.shortcuts import render
+from django.template.loader import render_to_string
 from django.views.generic import ListView
+from django_q.tasks import async_task
 from barcode import Code128
 from userprofiles.models import WICSuser
 from cMenu.models import getcParm
 from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate, ExcelWorkbook_fileext
 from WICS.models import MaterialList, VIEW_materials, CountSchedule, VIEW_countschedule, VIEW_LastFoundAtList
+from WICS.models_async_comm import async_comm, set_async_comm_state
 from WICS.procs_SAP import fnSAPList
 from typing import *
 from openpyxl import load_workbook
@@ -305,30 +311,31 @@ class CountScheduleListForm(LoginRequiredMixin, ListView):
 class CountWorksheetReport(LoginRequiredMixin, ListView):
     ordering = ['Counter', 'Material__Material']
     context_object_name = 'CtSchd'
-    template_name = 'rpt_CountWksht.html'
+    template_name = 'rpt_CountWksht_main.html'
     
-    def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
-        self._user = req.user
+    # def setup(self, userid, reqid, *args: Any, **kwargs: Any) -> None:
+    def setup(self, reqid, *args: Any, **kwargs: Any) -> None:
+        self._reqid = reqid
         if 'CountDate' in kwargs: self.CountDate = kwargs['CountDate']
         else: self.CountDate = calvindate().today().as_datetime()
         if isinstance(self.CountDate,str): self.CountDate = calvindate(self.CountDate).as_datetime()
-        return super().setup(req, *args, **kwargs)
+        self.SAPDate = fnSAPList(self.CountDate)['SAPDate']
+        # return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
         SAP_SOH = fnSAPList(self.CountDate)
         self.SAPDate = SAP_SOH['SAPDate']
         qs = CountSchedule.objects.filter(CountDate=self.CountDate).order_by(*self.ordering).select_related('Material','Material__PartType')
         qs = qs.annotate(LastCountDate=Value(0), LastFoundAt=Value(''), SAPQty=Value(0), MaterialBarCode=Value(''), Material_org=Value(''))
-        Mat3char = None
         prevCtr = None
         for rec in qs:
             strMatlNum = str(rec.Material)
             rec.Material_org = strMatlNum
-            if strMatlNum[0:3] != Mat3char:
-                rec.NewMat3char = True
-                Mat3char = strMatlNum[0:3]
-            else:
-                rec.NewMat3char = False
+            set_async_comm_state(
+                self._reqid,
+                statecode = 'proc-Material',
+                statetext = f'Preparing Count Worksheet for Material {strMatlNum}',
+                )
 
             rec.prevCounter = prevCtr
             prevCtr = rec.Counter
@@ -350,11 +357,25 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
     # def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
     #     return HttpResponse('Stop rushing me!!')
 
-    def render_to_response(self, context: Dict[str, Any], **response_kwargs: Any) -> HttpResponse:
+    def render_to_response(self) -> HttpResponse:
+        context = {
+            self.context_object_name: self.get_queryset()
+        }
+
         # collect the list of Counters so that tabs can be built in the html
+        set_async_comm_state(
+            self._reqid,
+            statecode = 'proc-CounterList',
+            statetext = f'Collecting List of Counters',
+            )
         CounterList = CountSchedule.objects.filter(CountDate=self.CountDate).order_by('Counter').values('Counter').distinct()
 
         # form list of last found locations
+        set_async_comm_state(
+            self._reqid,
+            statecode = 'proc-Locations',
+            statetext = f'Collecting List of Locations',
+            )
         MList = MaterialList.objects.filter(
                     pk__in=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate).values('Material'))
                 )
@@ -367,5 +388,121 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
                 'SAP_Updated_at': self.SAPDate,
                 })
 
-        return super().render_to_response(context, **response_kwargs)
+        return render_to_string(self.template_name,context)
 
+##### the suite of procs to support viewCountWorksheetReport
+
+def proc_CountWorksheet_00InitUMLasync_comm(reqid):
+    acomm = set_async_comm_state(
+        reqid,
+        statecode = 'initializing',
+        statetext = 'Initializing ...',
+        new_async=True
+        )
+
+def proc_CountWorksheet_01PrepWorksheet(reqid, CountDate):
+    CountWorksheet_instance = CountWorksheetReport()
+    CountWorksheet_instance.setup(reqid, CountDate=CountDate)
+    resp = CountWorksheet_instance.render_to_response()
+
+    set_async_comm_state(
+        reqid,
+        statecode = 'writing-tmpfile',
+        statetext = f'Formatting Worksheet',
+        )
+    # write rendered_worksheet to temp file for pickup when client requests
+    svdir = django_settings.STATIC_ROOT
+    if svdir is None:
+        svdir = django_settings.STATICFILES_DIRS[0]
+    fName_base = '/tmpdl/'+'CWksht' + f'{reqid}'
+    fName = svdir + fName_base
+    if svdir is not None and fName_base is not None:
+        with open(fName, "w") as destination:
+            destination.write(str(resp))
+
+    set_async_comm_state(
+        reqid,
+        statecode = 'done',
+        statetext = f'Ready to present Worksheet',
+        result=fName,
+        )
+    
+def proc_CountWorksheet_99_Cleanup(reqid, tmpHTMLfil):
+    # also kill reqid, acomm, qcluster process
+    async_comm.objects.filter(pk=reqid).delete()
+
+    # kill the django-q process
+    try:
+        os.kill(int(reqid), signal.SIGTERM)
+        os.kill(int(reqid), signal.SIGKILL)
+    except AttributeError:
+        pass
+
+    # delete the temporary file
+    # os.remove(tmpHTMLfil)
+
+
+def viewCountWorksheetReport(req, CountDate=None):
+    client_phase = req.POST['phase'] if 'phase' in req.POST else None
+    reqid = req.COOKIES['reqid'] if 'reqid' in req.COOKIES else None
+    # if CountDate is None: CountDate = calvindate().today().as_datetime()  # this is the old way - remove this from view params
+    CountDate = req.POST['CountDate'] if 'CountDate' in req.POST else calvindate().today().as_datetime()
+
+    if req.method == 'POST':
+        retinfo = HttpResponse()
+        if client_phase=='init-upl':
+            # start django_q broker
+            reqid = subprocess.Popen(
+                ['python', f'{django_settings.BASE_DIR}/manage.py', 'qcluster']
+            ).pid
+            retinfo.set_cookie('reqid',str(reqid))
+            print(f'{reqid=}')
+
+            proc_CountWorksheet_00InitUMLasync_comm(reqid)
+
+            async_task(proc_CountWorksheet_01PrepWorksheet, reqid, CountDate)
+
+            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+            retinfo.write(json.dumps(acomm))
+            return retinfo
+        elif client_phase=='waiting':
+            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+            retinfo.write(json.dumps(acomm))
+            return retinfo
+        elif client_phase=='wantresults':
+            # get results from temp file
+            # write rendered_worksheet to temp file for pickup when client requests
+            svdir = django_settings.STATIC_ROOT
+            if svdir is None:
+                svdir = django_settings.STATICFILES_DIRS[0]
+            fName_base = '/tmpdl/'+'CWksht' + f'{reqid}'
+            fName = svdir + fName_base
+            if svdir is not None and fName_base is not None:
+                with open(fName, "r") as readfile:
+                    retHTML = readfile.read()
+
+            # do final cleanup
+            proc_CountWorksheet_99_Cleanup(reqid, fName)
+            retinfo.delete_cookie('reqid')
+
+            # return to requestor for presentation
+            return retHTML
+        elif client_phase=='cleanup-after-failure':
+            pass
+        else:
+            return
+        #endif client_phase
+    else:
+        # (hopefully,) this is the initial phase; all others will be part of a POST request
+
+        SAPDate = fnSAPList(CountDate)['SAPDate']
+
+        cntext = {
+            'SAP_Updated_at': SAPDate,
+            'CountDate': CountDate,
+            }
+        templt = 'rpt_CountWksht.html'
+    #endif req.method = 'POST'
+
+    return render(req, templt, cntext)
+    pass
