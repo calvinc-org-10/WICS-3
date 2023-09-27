@@ -456,7 +456,6 @@ def viewCountWorksheetReport(req, CountDate=None):
                 ['python', f'{django_settings.BASE_DIR}/manage.py', 'qcluster']
             ).pid
             retinfo.set_cookie('reqid',str(reqid))
-            print(f'{reqid=}')
 
             proc_CountWorksheet_00InitUMLasync_comm(reqid)
 

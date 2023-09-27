@@ -482,8 +482,6 @@ def proc_MatlListSAPSprsheet_01ReadSpreadsheet(reqid, fName):
 def done_MatlListSAPSprsheet_01ReadSpreadsheet(t):
     reqid = t.args[0]
     statecode = async_comm.objects.get(pk=reqid).statecode
-    # print(f't.success= {t.success}')
-    # print(f'tresult (type {type(t.result)}) = {t.result}')
     #DOITNOW!!! handle not t.success, t.result
     if statecode != 'fatalerr':
         set_async_comm_state(

@@ -17,7 +17,7 @@ class Organizations(models.Model):
         ordering = ['orgname']
 
     def __str__(self) -> str:
-        return str(self.orgname)
+        return f'{self.orgname}'
         # return super().__str__()
 
 ###########################################################
@@ -35,7 +35,7 @@ class WhsePartTypes(models.Model):
             ]
 
     def __str__(self) -> str:
-        return self.WhsePartType.__str__()
+        return f'{self.WhsePartType}'
         # return super().__str__()
 
 ###########################################################
@@ -168,7 +168,8 @@ class CountSchedule(models.Model):
         ]
 
     def __str__(self) -> str:
-        return str(self.pk) + ": " + str(self.CountDate) + " / " + str(self.Material) + " / " + str(self.Counter)
+        # return str(self.pk) + ": " + str(self.CountDate) + " / " + str(self.Material) + " / " + str(self.Counter)
+        return f'{self.pk}: {self.CountDate:%Y-%m-%d}  / {self.Material} / {self.Counter}'
         # return super().__str__()
 
 def VIEW_countschedule():
@@ -214,7 +215,8 @@ class ActualCounts(models.Model):
         ]
 
     def __str__(self) -> str:
-        return str(self.pk) + ": " + str(self.CountDate) + " / " + str(self.Material) + " / " + str(self.Counter) + " / " + str(self.LOCATION)
+        # return str(self.pk) + ": " + str(self.CountDate) + " / " + str(self.Material) + " / " + str(self.Counter) + " / " + str(self.LOCATION)
+        return f'{self.pk}: {self.CountDate:%Y-%m-%d}  / {self.Material} / {self.Counter} / {self.LOCATION}'
         # return super().__str__()
 
 
@@ -256,7 +258,7 @@ def VIEW_LastFoundAtList(matl=None):
     FA_qs = VIEW_actualcounts().filter(
                         CountDate = Subquery(MaxDates.filter(Material=OuterRef('Material')).values('MaxCtDt')[:1])
                 )
-    
+
     if matl is not None:
         try:
             iter(matl)
@@ -266,7 +268,7 @@ def VIEW_LastFoundAtList(matl=None):
 
     if FA_qs is None:
         FA_qs = VIEW_actualcounts().filter(Material=matl)
-    
+
     LFAqs = FA_qs.annotate(FoundAt=F('LOCATION')).values('Material','Material_org','CountDate','FoundAt').distinct().order_by('Material__Material', 'Material__org', 'FoundAt') if FA_qs is not None else None
 
     return LFAqs
