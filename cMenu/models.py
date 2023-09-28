@@ -9,7 +9,7 @@ class menuCommands(models.Model):
         ordering = ['Command']
 
     def __str__(self) -> str:
-        return str(self.Command) + ' - ' + self.CommandText
+        return f'{self.Command} - {self.CommandText}'
         # return super().__str__()
 
 
@@ -17,7 +17,7 @@ class menuGroups(models.Model):
     GroupName = models.CharField(max_length=100,null=False, unique=True)
     GroupInfo = models.CharField(max_length=250, blank=True)
     def __str__(self) -> str:
-        return 'menuGroup ' + self.GroupName
+        return f'menuGroup {self.GroupName}'
 
 
 class menuItems(models.Model):
@@ -39,7 +39,7 @@ class menuItems(models.Model):
             ]
 
     def __str__(self) -> str:
-        return str(self.MenuGroup) + ', ' + str(self.MenuID) + '/' + str(self.OptionNumber) + ', ' + self.OptionText
+        return f'{self.MenuGroup}, {self.MenuID}/{self.OptionNumber}, {self.OptionText}'
 
 
 class cParameters(models.Model):
@@ -79,5 +79,5 @@ class cGreetings(models.Model):
     Greeting = models.CharField(max_length=2000)
 
     def __str__(self):
-        return str(self.Greeting)
+        return f'{self.Greeting}'
     

@@ -18,4 +18,4 @@ class WICSuser(models.Model):
     # def delete(self, *args, **kwargs):
 
     def __str__(self):
-        return "<WICS User> " + self.user.get_username()
+        return f'<WICS User> {self.user.get_username()} ({self.pk})'
