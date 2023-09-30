@@ -497,7 +497,7 @@ def fnRequestedCountEditListView(req, ShowFilledRequests = True):
                 exclude=excludelist['main'],
                 # form=FormMain,
                 extra=0,can_delete=False)
-    qs_RequestsToShow = modelMain.objects.filter(Requestor_userid__isnull=False).annotate(hascounts=Value(False))
+    qs_RequestsToShow = modelMain.objects.filter(Requestor_userid__isnull=False).order_by('-CountDate', 'Material__Material').annotate(hascounts=Value(False))
     if not ShowFilledRequests:
         qs_RequestsToShow = qs_RequestsToShow.filter(RequestFilled=False)
 
