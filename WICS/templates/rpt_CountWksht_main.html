@@ -7,7 +7,10 @@
             {% for M in CtSchd %}
             {% if forloop.first %}<hr><div class="fs-4" style="break-before: page;"><u>{{itm.prevCounter|default:""}} Materials</u><ul>{% endif %}
                 {% if M.Counter == itm.prevCounter %}
-                <li>{{ M.Material_org }}</li>
+                <li>
+                    {{ M.MaterialBarCode|safe }}
+                    {{ M.Material_org }}
+                </li>
                 {% endif %}
             {% if forloop.last %}</ul></div>{% endif %}
             {% endfor %}
@@ -141,8 +144,11 @@
         {% for M in CtSchd %}
         {% if forloop.first %}<hr><div class="fs-4" style="break-before: page;"><u>{{itm.prevCounter|default:""}} Materials</u><ul>{% endif %}
             {% if M.Counter == itm.Counter %}
-            <li>{{ M.Material_org }}</li>
-            {% endif %}
+            <li>
+                {{ M.MaterialBarCode|safe }}
+                {{ M.Material_org }}
+            </li>
+        {% endif %}
         {% if forloop.last %}</ul></div>{% endif %}
         {% endfor %}
 
