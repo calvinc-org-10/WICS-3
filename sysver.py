@@ -1,13 +1,14 @@
 _base_ver_major=3
 _base_ver_minor=2
-_base_ver_patch=7
-_ver_date='2023-09-24'
+_base_ver_patch=8
+_ver_date='2023-09-30'
 _base_ver = str(_base_ver_major) +'.'+ str(_base_ver_minor) +'.'+ str(_base_ver_patch)
 sysver = {
     'DEV': 'DEV'+_base_ver, 
     'PROD':_base_ver,
     } 
 
+# 3.2.8 - 2023-09-30 RunSQL - make textarea autofocus; print barcodes on Count Worksheet Material summary; Matl Form: don't include LocOnly records in summary counts
 # 3.2.7 - 2023-09-24 Make Count Worksheet rpt async
 # 3.2.6 - 2023-09-16 Put hints to structure of major WICS tables on RunSQL
 # 3.2.5 - 2023-09-13 Attempt to make MaterialList Update a self-transitioning process, with no need for intervention
