@@ -17,8 +17,6 @@ from django.urls import path, reverse
 from django.shortcuts import redirect
 from WICS import userinit
 from WICS import procs_ActualCounts, procs_CountSchedule, procs_Material, procs_SAP, views
-from WICS import phptest
-from WICS import test00
 from WICS import WICSdown
 from userprofiles import logout
 
@@ -27,10 +25,6 @@ urlpatterns = [
     # path('', WICSdown.WICSdown , name='WICSdown'),       # this is actually the entry point to WICS
     path('inituser', userinit.inituser , name='initWICSuser'),
     path('logout',logout.WICSlogout, name='WICSlogout'),
-
-    # path('phptest00', phptest.showtestAjax , name='phptest00'),
-    # path('phptest01', phptest.testAjax , name='phptest01'),
-    # path('tmp-test-00',test00.testMLview.as_view()),
 
     path('ActualCountList',
             procs_ActualCounts.ActualCountListForm.as_view(), name='ActualCountList'),
