@@ -214,7 +214,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
         .values('uploaded_at','MaterialPartNum')\
         .annotate(SAPQty=Sum('Amount')).annotate(mult=Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1]))\
         .order_by('uploaded_at', 'MaterialPartNum')
-    raw_countdata = ActualCounts.objects.filter(Material=currRec).order_by('Material__Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
+    raw_countdata = ActualCounts.objects.filter(Material=currRec, LocationOnly=False).order_by('Material__Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
     LastMaterial = None ; LastCountDate = None
     initdata = []
     for r in raw_countdata:
