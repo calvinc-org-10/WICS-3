@@ -7,18 +7,16 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db import models
-from django.db.models import Value, Sum, Max
-from django.db.models import F, Value, Case, When, Exists, Subquery, OuterRef
-from django.db.models.functions import Concat
+from django.db.models import Value, Sum
+from django.db.models import F, Value, Subquery, OuterRef
 from django.db.models.query import QuerySet
 from django.forms import inlineformset_factory, formset_factory
-from django.http import HttpResponse, HttpRequest, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponseRedirect #, HttpResponse
 from django.shortcuts import render
 from django.views.generic import ListView
 from cMenu.models import getcParm
 from cMenu.utils import modelobj_to_dict, calvindate, ExcelWorkbook_fileext, Excelfile_fromqs
 from mathematical_expressions_parser.eval import evaluate
-from userprofiles.models import WICSuser
 from WICS.globals import _defaultOrg
 from WICS.forms import MaterialForm, MaterialCountSummary, PartTypesForm
 from WICS.models import MaterialList, VIEW_materials, WhsePartTypes
@@ -29,7 +27,6 @@ from typing import Any, Dict
 
 
 class MaterialLocationsList(LoginRequiredMixin, ListView):
-    #login_url = reverse('WICSlogin')
     # ordering = ['org_id','Material']  - ordering should not be defined on a raw queryset
     context_object_name = 'MatlList'
     template_name = 'rpt_PartLocations.html'
@@ -102,7 +99,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
             except:
                 pass    # currRec remains None
         # endif newRec, recNum
-    #endif set currRec
+    #endif set currRec based on req.method
 
     thisPK = 0
     if not newRec and currRec:
@@ -206,10 +203,9 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
         schedSet = SchedSubFm_class(instance=currRec, prefix=prefixvals['schedule'], initial=initialvals['schedule'],
                     queryset=modelSubs[1].objects.order_by('-CountDate'))
                     # queryset=modelSubs[1].objects.filter(CountDate__gte=HistoryCutoffDate).order_by('-CountDate'))
-    # endif
+    # endif req.method
 
     # count summary subform
-    # add another 30 days to the SAP cutoff in case the earliest Count records don't have an SAP count from the same day
     SAPTotals = SAP_SOHRecs.objects.filter(Material=currRec)\
         .values('uploaded_at','MaterialPartNum')\
         .annotate(SAPQty=Sum('Amount')).annotate(mult=Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1]))\
@@ -245,6 +241,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
                 'SAPDate': SAPDate,
                 'SAPQty': SAPQty,
             })
+        #endif (r.material or r.CountDate change)
         PIQty = initdata[-1]['CountQTY_Eval'] + r.QtyEval
         initdata[-1]['CountQTY_Eval'] = PIQty
         initdata[-1]['Diff'] = PIQty - SAPQty
@@ -483,7 +480,7 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
                     fields=MatlSubFm_fldlist,
                     extra=0,can_delete=False)
         MaterialSubFm = MaterialSubFm_class(instance=currRec, prefix=prefixes['matl'], initial=initvals['matl'], queryset=MaterialList_qs)
-    # endif
+    # endif req.method
 
     gotoForm = {}
     gotoForm['choicelist'] = WhsePartTypes.objects.all().values('id','WhsePartType')

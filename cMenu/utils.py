@@ -1,6 +1,5 @@
 from __future__ import annotations      # to allow calvindate (or any other class) to refer to itself.  See https://stackoverflow.com/questions/40925470/python-how-to-refer-a-class-inside-itself
 import datetime
-from itertools import chain
 from datetime import date, timedelta
 from dateutil.parser import parse
 from dateutil.rrule import *
@@ -36,13 +35,7 @@ class calvindate(date):
             # invalid number of args.  Do nothing; let the default stand
             pass
         return super().__new__(cls, D.year, D.month, D.day)
-    # def __init__(self) -> None:
-    #     super().__init__()
-# testarg = datetime.datetime.now()
-# while testarg != 'stop':
-#     R = calvindate(testarg)
-#     print(type(R),R)
-#     testarg = input('Next testarg:')
+
     def as_datetime(self):
         return datetime.datetime(self.year,self.month,self.day)
 
@@ -112,7 +105,7 @@ class calvindate(date):
             return NotImplemented
 
 
-def WrapInQuotes(strg, openquotechar = chr(34), closequotechar = chr(34)):
+def WrapInQuotes(strg, openquotechar = '"', closequotechar = '"'):
     return openquotechar + strg + closequotechar
 
 
