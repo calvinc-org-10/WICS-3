@@ -27,8 +27,6 @@ class CountEntryForm(forms.ModelForm):
                 'LOCATION', 'CTD_QTY_Expr', 'PKGID_Desc', 'TAGQTY',
                 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes']
     def save(self):
-        if not self.is_valid():
-            return None
         dbmodel = self.Meta.model
         required_fields = ['CountDate', 'Material', 'Counter'] #id handled separately
         PriK = self['id'].value()
@@ -67,8 +65,6 @@ class CountScheduleRecordForm(forms.ModelForm):
         model = CountSchedule
         fields = ['id', 'CountDate', 'Counter', 'Priority', 'ReasonScheduled', 'Requestor', 'RequestFilled', 'Notes']
     def save(self, savingUser = None):
-        if not self.is_valid():
-            return None
         dbmodel = self.Meta.model
         required_fields = ['CountDate', 'Material'] #id handled separately
         PriK = self['id'].value()
@@ -112,8 +108,6 @@ class RequestCountScheduleRecordForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
     def save(self, savingUser = None) -> CountSchedule:
-        if not self.is_valid():
-            return None
         dbmodel = self.Meta.model
         required_fields = ['CountDate', 'Material', 'Requestor'] #id handled separately
         PriK = self['id'].value()
@@ -152,8 +146,6 @@ class RelatedMaterialInfo(forms.ModelForm):
         self.id = id
         self.fields['PartType'].queryset=WhsePartTypes.objects.all().order_by('WhsePartType').all()
     def save(self):
-        if not self.is_valid():
-            return None
         dbmodel = self.Meta.model
         required_fields = [] #id handled separately
         PriK = self.id
@@ -187,8 +179,6 @@ class RelatedScheduleInfo(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.id = id
     def save(self):
-        if not self.is_valid():
-            return None
         dbmodel = self.Meta.model
         required_fields = ['CountDate', 'Material'] #id handled separately
         PriK = self.id

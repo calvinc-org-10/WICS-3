@@ -434,11 +434,14 @@ def proc_CountWorksheet_99_Cleanup(reqid, tmpHTMLfil):
     # kill the django-q process
     try:
         os.kill(int(reqid), signal.SIGTERM)
+    except AttributeError:
+        pass
+    try:
         os.kill(int(reqid), signal.SIGKILL)
     except AttributeError:
         pass
 
-    # delete the temporary file
+    # delete the temporary file  - NOPE = it's used after this proc ends
     # os.remove(tmpHTMLfil)
 
 

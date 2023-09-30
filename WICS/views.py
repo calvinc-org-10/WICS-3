@@ -1,7 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.db.models import Value
 from django.forms import modelformset_factory
-from django import http # for the various HttpResponses
+# from django import http # for the various HttpResponses
 from django.shortcuts import render
 from cMenu.utils import calvindate
 from userprofiles.models import WICSuser
@@ -108,7 +108,7 @@ def fnCountEntryView(req,
                 matlSubFm = FormSubs[0](matlRec.pk, instance=matlRec, prefix=prefixvals['matl'])
             else:
                 matlSubFm = FormSubs[0](None, initial=initialvals['matl'], prefix=prefixvals['matl'])
-    else:
+    else:   ## rec.method != 'POST'
         currRec = modelMain(CountDate=reqDate,Counter=req.user.get_short_name())
         matlRec = modelSubs[0].objects.none()
 
@@ -171,6 +171,7 @@ def fnCountEntryView(req,
             matlSubFm = FormSubs[0](matlRec.pk, instance=matlRec, prefix=prefixvals['matl'])
         else:
             matlSubFm = FormSubs[0](None, initial=initialvals['matl'], prefix=prefixvals['matl'])
+    #endif rec.method == 'POST'
 
     # all counts for this Material today
     if matlRec:
@@ -179,7 +180,7 @@ def fnCountEntryView(req,
         todayscounts = modelMain.objects.filter(CountDate=matchDate,Material=matlRec)
     else: 
         todayscounts = modelMain.objects.none()
-    # schedFm
+
     if currRec:
         getDate = currRec.CountDate
         if matlRec and modelSubs[1].objects.filter(CountDate=getDate, Material=matlRec).exists():
@@ -204,7 +205,9 @@ def fnCountEntryView(req,
                 schedinfo = modelSubs[1].objects.filter(CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
             else:
                 schedinfo = modelSubs[1].objects.none()
-    else: schedinfo = modelSubs[1].objects.none()
+    else: 
+        schedinfo = modelSubs[1].objects.none()
+    #endif currRec
     if not schedinfo: schedFm = FormSubs[1](None, initial=initialvals['schedule'], prefix=prefixvals['schedule'])
     else: schedFm = FormSubs[1](schedinfo.pk, instance=schedinfo, prefix=prefixvals['schedule'])
 
@@ -250,10 +253,7 @@ def _fnCountSchedRecViewCommon(req, variation,
     if MatlNum=='None' or MatlNum is None: MatlNum=0
     if gotoCommand=='None': gotoCommand=None
 
-    if variation=='REQ':
-        FormMain = RequestCountScheduleRecordForm
-    else:
-        FormMain = CountScheduleRecordForm
+    FormMain = RequestCountScheduleRecordForm if variation=='REQ' else CountScheduleRecordForm
     FormSubs = [S for S in [RelatedMaterialInfo]]
 
     modelMain = FormMain.Meta.model
@@ -267,10 +267,7 @@ def _fnCountSchedRecViewCommon(req, variation,
         'main': {'CountDate': calvindate(reqDate).as_datetime(), 'RequestFilled': None},
         'matl': {},
     }
-    if variation == 'REQ':
-        initialvals['main']['Requestor'] = req.user.get_short_name()
-    else:
-        initialvals['main']['Requestor'] = None
+    initialvals['main']['Requestor'] = req.user.get_short_name() if variation == 'REQ' else None
 
     changes_saved = {
         'main': False,
@@ -337,7 +334,7 @@ def _fnCountSchedRecViewCommon(req, variation,
             else:
                 matlSubFm = FormSubs[0](None, initial=initialvals['matl'], prefix=prefixvals['matl'])
 
-    else:
+    else:   # rec.method != 'POST'
         currRec = modelMain(
             CountDate=reqDate, 
             Requestor=req.user.get_short_name() if variation=='REQ' else None,
@@ -415,6 +412,7 @@ def _fnCountSchedRecViewCommon(req, variation,
             matlSubFm = FormSubs[0](matlRec.pk, instance=matlRec, prefix=prefixvals['matl'])
         else:
             matlSubFm = FormSubs[0](None, initial=initialvals['matl'], prefix=prefixvals['matl'])
+    #endif rec.method = 'POST'
 
     # CountEntryForm MaterialList dropdown
     matlchoiceForm = {}

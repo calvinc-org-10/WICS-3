@@ -414,8 +414,15 @@ def proc_UpActCountSprsheet_99_FinalProc(reqid):
 def proc_UpActCountSprsheet_99_Cleanup(reqid):
     # also kill reqid, acomm, qcluster process
     async_comm.objects.filter(pk=reqid).delete()
-    os.kill(int(reqid), signal.SIGTERM)
-    os.kill(int(reqid), signal.SIGKILL)
+
+    try:
+        os.kill(int(reqid), signal.SIGTERM)
+    except AttributeError:
+        pass
+    try:
+        os.kill(int(reqid), signal.SIGKILL)
+    except AttributeError:
+        pass
 
     # delete the temporary table
     UploadSAPResults.objects.all().delete()

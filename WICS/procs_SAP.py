@@ -1,5 +1,4 @@
 import os, uuid, re as regex
-import random
 import subprocess, signal
 import json
 from functools import partial
@@ -8,7 +7,7 @@ from django.contrib.auth.decorators import login_required
 from django.conf import settings as django_settings
 from django.db import connection, transaction
 from django.db.models import Max, OuterRef, Subquery
-from django.http import HttpResponse, HttpResponseNotModified
+from django.http import HttpResponse #, HttpResponseNotModified
 from django.shortcuts import render
 from django_q.tasks import async_task
 from openpyxl import load_workbook
@@ -228,8 +227,15 @@ def proc_UpSAPSpreadsheet_99_FinalProc(reqid):
 def proc_UpSAPSpreadsheet_99_Cleanup(reqid):
     # also kill reqid, acomm, qcluster process
     async_comm.objects.filter(pk=reqid).delete()
-    os.kill(int(reqid), signal.SIGTERM)
-    os.kill(int(reqid), signal.SIGKILL)
+
+    try:
+        os.kill(int(reqid), signal.SIGTERM)
+    except AttributeError:
+        pass
+    try:
+        os.kill(int(reqid), signal.SIGKILL)
+    except AttributeError:
+        pass
 
     # delete the temporary table
     UploadSAPResults.objects.all().delete()
@@ -242,7 +248,6 @@ def fnUploadSAP(req):
     UplDate = calvindate(req.POST['uploaded_at']).isoformat() if 'uploaded_at' in req.POST else calvindate()
 
     if req.method == 'POST':
-        # check any mandatory commits here and change status code
 
         if client_phase=='init-upl':
             retinfo = HttpResponse()
@@ -302,7 +307,7 @@ def fnUploadSAP(req):
             return
         #endif client_phase
 
-    else:
+    else:   # req.method != 'POST'
         LastSAPUpload = SAP_SOHRecs.objects.all().aggregate(LastSAPDate=Max('uploaded_at'))
         # .first().values('LastSAPDate')['LastSAPDate']
 
@@ -311,7 +316,7 @@ def fnUploadSAP(req):
                 'LastSAPUploadDate': LastSAPUpload['LastSAPDate'],
                 }
         templt = 'frm_upload_SAP.html'
-    #endif
+    #endif  req.method == 'POST'
 
     return render(req, templt, cntext)
 
@@ -511,13 +516,13 @@ def proc_MatlListSAPSprsheet_02_identifyexistingMaterial(reqid):
         statetext = f'Identifying WICS Materials no longer in SAP MM60 Materials',
         )
     MustKeepMatlsSelCond = ''
-    if MustKeepMatlsSelCond: MustKeepMatlsSelCond += ' AND '
+    MustKeepMatlsSelCond += ' AND ' if MustKeepMatlsSelCond else ''
     MustKeepMatlsSelCond += 'id NOT IN (SELECT DISTINCT tmucopy.MaterialLink_id AS Material_id FROM WICS_tmpmateriallistupdate tmucopy WHERE tmucopy.MaterialLink_id IS NOT NULL)'
-    if MustKeepMatlsSelCond: MustKeepMatlsSelCond += ' AND '
+    MustKeepMatlsSelCond += ' AND ' if MustKeepMatlsSelCond else ''
     MustKeepMatlsSelCond += 'id NOT IN (SELECT DISTINCT Material_id FROM WICS_actualcounts)'
-    if MustKeepMatlsSelCond: MustKeepMatlsSelCond += ' AND '
+    MustKeepMatlsSelCond += ' AND ' if MustKeepMatlsSelCond else ''
     MustKeepMatlsSelCond += 'id NOT IN (SELECT DISTINCT Material_id FROM WICS_countschedule)'
-    if MustKeepMatlsSelCond: MustKeepMatlsSelCond += ' AND '
+    MustKeepMatlsSelCond += ' AND ' if MustKeepMatlsSelCond else ''
     MustKeepMatlsSelCond += 'id NOT IN (SELECT DISTINCT Material_id FROM WICS_sap_sohrecs)'
 
     DeleteMatlsSelectSQL = "INSERT INTO WICS_tmpmateriallistupdate (recStatus, delMaterialLink, MaterialLink_id, org_id, Material, Description, Plant "
@@ -639,20 +644,10 @@ def done_MatlListSAPSprsheet_03_Add(reqid):
         )
 
 def proc_MatlListSAPSprsheet_11_DoStep2(reqid):
-# elif client_phase=='need-ident-exist-matl':
     proc_MatlListSAPSprsheet_02_identifyexistingMaterial(reqid)
 
-    # acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
-    # retinfo.write(json.dumps(acomm))
-    # return retinfo
-
 def proc_MatlListSAPSprsheet_11_DoStep3(reqid):
-# elif client_phase=='need-add-del':
     proc_MatlListSAPSprsheet_03_Remove(reqid)
-
-    # acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
-    # retinfo.write(json.dumps(acomm))
-    # return retinfo
 
 def proc_MatlListSAPSprsheet_99_FinalProc(reqid):
     set_async_comm_state(
@@ -666,8 +661,14 @@ def proc_MatlListSAPSprsheet_99_Cleanup(reqid):
     async_comm.objects.filter(pk=reqid).delete()
 
     # when we can start django-q programmatically, this is where we kill that process
-    os.kill(int(reqid), signal.SIGTERM)
-    os.kill(int(reqid), signal.SIGKILL)
+    try:
+        os.kill(int(reqid), signal.SIGTERM)
+    except AttributeError:
+        pass
+    try:
+        os.kill(int(reqid), signal.SIGKILL)
+    except AttributeError:
+        pass
 
     # delete the temporary table
     tmpMaterialListUpdate.objects.all().delete()
@@ -731,7 +732,7 @@ def fnUpdateMatlListfromSAP(req):
         else:
             return
         #endif client_phase
-    else:
+    else:   # req.method != 'POST'
         # (hopefully,) this is the initial phase; all others will be part of a POST request
 
         cntext = {
