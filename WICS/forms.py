@@ -94,9 +94,7 @@ class RequestCountScheduleRecordForm(forms.ModelForm):
     Requestor = forms.CharField(max_length=100, required=True)
       # the requestor can type whatever they want here, but WICS will record the userid behind-the-scenes
     RequestFilled = forms.BooleanField(required=False, initial=False)
-    Material = forms.CharField(required=True)
-        # Material is handled this way because of the way it's done in the html.
-        # later, create a DropdownText widget??
+    Material = forms.CharField(required=False)     # requestors cannot change Material; it's shown, but r/o
     Counter = forms.CharField(required=False)
     Priority = forms.CharField(max_length=50, required=False)
     ReasonScheduled = forms.CharField(max_length=250, required=False)
@@ -111,7 +109,7 @@ class RequestCountScheduleRecordForm(forms.ModelForm):
         dbmodel = self.Meta.model
         required_fields = ['CountDate', 'Material', 'Requestor'] #id handled separately
         PriK = self['id'].value()
-        M = MaterialList.objects.get(pk=self.data['MatlPK']) 
+        M = MaterialList.objects.get(pk=self.data['Material']) 
         if not str(PriK).isnumeric(): PriK = -1
         existingrec = dbmodel.objects.filter(pk=PriK).exists()
         if existingrec: rec = dbmodel.objects.get(pk=PriK)

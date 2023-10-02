@@ -511,9 +511,10 @@ def fnRequestedCountEditListView(req, ShowFilledRequests = True):
                 s = mainFm.save()
                 chgd_dat['main'] = mainFm.changed_objects
                 changes_saved['main'] = s
-    else:
+    else:   #req.method != 'POST'
         mainFm = mainFm_class(prefix=prefixvals['main'], initial=initialvals['main'],
                     queryset=qs_RequestsToShow)
+    #endif req.method == 'POST'
 
     # show if the request has counts or not
     for rec in qs_RequestsToShow:

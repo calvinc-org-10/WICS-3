@@ -44,24 +44,34 @@ button:focus {
 </div><!-- container -->
 <hr>
 
-<!-- header row -->
-<div class="row g-0">
-    .......
-    <div class="col-5">
-        CountDate | 
-        Requestor |
-        Material
-    </div> 
-    <div class="col-4">
-        Counter |
-        Priority |
-        Reason Scheduled
-    </div>
-    <div class="col-2">
-        RequestFilled 
-    </div>
+{% if frmMain.total_error_count %}
+<div>
+    nfe: {{frmMain.non_form_errors}}
+    <br>
+    fm errs: {{frmMain.errors}}
 </div>
 <hr>
+{%endif%}
+<!-- header row -->
+<div id="mainReport" class="container">
+    <div class="row g-0">
+        <div class="col-5">
+            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+            CountDate | 
+            Requestor |
+            Material
+        </div> 
+        <div class="col-4">
+            Counter |
+            Priority |
+            Reason Scheduled
+        </div>
+        <div class="col-2">
+            RequestFilled 
+        </div>
+    </div>
+    <hr>
+</div>
 <div id="mainReport" class="container" style="height:350px; overflow: auto;">
 <form method="post" id="ReqSchdForm">
     {% csrf_token %}
@@ -69,10 +79,14 @@ button:focus {
     {% for itm in frmMain %}
     <div class="row g-0 text-start">
         {{ itm.id }}
+        {{ itm.instance.id }} | &nbsp;
         <div class="col-5 text-start">
             {% render_field itm.CountDate size="10" %} | 
             {% render_field itm.Requestor size="10" %} |
-            {{ itm.instance.Material.Material }} |
+            {{ itm.instance.Material.Material }}
+            {# constructing this by hand because it must be present, but django doesn't render it the way I want #}
+            {# Material is r/o (hidden) in this form #} |
+            <input type="hidden" name="{{ itm.Material.html_name }}" id="{{ itm.Material.auto_id }}" value="{{ itm.Material.value }}"></input>
         </div> 
         <div class="col-4 text-start">
             {% render_field itm.Counter size="10" %} |
@@ -134,8 +148,10 @@ button:focus {
         </div>
     </div>
     <div class="row">
-        <b class="text-danger">Please do NOT make changes using this form unless you absolutely must.  
-            I haven't thoroughly tested it yet.  Sorry.  - Calvin C</b>
+        <b class="text-info">
+            This form should record changes now (you CANNOT change the Material number).  I've tested it, but I won't swear to it being foolproof.
+            Let me know if anything goes wonky.  - Calvin C
+        </b>
     </div>
 </div>
 
