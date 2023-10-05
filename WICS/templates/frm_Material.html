@@ -99,31 +99,64 @@ button:focus {
     <!-- main part of form -->
     <div class="container-fluid">
         <div class="row">
-            <div class="col-7">
-                {{ frmMain.instance.org }}
-                Material: {% render_field frmMain.Material size="15" %} 
-                Description: {% render_field frmMain.Description size="50" %}
-                <input type="hidden" name="OrigMaterial" value="{{ frmMain.Material.value }}"></input>
-                <input type="hidden" name="MatlPK" value="{{ frmMain.instance.pk }}"></input>
+            <div class="col-10">
+                <div class="row">
+                    <div class="col-7">
+                        {{ frmMain.instance.org }}
+                        Material: {% render_field frmMain.Material size="15" %} 
+                        Description: {% render_field frmMain.Description size="40" %}
+                        <input type="hidden" name="OrigMaterial" value="{{ frmMain.Material.value }}"></input>
+                        <input type="hidden" name="MatlPK" value="{{ frmMain.instance.pk }}"></input>
+                    </div>
+                    <div class="col-5">
+                        Part Type:  {% render_field frmMain.PartType style="width:10em" %}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        SAP Matl Type: {% render_field frmMain.SAPMaterialType size="4" %}
+                        SAP Matl Grp: {% render_field frmMain.SAPMaterialGroup size="4" %}
+                        Price: {% render_field frmMain.Price style="width:8em" %}
+                        Price Unit: {% render_field frmMain.PriceUnit style="width:8em" %}
+                        Typ Container Qty: {% render_field frmMain.TypicalContainerQty style="width:6em" %}
+                        Typ Plt Qty: {% render_field frmMain.TypicalPalletQty style="width:6em" %}
+                    </div>
+                </div>
+                <div class="row">
+                <div class="col">
+                    Notes: {% render_field frmMain.Notes size="80" %}
+                </div>
+                </div>
             </div>
-            <div class="col-5">
-                Part Type:  {% render_field frmMain.PartType style="width:10em" %}
+            <div class="col-2" style="border-left: solid;">
+                Photos will go here
+                <div id="MatlPhotoCarousel" class="carousel slide" data-bs-ride="false">
+                <div class="carousel-indicators">
+                    {% for photo in PhotoSet %}
+                        <button type="button" data-bs-target="#MatlPhotoCarousel" data-bs-slide-to="{{ forloop.counter0 }}"{% if forloop.first %} class="active"{% endif %}></button>
+                    {% endfor %}
+                </div>
+                <div class="carousel-inner">
+                    {% for photo in PhotoSet %}
+                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                        <img src="{% static photo.url %}" class="d-block w-100" alt="...">
+                        <div class="carousel-caption d-none d-md-block">
+                            <h5>Number {{ forloop.counter0 }}</h5>
+                            <p>{{ photo.url }}</p>
+                        </div>
+                        </div>
+                    {% endfor %}
+                </div>
+                <button class="carousel-control-prev" type="button" data-bs-target="#MatlPhotoCarousel" data-bs-slide="prev">
+                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Previous</span>
+                </button>
+                <button class="carousel-control-next" type="button" data-bs-target="#MatlPhotoCarousel" data-bs-slide="next">
+                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                    <span class="visually-hidden">Next</span>
+                </button>
+                </div>
             </div>
-        </div>
-        <div class="row">
-            <div class="col">
-                SAP Matl Type: {% render_field frmMain.SAPMaterialType size="4" %}
-                SAP Matl Grp: {% render_field frmMain.SAPMaterialGroup size="4" %}
-                Price: {% render_field frmMain.Price style="width:8em" %}
-                Price Unit: {% render_field frmMain.PriceUnit style="width:8em" %}
-                Typ Container Qty: {% render_field frmMain.TypicalContainerQty style="width:6em" %}
-                Typ Plt Qty: {% render_field frmMain.TypicalPalletQty style="width:6em" %}
-            </div>
-        </div>
-        <div class="row">
-        <div class="col">
-            Notes: {% render_field frmMain.Notes size="80" %}
-        </div>
         </div>
         <hr>
         <div class="container">

@@ -116,6 +116,12 @@ def fnMaterial_id(org_id:int,Material:str) -> str | None:
     except:
         return None
 
+# class MaterialPhotos(models.Model):
+#     Material = models.ForeignKey(MaterialList, on_delete=models.RESTRICT)
+#     Photo = models.ImageField(upload_to='MatlImg/',height_field='height',width_field='width')
+#     height = models.IntegerField()
+#     width = models.IntegerField()
+    
 class VIEW_materials(models.Model):
     id = models.PositiveIntegerField(primary_key=True)
     org = models.ForeignKey(Organizations, on_delete=models.RESTRICT, blank=True, null=True)

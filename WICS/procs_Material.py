@@ -251,9 +251,19 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
     subFm_class = formset_factory(MaterialCountSummary,extra=0)
     summarySet = subFm_class(initial=initdata, prefix='summaryset')
 
+    # Material photos
+    MatlPhotoLocation = f'MatlImg/'
+    MatlPhotoURL = f'MatlImg/'
+    PhotoSet = [
+        {'name':'test1', 'path':f'{MatlPhotoLocation}test1.jpg', 'url':f'{MatlPhotoURL}test1.jpg'},
+        {'name':'test2', 'path':f'{MatlPhotoLocation}test2.gif', 'url':f'{MatlPhotoURL}test2.gif'},
+        {'name':'test3', 'path':f'{MatlPhotoLocation}test3.png', 'url':f'{MatlPhotoURL}test3.png'},
+    ]
+
     # display the form
     cntext = {
             'frmMain': mtlFm,
+            'PhotoSet': PhotoSet, 
             'userReadOnly': req.user.has_perm('WICS.Material_onlyview') and not req.user.has_perm('WICS.SuperUser'),
             'lastFoundAt': VIEW_materials.objects.filter(pk=currRec.pk).values('LastCountDate','LastFoundAt')[0],
             'FoundAt': FoundAt(currRec),
