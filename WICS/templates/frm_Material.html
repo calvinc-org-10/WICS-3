@@ -204,6 +204,7 @@ button:focus {
                     {% ifchanged ff.CountDate.value %}{% if not forloop.first %}<hr>{% endif %}{% endifchanged %}
                     <div class="row">
                         {{ ff.id }}
+                        {{ ff.instance.id }}:&nbsp;
                         <div class="col-1">{% render_field ff.CountDate size="10" %}</div>
                         <div class="col-1">{% render_field ff.Counter size="10" %}</div>
                         <div class="col-4 text-start">
@@ -287,6 +288,7 @@ button:focus {
                     {% for ff in scheduleset %}
                     <div class="row">
                         {{ ff.id }}
+                        {{ ff.instance.id }}:&nbsp;
                         <div class="col-4">
                             {% render_field ff.CountDate size="10" %}
                             {% render_field ff.Counter size="10" %}
