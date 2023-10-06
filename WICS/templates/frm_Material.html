@@ -130,6 +130,7 @@ button:focus {
             </div>
             <div class="col-2" style="border-left: solid;">
                 {# Photos will go here #}
+
                 <div id="MatlPhotoCarousel" class="carousel slide" data-bs-ride="false">
                 <div class="carousel-indicators">
                     {% for photo in PhotoSet %}
@@ -138,13 +139,17 @@ button:focus {
                 </div>
                 <div class="carousel-inner">
                     {% for photo in PhotoSet %}
-                        <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                        <div id="MatlPhoto-{{ forloop.counter0 }}" class="carousel-item {% if forloop.first %}active{% endif %}">
                         <img src="{% static photo.url %}" class="d-block w-100" alt="...">
+                        {% comment %}
                         <div class="carousel-caption d-none d-md-block">
                             <h5>Number {{ forloop.counter0 }}</h5>
                             <p>{{ photo.url }}</p>
                         </div>
+                        {% endcomment %}
                         </div>
+                    {% empty %}
+                        <h3>No Photos for {{ frmMain.Material.value }}</h3>
                     {% endfor %}
                 </div>
                 <button class="carousel-control-prev" type="button" data-bs-target="#MatlPhotoCarousel" data-bs-slide="prev">
@@ -155,8 +160,18 @@ button:focus {
                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
                     <span class="visually-hidden">Next</span>
                 </button>
-                <div>DEL img &#x26AB; ADD img</div>
                 </div>
+                <div>   <!-- just below the PhotoSet -->
+                    {% if PhotoSet %}
+                    <button type="button" onclick="delCurrPhoto()">
+                        DEL img 
+                    </button>
+                    {% endif %}
+                    <button type="button" onclick="addPhoto()">
+                        ADD img
+                    </button>
+                </div>
+                <div id="CurrPhoto"></div>
             </div>
         </div>
         <hr>
@@ -388,259 +403,282 @@ button:focus {
 </div>
 
 <script>
-    var $forms = document.getElementById("FmMain").querySelectorAll(":scope input");
-    var initialState
-    var $gotoTextBox = document.getElementById("gotoID");
-    // record the ID and GPN of current record (it's used often!)
-    var thisMtlID = {{frmMain.instance.pk|default_if_none:0}}, thisMtlGPN = "{{frmMain.instance.Material}}"
-    var CloseItFlag = false
-    // set up MatlMap for verifying if an entered Material # is valid
-    var MatlMap = new Map([
-        {% for itm in gotoForm.choicelist %}
-        ['{{itm.Material_org}}', {{itm.id}}],
-        {% endfor %}
-        ]);
+var $forms = document.getElementById("FmMain").querySelectorAll(":scope input");
+var initialState
+var $gotoTextBox = document.getElementById("gotoID");
+// record the ID and GPN of current record (it's used often!)
+var thisMtlID = {{frmMain.instance.pk|default_if_none:0}}, thisMtlGPN = "{{frmMain.instance.Material}}"
+var CloseItFlag = false
+// set up MatlMap for verifying if an entered Material # is valid
+var MatlMap = new Map([
+    {% for itm in gotoForm.choicelist %}
+    ['{{itm.Material_org}}', {{itm.id}}],
+    {% endfor %}
+    ]);
 
+const MatlPhotoCarousel = document.getElementById("MatlPhotoCarousel");
+var currPhoto = {};
 
-    //------------------
+//------------------
 
-    document.addEventListener("DOMContentLoaded", function() {
-        const EvalExprID = 'EvalExpr';
+document.addEventListener("DOMContentLoaded", function() {
+    const EvalExprID = 'EvalExpr';
 
-        initialState = serialize($forms);
-        // fill in the Count evals
-        // I'll clean this up later, I promise!
-        for (let i=0; i < document.getElementById("id_countset-TOTAL_FORMS").value; i++) {
-            CQtyID = 'id_countset-' + i + '-CTD_QTY_Expr';  {# TODO: use template vars later #}
-            EvID = EvalExprID + i;  {# TODO: use template vars later #}
-            // showCountExpr(CQtyID, EvID);
-            sCE(i)
-            // fbody = Function("function dummyCE" + i + "() { showCountExpr(this.id, '" + EvID + "'); };");  {# TODO: figure out how to take advantage of this line - OR - if it's needed #}
-        };
-        CloseItFlag = false || {{ userReadOnly|lower }};
-        });
+    initialState = serialize($forms);
+    // fill in the Count evals
+    // I'll clean this up later, I promise!
+    for (let i=0; i < document.getElementById("id_countset-TOTAL_FORMS").value; i++) {
+        CQtyID = 'id_countset-' + i + '-CTD_QTY_Expr';  {# TODO: use template vars later #}
+        EvID = EvalExprID + i;  {# TODO: use template vars later #}
+        // showCountExpr(CQtyID, EvID);
+        sCE(i)
+        // fbody = Function("function dummyCE" + i + "() { showCountExpr(this.id, '" + EvID + "'); };");  {# TODO: figure out how to take advantage of this line - OR - if it's needed #}
+    };
+    CloseItFlag = false || {{ userReadOnly|lower }};
 
-    window.addEventListener("beforeunload",  function(event) {
-        if (CloseItFlag) {
-            document.getElementById("wait_spinner").style.display = "block";
-        } else {
-            if (isFormChanged()) {
-                event.preventDefault();
-                confirmLeave(YesCloseIt);
-            } else {
-                document.getElementById("wait_spinner").style.display = "block";
-            }
-        };
-        });
-
-
-    //---------------
-
-    function YesCloseIt() {
-        CloseItFlag = true; 
-        window.close(); 
+    // how do I get MatlPhotoCarousel initial state?
+    if ({{ PhotoSet|length }} > 0) {
+        currPhoto = {'num': 0, 'element': document.getElementById("MatlPhoto-0")};
+        document.getElementById("CurrPhoto").innerHTML = 
+            "CurrPhoto = " + currPhoto.num.toString() + "<br>" + currPhoto.element.querySelector("img").src;
     }
+});
 
-    //---------------
-
-    const fmMain = document.getElementById('FmMain');
-    
-    function setPOSTAction(event) {
-        newRec = "{% url 'MatlForm' %}";
-        fmMain.action = newRec;
-        CloseItFlag = true;
-        }
-
-    fmMain.addEventListener('submit', setPOSTAction);
-
-    //---------------
-
-    function loadMaterialRec() {
-        goID = $gotoTextBox
-        if (goID.value != null && goID.value != thisMtlGPN) {
-            newRec="{% url 'MatlFormRecNum' 0 %}"
-            newRec = newRec.replace("/0","/"+MatlMap.get(goID.value));
-            document.getElementById("wait_spinner").style.display = "block";
-            window.location = newRec;
-        } else {
-            goID.value = thisMtlGPN;
-        }
-    };
-
-    //---------------
-
-    //TODO: later, duplicate this for closeform (see document.body.onbeforeunload)
-    document.getElementById("close_btn").addEventListener("click", 
-        function(evobj){
-            confirmLeave(YesCloseIt);
-        });
-
-    //-------------------
-
-    function chgHistoryCutoffDate() {
-        HistDateInput = $("#HistoryCutoffDate")
-        newRec="{% url 'MatlFormChgHistCutoffDate' 0 'offdate' %}"
-        newRec = newRec.replace("/0","/"+thisMtlID);
-        newRec = newRec.replace("/offdate","/"+HistDateInput.val());
+window.addEventListener("beforeunload",  function(event) {
+    if (CloseItFlag) {
         document.getElementById("wait_spinner").style.display = "block";
-        window.location = newRec;
-    };
-
-    //-------------------
-
-    document.getElementById("SchedCount").addEventListener("click", function() {
-        dVal = (new Date())                         // today
-        dVal.setDate(dVal.getDate()+1)              // tomorrow
-        dVal = dVal.toISOString().substring(0,10)   // make it a string
-        
-        newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
-        newRec = newRec.replace("/passedMatlNum","/"+thisMtlID);
-        newRec = newRec.replace("/passedCountDate","/"+dVal);
-        window.open(newRec,'_blank')
-    });
-
-    document.getElementById("AddCount").addEventListener("click", function() {
-        dVal = (new Date())                         // today
-        dVal = dVal.toISOString().substring(0,10)   // make it a string
-        
-        newRec = "{% url 'CountEntryForm' 0 'passedCountDate' 'matl' %}"
-        newRec = newRec.replace("passedCountDate",dVal)
-        mNum = thisMtlID
-        newRec = newRec.replace("/matl","/"+mNum)
-        window.open(newRec,'_blank')
-    });
-
-    //---------------------------
-
-    document.getElementById("add_btn").addEventListener("click", addNewMatlRec)
-
-    function addNewMatlRec(event) {
-        newRec = "{% url 'NewMatlForm' %}"
-        document.getElementById("wait_spinner").style.display = "block";
-        window.location = newRec;
-    };
-
-    //-----------------
-
-    function isValid_Material() {
-        if ($gotoTextBox.value.trim()=="") {
-                return false;
-        } else {
-            return MatlMap.has($gotoTextBox.value);
-        }
-
-    }
-
-    //------------------
-
-    function processGoToReq() {
-        if (!isValid_Material()) {
-            if ($gotoTextBox.value != "") { 
-                $("#modalGeneric").dialog("option","title","Invalid Material");
-                document.getElementById("modalGeneric").innerHTML = $gotoTextBox.value + " is not a valid Material number"
-        
-                $("#modalGeneric").dialog("option","buttons", 
-                    { 
-                        "OK" : function() {
-                            $(this).dialog("close"); }
-                    } );
-                $("#modalGeneric").dialog("open");
-                }
-            $gotoTextBox.focus();
-            return;
-        } 
-        confirmLeave(loadMaterialRec);
-    };
-
-    function isFormChanged() {
-        currState = serialize($forms);
-        return !(initialState === currState);
-    };
-
-    function confirmLeave(LeaveProc){
+    } else {
         if (isFormChanged()) {
-            $("#modalGeneric").dialog("option","title","Leave Record?");
-            document.getElementById("modalGeneric").innerHTML = "This record has changed<br>Do you really want to leave without saving?"
+            event.preventDefault();
+            confirmLeave(YesCloseIt);
+        } else {
+            document.getElementById("wait_spinner").style.display = "block";
+        }
+    };
+    });
+
+
+//---------------
+
+function YesCloseIt() {
+    CloseItFlag = true; 
+    window.close(); 
+}
+
+//---------------
+
+const fmMain = document.getElementById('FmMain');
+
+function setPOSTAction(event) {
+    newRec = "{% url 'MatlForm' %}";
+    fmMain.action = newRec;
+    CloseItFlag = true;
+    }
+
+fmMain.addEventListener('submit', setPOSTAction);
+
+//---------------
+
+function loadMaterialRec() {
+    goID = $gotoTextBox
+    if (goID.value != null && goID.value != thisMtlGPN) {
+        newRec="{% url 'MatlFormRecNum' 0 %}"
+        newRec = newRec.replace("/0","/"+MatlMap.get(goID.value));
+        document.getElementById("wait_spinner").style.display = "block";
+        window.location = newRec;
+    } else {
+        goID.value = thisMtlGPN;
+    }
+};
+
+//---------------
+
+//TODO: later, duplicate this for closeform (see document.body.onbeforeunload)
+document.getElementById("close_btn").addEventListener("click", 
+    function(evobj){
+        confirmLeave(YesCloseIt);
+    });
+
+//-------------------
+
+function chgHistoryCutoffDate() {
+    HistDateInput = $("#HistoryCutoffDate")
+    newRec="{% url 'MatlFormChgHistCutoffDate' 0 'offdate' %}"
+    newRec = newRec.replace("/0","/"+thisMtlID);
+    newRec = newRec.replace("/offdate","/"+HistDateInput.val());
+    document.getElementById("wait_spinner").style.display = "block";
+    window.location = newRec;
+};
+
+//-------------------
+
+document.getElementById("SchedCount").addEventListener("click", function() {
+    dVal = (new Date())                         // today
+    dVal.setDate(dVal.getDate()+1)              // tomorrow
+    dVal = dVal.toISOString().substring(0,10)   // make it a string
+    
+    newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
+    newRec = newRec.replace("/passedMatlNum","/"+thisMtlID);
+    newRec = newRec.replace("/passedCountDate","/"+dVal);
+    window.open(newRec,'_blank')
+});
+
+document.getElementById("AddCount").addEventListener("click", function() {
+    dVal = (new Date())                         // today
+    dVal = dVal.toISOString().substring(0,10)   // make it a string
+    
+    newRec = "{% url 'CountEntryForm' 0 'passedCountDate' 'matl' %}"
+    newRec = newRec.replace("passedCountDate",dVal)
+    mNum = thisMtlID
+    newRec = newRec.replace("/matl","/"+mNum)
+    window.open(newRec,'_blank')
+});
+
+//---------------------------
+
+document.getElementById("add_btn").addEventListener("click", addNewMatlRec)
+
+function addNewMatlRec(event) {
+    newRec = "{% url 'NewMatlForm' %}"
+    document.getElementById("wait_spinner").style.display = "block";
+    window.location = newRec;
+};
+
+//-----------------
+
+function isValid_Material() {
+    if ($gotoTextBox.value.trim()=="") {
+            return false;
+    } else {
+        return MatlMap.has($gotoTextBox.value);
+    }
+
+}
+
+//------------------
+
+function processGoToReq() {
+    if (!isValid_Material()) {
+        if ($gotoTextBox.value != "") { 
+            $("#modalGeneric").dialog("option","title","Invalid Material");
+            document.getElementById("modalGeneric").innerHTML = $gotoTextBox.value + " is not a valid Material number"
     
             $("#modalGeneric").dialog("option","buttons", 
                 { 
-                    "Yes": function() { 
-                        LeaveProc();
-                        $(this).dialog("close"); },
-                    "No" : function() {
+                    "OK" : function() {
                         $(this).dialog("close"); }
                 } );
             $("#modalGeneric").dialog("open");
-        } else {
-            LeaveProc();
-        }
-    };
+            }
+        $gotoTextBox.focus();
+        return;
+    } 
+    confirmLeave(loadMaterialRec);
+};
 
-    function CopyCount(n) {
-        const newdateid = "newcopy-date";
-        const todayDate = new Date();   // I STILL hate date manipulation!! Can't we all just agree on a standard???
-        const todayStr = todayDate.toISOString().slice(0,10)
-        $("#modalGeneric").dialog("option","title","Copy to what Date?");
-        document.getElementById("modalGeneric").innerHTML = '<input type="date" name="'+newdateid+'" id="'+newdateid+'" value="'+todayStr+'"></input>'
+function isFormChanged() {
+    currState = serialize($forms);
+    return !(initialState === currState);
+};
+
+function confirmLeave(LeaveProc){
+    if (isFormChanged()) {
+        $("#modalGeneric").dialog("option","title","Leave Record?");
+        document.getElementById("modalGeneric").innerHTML = "This record has changed<br>Do you really want to leave without saving?"
 
         $("#modalGeneric").dialog("option","buttons", 
             { 
-                "OK" : function() {
-                    d = $("#"+newdateid).val();
-
-                    const formdata = new FormData(fmMain);
-                    idToCopy = "id_"+"{{countset.prefix}}-"+n+"-id";
-                    formdata.append('copyCountFromid', document.getElementById(idToCopy).value);
-                    formdata.append('copyCountToDate', d);
-
-                    // location.reload()
-                    const req = new XMLHttpRequest();
-                    req.addEventListener("loadend", (evnt) => {
-                        location.reload();
-                        });
-                    const thisurl="{% url 'MatlFormRecNum' frmMain.instance.pk %}";
-                    req.open("POST", thisurl);
-
-                    document.getElementById("wait_spinner").style.display = "block";
-                    req.send(formdata);
-
-                    $(this).dialog("close");
-                },
-                "Cancel" : function() {
-                    $(this).dialog("close"); 
-                }
+                "Yes": function() { 
+                    LeaveProc();
+                    $(this).dialog("close"); },
+                "No" : function() {
+                    $(this).dialog("close"); }
             } );
         $("#modalGeneric").dialog("open");
+    } else {
+        LeaveProc();
+    }
+};
 
-    };
+function CopyCount(n) {
+    const newdateid = "newcopy-date";
+    const todayDate = new Date();   // I STILL hate date manipulation!! Can't we all just agree on a standard???
+    const todayStr = todayDate.toISOString().slice(0,10)
+    $("#modalGeneric").dialog("option","title","Copy to what Date?");
+    document.getElementById("modalGeneric").innerHTML = '<input type="date" name="'+newdateid+'" id="'+newdateid+'" value="'+todayStr+'"></input>'
 
-    // handle Modal
-    $("#modalGeneric").dialog({
-        autoOpen: false,
-        closeOnEscape: false,
-        modal: true,
-        hide: "puff",
-        position: {
-            my: "top center", at: "top center"
-        }
-    });
-        
+    $("#modalGeneric").dialog("option","buttons", 
+        { 
+            "OK" : function() {
+                d = $("#"+newdateid).val();
+
+                const formdata = new FormData(fmMain);
+                idToCopy = "id_"+"{{countset.prefix}}-"+n+"-id";
+                formdata.append('copyCountFromid', document.getElementById(idToCopy).value);
+                formdata.append('copyCountToDate', d);
+
+                // location.reload()
+                const req = new XMLHttpRequest();
+                req.addEventListener("loadend", (evnt) => {
+                    location.reload();
+                    });
+                const thisurl="{% url 'MatlFormRecNum' frmMain.instance.pk %}";
+                req.open("POST", thisurl);
+
+                document.getElementById("wait_spinner").style.display = "block";
+                req.send(formdata);
+
+                $(this).dialog("close");
+            },
+            "Cancel" : function() {
+                $(this).dialog("close"); 
+            }
+        } );
+    $("#modalGeneric").dialog("open");
+
+};
+
+// handle Modal
+$("#modalGeneric").dialog({
+    autoOpen: false,
+    closeOnEscape: false,
+    modal: true,
+    hide: "puff",
+    position: {
+        my: "top center", at: "top center"
+    }
+});
     
-    function sCE(n){
-        const EvalExprID = 'EvalExpr';
-        const CTDQTY_Exp = 'id_countset-' + n + '-CTD_QTY_Expr';
 
-        if (document.getElementById("id_countset-" + n + "-LocationOnly").checked) {
-            document.getElementById(EvalExprID+n).innerHTML = "<b>LOC ONLY</b>";
-        } else {
-            showCountExpr(CTDQTY_Exp, EvalExprID+n);
-       }
-    };
+function sCE(n){
+    const EvalExprID = 'EvalExpr';
+    const CTDQTY_Exp = 'id_countset-' + n + '-CTD_QTY_Expr';
+
+    if (document.getElementById("id_countset-" + n + "-LocationOnly").checked) {
+        document.getElementById(EvalExprID+n).innerHTML = "<b>LOC ONLY</b>";
+    } else {
+        showCountExpr(CTDQTY_Exp, EvalExprID+n);
+    }
+};
 // move to common???
-    function showCountExpr(expr_fld, rslt) {
-        document.getElementById(rslt).innerHTML = "= " + EvalExpr(document.getElementById(expr_fld).value);
-    };
+function showCountExpr(expr_fld, rslt) {
+    document.getElementById(rslt).innerHTML = "= " + EvalExpr(document.getElementById(expr_fld).value);
+};
 
+//--------------------------------
+
+MatlPhotoCarousel.addEventListener('slid.bs.carousel', event => {
+    currPhoto = {'num': event.to, 'element': event.relatedTarget};
+    document.getElementById("CurrPhoto").innerHTML = 
+        "CurrPhoto = " + currPhoto.num.toString() + "<br>" + currPhoto.element.querySelector("img").src;
+});
+
+function delCurrPhoto() {
+    alert("When this works, photo " + currPhoto.element.querySelector("img").src + " will be deletred");
+};
+function addPhoto() {
+    alert("When this works, I'll ask you for a picture file to upload");
+};
 </script>
 {% endblock %}
 

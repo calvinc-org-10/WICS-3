@@ -254,11 +254,13 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
     # Material photos
     MatlPhotoLocation = f'MatlImg/'
     MatlPhotoURL = f'MatlImg/'
-    PhotoSet = [
-        {'name':'test1', 'path':f'{MatlPhotoLocation}test1.jpg', 'url':f'{MatlPhotoURL}test1.jpg'},
-        {'name':'test2', 'path':f'{MatlPhotoLocation}test2.gif', 'url':f'{MatlPhotoURL}test2.gif'},
-        {'name':'test3', 'path':f'{MatlPhotoLocation}test3.png', 'url':f'{MatlPhotoURL}test3.png'},
-    ]
+    # PhotoSet = [
+    #     {'name':'test1', 'path':f'{MatlPhotoLocation}test1.jpg', 'url':f'{MatlPhotoURL}test1.jpg'},
+    #     {'name':'test2', 'path':f'{MatlPhotoLocation}test2.gif', 'url':f'{MatlPhotoURL}test2.gif'},
+    #     {'name':'test3', 'path':f'{MatlPhotoLocation}test3.png', 'url':f'{MatlPhotoURL}test3.png'},
+    # ]
+    PhotoSet = []
+
 
     # display the form
     cntext = {

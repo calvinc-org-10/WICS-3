@@ -116,11 +116,12 @@ def fnMaterial_id(org_id:int,Material:str) -> str | None:
     except:
         return None
 
-# class MaterialPhotos(models.Model):
-#     Material = models.ForeignKey(MaterialList, on_delete=models.RESTRICT)
-#     Photo = models.ImageField(upload_to='MatlImg/',height_field='height',width_field='width')
-#     height = models.IntegerField()
-#     width = models.IntegerField()
+class MaterialPhotos(models.Model):
+    Material = models.ForeignKey(MaterialList, on_delete=models.RESTRICT)
+    Photo = models.ImageField(upload_to='MatlImg/',height_field='height',width_field='width')
+    height = models.IntegerField()
+    width = models.IntegerField()
+    Notes = models.CharField(max_length=250, null=True, blank=True, default='')
     
 class VIEW_materials(models.Model):
     id = models.PositiveIntegerField(primary_key=True)
