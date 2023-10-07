@@ -86,7 +86,7 @@ button:focus {
 
 <form id="dumdummyform"></form>
 
-<form id="FmMain" class="trackformchanges" method="post">
+<form id="FmMain" name="FmMain" class="trackformchanges" method="post" enctype="multipart/form-data">
     {% csrf_token %}
     <!-- form header -->
     {% if frmMain.non_form_errors %}{{ frmMain.non_form_errors }}{% endif %}
@@ -130,7 +130,6 @@ button:focus {
             </div>
             <div class="col-2" style="border-left: solid;">
                 {# Photos will go here #}
-
                 <div id="MatlPhotoCarousel" class="carousel slide" data-bs-ride="false">
                 <div class="carousel-indicators">
                     {% for photo in PhotoSet %}
@@ -140,8 +139,10 @@ button:focus {
                 <div class="carousel-inner">
                     {% for photo in PhotoSet %}
                         <div id="MatlPhoto-{{ forloop.counter0 }}" class="carousel-item {% if forloop.first %}active{% endif %}">
-                        <img src="{% static photo.url %}" class="d-block w-100" alt="...">
+                        <img src="{{ photo.Photo.url }}" class="d-block w-100" alt="...">
+                        <input type="hidden" class="photo-id" name="Photo{{ forloop.counter0 }}-id" value="{{ photo.Photo.pk }}"></input>
                         {% comment %}
+                        Leave this around in case there's a need to implement Notes, already in the model
                         <div class="carousel-caption d-none d-md-block">
                             <h5>Number {{ forloop.counter0 }}</h5>
                             <p>{{ photo.url }}</p>
@@ -171,7 +172,7 @@ button:focus {
                         ADD img
                     </button>
                 </div>
-                <div id="CurrPhoto"></div>
+                <input type="hidden" id="PhotoOp" name="PhotoOp" value=""></input>
             </div>
         </div>
         <hr>
@@ -399,7 +400,12 @@ button:focus {
     </div>
 </form>
 
-<div id="modalGeneric" class="modal" >
+<div id="modalGeneric" class="modal">
+</div>
+
+<div id="modalGetPhoto" class="modal">
+    Select the photo to upload (just one file at a time now - later I'll implement multichoice)
+    <input type="file" accept="image/*" form="FmMain" name="newPhoto"></input>
 </div>
 
 <script>
@@ -421,6 +427,11 @@ var currPhoto = {};
 
 //------------------
 
+function start_wait_spinner() { document.getElementById("wait_spinner").style.display = "block"; };
+function stop_wait_spinner() { document.getElementById("wait_spinner").style.display = "none"; };
+
+//------------------
+
 document.addEventListener("DOMContentLoaded", function() {
     const EvalExprID = 'EvalExpr';
 
@@ -439,20 +450,18 @@ document.addEventListener("DOMContentLoaded", function() {
     // how do I get MatlPhotoCarousel initial state?
     if ({{ PhotoSet|length }} > 0) {
         currPhoto = {'num': 0, 'element': document.getElementById("MatlPhoto-0")};
-        document.getElementById("CurrPhoto").innerHTML = 
-            "CurrPhoto = " + currPhoto.num.toString() + "<br>" + currPhoto.element.querySelector("img").src;
     }
 });
 
 window.addEventListener("beforeunload",  function(event) {
     if (CloseItFlag) {
-        document.getElementById("wait_spinner").style.display = "block";
+        start_wait_spinner();
     } else {
         if (isFormChanged()) {
             event.preventDefault();
             confirmLeave(YesCloseIt);
         } else {
-            document.getElementById("wait_spinner").style.display = "block";
+            start_wait_spinner();
         }
     };
     });
@@ -484,7 +493,7 @@ function loadMaterialRec() {
     if (goID.value != null && goID.value != thisMtlGPN) {
         newRec="{% url 'MatlFormRecNum' 0 %}"
         newRec = newRec.replace("/0","/"+MatlMap.get(goID.value));
-        document.getElementById("wait_spinner").style.display = "block";
+        start_wait_spinner();
         window.location = newRec;
     } else {
         goID.value = thisMtlGPN;
@@ -506,7 +515,7 @@ function chgHistoryCutoffDate() {
     newRec="{% url 'MatlFormChgHistCutoffDate' 0 'offdate' %}"
     newRec = newRec.replace("/0","/"+thisMtlID);
     newRec = newRec.replace("/offdate","/"+HistDateInput.val());
-    document.getElementById("wait_spinner").style.display = "block";
+    start_wait_spinner();
     window.location = newRec;
 };
 
@@ -540,7 +549,7 @@ document.getElementById("add_btn").addEventListener("click", addNewMatlRec)
 
 function addNewMatlRec(event) {
     newRec = "{% url 'NewMatlForm' %}"
-    document.getElementById("wait_spinner").style.display = "block";
+    start_wait_spinner();
     window.location = newRec;
 };
 
@@ -600,6 +609,8 @@ function confirmLeave(LeaveProc){
     }
 };
 
+//------------------
+
 function CopyCount(n) {
     const newdateid = "newcopy-date";
     const todayDate = new Date();   // I STILL hate date manipulation!! Can't we all just agree on a standard???
@@ -625,7 +636,7 @@ function CopyCount(n) {
                 const thisurl="{% url 'MatlFormRecNum' frmMain.instance.pk %}";
                 req.open("POST", thisurl);
 
-                document.getElementById("wait_spinner").style.display = "block";
+                start_wait_spinner();
                 req.send(formdata);
 
                 $(this).dialog("close");
@@ -638,6 +649,8 @@ function CopyCount(n) {
 
 };
 
+//------------------
+
 // handle Modal
 $("#modalGeneric").dialog({
     autoOpen: false,
@@ -649,6 +662,8 @@ $("#modalGeneric").dialog({
     }
 });
     
+
+//------------------
 
 function sCE(n){
     const EvalExprID = 'EvalExpr';
@@ -669,16 +684,48 @@ function showCountExpr(expr_fld, rslt) {
 
 MatlPhotoCarousel.addEventListener('slid.bs.carousel', event => {
     currPhoto = {'num': event.to, 'element': event.relatedTarget};
-    document.getElementById("CurrPhoto").innerHTML = 
-        "CurrPhoto = " + currPhoto.num.toString() + "<br>" + currPhoto.element.querySelector("img").src;
+    });
+
+$("#modalGetPhoto").dialog({
+    autoOpen: false,
+    closeOnEscape: true,
+    modal: true,
+    hide: "puff",
+    position: {
+        my: "top center", at: "top center"
+    }
 });
 
 function delCurrPhoto() {
     alert("When this works, photo " + currPhoto.element.querySelector("img").src + " will be deletred");
+    /*
+    document.getElementById("CurrPhoto").innerHTML = 
+        currPhoto.num.toString() + " / " + currPhoto.element.querySelector(".photo-id").value + ": " + currPhoto.element.querySelector("img").src;
+    */
+    // set PhotoOp
+    // submit form
 };
 function addPhoto() {
-    alert("When this works, I'll ask you for a picture file to upload");
+    // alert("When this works, I'll ask you for a picture file to upload");
+    $("#modalGetPhoto").dialog("option","buttons", 
+        { 
+            "OK" : function() {
+                // set PhotoOp
+                document.getElementById("PhotoOp").value = "ADD"
+
+                // submit form (which will u/l and attach Photo)
+                start_wait_spinner();
+                document.forms['FmMain'].requestSubmit();
+
+                $(this).dialog("close");
+            },
+            "Cancel" : function() {
+                $(this).dialog("close"); 
+            }
+        } );
+    $("#modalGetPhoto").dialog("open");
 };
+
 </script>
 {% endblock %}
 

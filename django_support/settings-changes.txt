@@ -1,4 +1,2 @@
-set MEDIA_ROOT, MEDIA_URL   ???
+set MEDIA_ROOT, MEDIA_URL   ??? cannot be3 same as STATIC
 If you want to use {{ MEDIA_URL }} in your templates, add 'django.template.context_processors.media' in the 'context_processors' option of TEMPLATES.
-
-plan B: use static dir
