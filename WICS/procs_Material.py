@@ -19,7 +19,7 @@ from cMenu.utils import modelobj_to_dict, calvindate, ExcelWorkbook_fileext, Exc
 from mathematical_expressions_parser.eval import evaluate
 from WICS.globals import _defaultOrg
 from WICS.forms import MaterialForm, MaterialCountSummary, PartTypesForm
-from WICS.models import MaterialList, VIEW_materials, WhsePartTypes
+from WICS.models import MaterialList, MaterialPhotos, VIEW_materials, WhsePartTypes
 from WICS.models import CountSchedule, ActualCounts, FoundAt
 from WICS.models import SAP_SOHRecs, UnitsOfMeasure #, VIEW_SAP
 from WICS.procs_SAP import fnSAPList
@@ -137,6 +137,18 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
         # changed data is being submitted.  process and save it
         # process mtlFm AND subforms.
 
+        # is a Photo being attached?
+        if req.POST['PhotoOp'] == "ADD":
+            MaterialPhotos(
+                Material = currRec,
+                Photo = req.FILES["newPhoto"],
+            ).save()
+
+        # is a photo being removed?
+        if req.POST['PhotoOp'][:3] == "DEL":
+            photoID = req.POST['PhotoOp'][4:]
+            MaterialPhotos.objects.filter(pk=photoID).delete()
+
         # process forms
         mtlFm = FormMain(req.POST, instance=currRec,  prefix=prefixvals['main'])
         mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.all().order_by('WhsePartType')
@@ -251,9 +263,13 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
     subFm_class = formset_factory(MaterialCountSummary,extra=0)
     summarySet = subFm_class(initial=initdata, prefix='summaryset')
 
+    # Material photos
+    PhotoSet = MaterialPhotos.objects.filter(Material=currRec)
+
     # display the form
     cntext = {
             'frmMain': mtlFm,
+            'PhotoSet': PhotoSet, 
             'userReadOnly': req.user.has_perm('WICS.Material_onlyview') and not req.user.has_perm('WICS.SuperUser'),
             'lastFoundAt': VIEW_materials.objects.filter(pk=currRec.pk).values('LastCountDate','LastFoundAt')[0],
             'FoundAt': FoundAt(currRec),
