@@ -145,8 +145,9 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
             ).save()
 
         # is a photo being removed?
-        if req.POST['PhotoOp'] == "DEL":
-            pass
+        if req.POST['PhotoOp'][:3] == "DEL":
+            photoID = req.POST['PhotoOp'][4:]
+            MaterialPhotos.objects.filter(pk=photoID).delete()
 
         # process forms
         mtlFm = FormMain(req.POST, instance=currRec,  prefix=prefixvals['main'])

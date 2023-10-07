@@ -140,7 +140,7 @@ button:focus {
                     {% for photo in PhotoSet %}
                         <div id="MatlPhoto-{{ forloop.counter0 }}" class="carousel-item {% if forloop.first %}active{% endif %}">
                         <img src="{{ photo.Photo.url }}" class="d-block w-100" alt="...">
-                        <input type="hidden" class="photo-id" name="Photo{{ forloop.counter0 }}-id" value="{{ photo.Photo.pk }}"></input>
+                        <input type="hidden" class="photo-id" name="Photo{{ forloop.counter0 }}-id" value="{{ photo.pk }}"></input>
                         {% comment %}
                         Leave this around in case there's a need to implement Notes, already in the model
                         <div class="carousel-caption d-none d-md-block">
@@ -697,16 +697,32 @@ $("#modalGetPhoto").dialog({
 });
 
 function delCurrPhoto() {
-    alert("When this works, photo " + currPhoto.element.querySelector("img").src + " will be deletred");
-    /*
-    document.getElementById("CurrPhoto").innerHTML = 
-        currPhoto.num.toString() + " / " + currPhoto.element.querySelector(".photo-id").value + ": " + currPhoto.element.querySelector("img").src;
-    */
-    // set PhotoOp
-    // submit form
+    photoID = currPhoto.element.querySelector(".photo-id").value;
+    photosrc = currPhoto.element.querySelector("img").src;
+
+    $("#modalGeneric").dialog("option","title","Delete Photo?");
+    document.getElementById("modalGeneric").innerHTML = "Are you <b>sure</b> you want to delete Photo " + photosrc + " ?"
+
+    $("#modalGeneric").dialog("option","buttons", 
+        { 
+            "No" : function() {
+                $(this).dialog("close"); 
+            },
+            "Yes" : function() {
+                // set PhotoOp
+                document.getElementById("PhotoOp").value = "DEL/"+photoID
+
+                // submit form (which will submit PhotoOp)
+                start_wait_spinner();
+                document.forms['FmMain'].requestSubmit();
+
+                // $(this).dialog("close"); - don't close; the reload will clear the dialog, and seeing it reassures the user the delete is happening
+            },
+        } );
+    $("#modalGeneric").dialog("open");
 };
 function addPhoto() {
-    // alert("When this works, I'll ask you for a picture file to upload");
+    $("#modalGetPhoto").dialog("option","title","Add Photo for "+document.getElementById("{{frmMain.Material.id_for_label}}").value);
     $("#modalGetPhoto").dialog("option","buttons", 
         { 
             "OK" : function() {
@@ -717,7 +733,7 @@ function addPhoto() {
                 start_wait_spinner();
                 document.forms['FmMain'].requestSubmit();
 
-                $(this).dialog("close");
+                // $(this).dialog("close"); - don't close; the reload will clear the dialog, and seeing it reassures the user the add is happening
             },
             "Cancel" : function() {
                 $(this).dialog("close"); 
