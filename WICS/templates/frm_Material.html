@@ -9,9 +9,9 @@
 button:focus {
     border-color:#9ecaed;   <!-- convert to rgba -->
     box-shadow: 0 0 5px rgba(0, 0, 255, 1);
-    -webkit-box-shadow: 0 0 5px rgba(0, 0, 255, 1); 
+    -webkit-box-shadow: 0 0 5px rgba(0, 0, 255, 1);
     -moz-box-shadow: 0 0 5px rgba(0, 0, 255, 1);
-    border:1px solid rgba(0,0,255, 0.8); 
+    border:1px solid rgba(0,0,255, 0.8);
 }
 </style>
 {% endblock %}
@@ -103,7 +103,7 @@ button:focus {
                 <div class="row">
                     <div class="col-7">
                         {{ frmMain.instance.org }}
-                        Material: {% render_field frmMain.Material size="15" %} 
+                        Material: {% render_field frmMain.Material size="15" %}
                         Description: {% render_field frmMain.Description size="40" %}
                         <input type="hidden" name="OrigMaterial" value="{{ frmMain.Material.value }}"></input>
                         <input type="hidden" name="MatlPK" value="{{ frmMain.instance.pk }}"></input>
@@ -126,6 +126,35 @@ button:focus {
                 <div class="col">
                     Notes: {% render_field frmMain.Notes size="80" %}
                 </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-8 text-start">
+                        SAP Date: {{ SAPSet.SAPDate }}
+                        {% if SAPSet.SAPTable %}
+                            {% for s in SAPSet.SAPTable %}({{ s.MaterialPartNum }}, {{ s.StorageLocation }}, {{ s.Amount }}, {{s.BaseUnitofMeasure}}){% endfor %}
+                        {% else %}
+                            <b> No SAP Quantity</b>
+                        {% endif %}
+                        <br>
+                        Last Found At {{ lastFoundAt.LastFoundAt }} on {{ lastFoundAt.LastCountDate }}
+                    </div>
+                    <div class="col-2">
+                        <button id="SchedCount" type="button" {% if userReadOnly %}disabled{%endif%}>Schedule Count</button>
+                    </div>
+                    {% comment %}
+                    NOTE: if this goes back, it needs to be moved outside the form, else it makes the form dirty for exit
+                    <div class="col text-end">
+                    HistoryCutoffDate
+                    <input type="date"
+                        name="HistoryCutoffDate"
+                        id="HistoryCutoffDate"
+                        form="dumdummyform"
+                        value="{{HistoryCutoffDate|date:"Y-m-d"}}"
+                        onchange="chgHistoryCutoffDate();"
+                        >
+                    </div>
+                    {% endcomment %}
                 </div>
             </div>
             <div class="col-2" style="border-left: solid;">
@@ -165,7 +194,7 @@ button:focus {
                 <div>   <!-- just below the PhotoSet -->
                     {% if PhotoSet %}
                     <button type="button" onclick="delCurrPhoto()">
-                        DEL img 
+                        DEL img
                     </button>
                     {% endif %}
                     <button type="button" onclick="addPhoto()">
@@ -173,37 +202,6 @@ button:focus {
                     </button>
                 </div>
                 <input type="hidden" id="PhotoOp" name="PhotoOp" value=""></input>
-            </div>
-        </div>
-        <hr>
-        <div class="container">
-            <div class="row">
-                <div class="col-8 text-start">
-                    SAP Date: {{ SAPSet.SAPDate }}
-                    {% if SAPSet.SAPTable %}
-                        {% for s in SAPSet.SAPTable %}({{ s.MaterialPartNum }}, {{ s.StorageLocation }}, {{ s.Amount }}, {{s.BaseUnitofMeasure}}){% endfor %}
-                    {% else %}
-                        <b> No SAP Quantity</b>
-                    {% endif %}
-                    <br>
-                    Last Found At {{ lastFoundAt.LastFoundAt }} on {{ lastFoundAt.LastCountDate }}
-                </div>
-                <div class="col-2">
-                    <button id="SchedCount" type="button" {% if userReadOnly %}disabled{%endif%}>Schedule Count</button>
-                </div>
-                {% comment %}
-                NOTE: if this goes back, it needs to be moved outside the form, else it makes the form dirty for exit
-                <div class="col text-end">
-                HistoryCutoffDate 
-                <input type="date" 
-                    name="HistoryCutoffDate" 
-                    id="HistoryCutoffDate" 
-                    form="dumdummyform"
-                    value="{{HistoryCutoffDate|date:"Y-m-d"}}"
-                    onchange="chgHistoryCutoffDate();"
-                    >
-                </div>
-                {% endcomment %}
             </div>
         </div>
     </div>
@@ -260,24 +258,24 @@ button:focus {
                         <div class="col-4 text-start">
                             {% with sCE_parm=forloop.counter0  %}
                             {# django AND widget_tweaks both screw up the dynamic onchange building, so I'm doing it myself! #}
-                            <input type="checkbox" 
+                            <input type="checkbox"
                                     id="{{ ff.LocationOnly.id_for_label }}"
                                     name="{{ff.prefix}}-{{ff.LocationOnly.name}}"
-                                    onchange="sCE({{ sCE_parm }});" 
+                                    onchange="sCE({{ sCE_parm }});"
                                     {% if ff.LocationOnly.value %} checked{% endif %}
-                                    > 
+                                    >
                             <input type="text"
                                     id="{{ ff.CTD_QTY_Expr.id_for_label }}"
                                     name="{{ff.prefix}}-{{ff.CTD_QTY_Expr.name}}"
                                     {% if ff.CTD_QTY_Expr.value != None %} value="{{ ff.CTD_QTY_Expr.value|stringformat:'s' }}"{% endif %}
-                                    maxlength="500" size="35" 
+                                    maxlength="500" size="35"
                                     onchange="sCE({{ sCE_parm }});">
                             <span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
                             {% endwith %}
                         </div>
                         <div class="col-2">
                             {% render_field ff.LOCATION size="8" %}
-                            {{ ff.FLAG_PossiblyNotRecieved }} 
+                            {{ ff.FLAG_PossiblyNotRecieved }}
                             {{ ff.FLAG_MovementDuringCount }}
                         </div>
                         <div class="col-2">{% render_field ff.Notes size="30" %}</div>
@@ -364,7 +362,7 @@ button:focus {
                     <ul>
                     {% for ff in FoundAt %}
                         <li>
-                        {{ ff.CountDate }}: 
+                        {{ ff.CountDate }}:
                         {{ ff.FoundAt }}
                         </li>
                     {% endfor %}
@@ -388,7 +386,7 @@ button:focus {
                 <button id="add_btn" type="button" {% if userReadOnly %}disabled{%endif%}>
                     <img src="{% static 'addition-color-outline-icon.svg' %}" width="20" height="20"></img>
                     Add New Material
-                </button>   
+                </button>
             </div>
             <div class="col">
                 <button id="close_btn" type="button">
@@ -470,8 +468,8 @@ window.addEventListener("beforeunload",  function(event) {
 //---------------
 
 function YesCloseIt() {
-    CloseItFlag = true; 
-    window.close(); 
+    CloseItFlag = true;
+    window.close();
 }
 
 //---------------
@@ -503,7 +501,7 @@ function loadMaterialRec() {
 //---------------
 
 //TODO: later, duplicate this for closeform (see document.body.onbeforeunload)
-document.getElementById("close_btn").addEventListener("click", 
+document.getElementById("close_btn").addEventListener("click",
     function(evobj){
         confirmLeave(YesCloseIt);
     });
@@ -525,7 +523,7 @@ document.getElementById("SchedCount").addEventListener("click", function() {
     dVal = (new Date())                         // today
     dVal.setDate(dVal.getDate()+1)              // tomorrow
     dVal = dVal.toISOString().substring(0,10)   // make it a string
-    
+
     newRec = "{% url 'CountScheduleForm' 0 'passedCountDate' 'passedMatlNum' %}"
     newRec = newRec.replace("/passedMatlNum","/"+thisMtlID);
     newRec = newRec.replace("/passedCountDate","/"+dVal);
@@ -535,7 +533,7 @@ document.getElementById("SchedCount").addEventListener("click", function() {
 document.getElementById("AddCount").addEventListener("click", function() {
     dVal = (new Date())                         // today
     dVal = dVal.toISOString().substring(0,10)   // make it a string
-    
+
     newRec = "{% url 'CountEntryForm' 0 'passedCountDate' 'matl' %}"
     newRec = newRec.replace("passedCountDate",dVal)
     mNum = thisMtlID
@@ -568,12 +566,12 @@ function isValid_Material() {
 
 function processGoToReq() {
     if (!isValid_Material()) {
-        if ($gotoTextBox.value != "") { 
+        if ($gotoTextBox.value != "") {
             $("#modalGeneric").dialog("option","title","Invalid Material");
             document.getElementById("modalGeneric").innerHTML = $gotoTextBox.value + " is not a valid Material number"
-    
-            $("#modalGeneric").dialog("option","buttons", 
-                { 
+
+            $("#modalGeneric").dialog("option","buttons",
+                {
                     "OK" : function() {
                         $(this).dialog("close"); }
                 } );
@@ -581,7 +579,7 @@ function processGoToReq() {
             }
         $gotoTextBox.focus();
         return;
-    } 
+    }
     confirmLeave(loadMaterialRec);
 };
 
@@ -595,9 +593,9 @@ function confirmLeave(LeaveProc){
         $("#modalGeneric").dialog("option","title","Leave Record?");
         document.getElementById("modalGeneric").innerHTML = "This record has changed<br>Do you really want to leave without saving?"
 
-        $("#modalGeneric").dialog("option","buttons", 
-            { 
-                "Yes": function() { 
+        $("#modalGeneric").dialog("option","buttons",
+            {
+                "Yes": function() {
                     LeaveProc();
                     $(this).dialog("close"); },
                 "No" : function() {
@@ -618,8 +616,8 @@ function CopyCount(n) {
     $("#modalGeneric").dialog("option","title","Copy to what Date?");
     document.getElementById("modalGeneric").innerHTML = '<input type="date" name="'+newdateid+'" id="'+newdateid+'" value="'+todayStr+'"></input>'
 
-    $("#modalGeneric").dialog("option","buttons", 
-        { 
+    $("#modalGeneric").dialog("option","buttons",
+        {
             "OK" : function() {
                 d = $("#"+newdateid).val();
 
@@ -642,7 +640,7 @@ function CopyCount(n) {
                 $(this).dialog("close");
             },
             "Cancel" : function() {
-                $(this).dialog("close"); 
+                $(this).dialog("close");
             }
         } );
     $("#modalGeneric").dialog("open");
@@ -661,7 +659,7 @@ $("#modalGeneric").dialog({
         my: "top center", at: "top center"
     }
 });
-    
+
 
 //------------------
 
@@ -703,10 +701,10 @@ function delCurrPhoto() {
     $("#modalGeneric").dialog("option","title","Delete Photo?");
     document.getElementById("modalGeneric").innerHTML = "Are you <b>sure</b> you want to delete Photo " + photosrc + " ?"
 
-    $("#modalGeneric").dialog("option","buttons", 
-        { 
+    $("#modalGeneric").dialog("option","buttons",
+        {
             "No" : function() {
-                $(this).dialog("close"); 
+                $(this).dialog("close");
             },
             "Yes" : function() {
                 // set PhotoOp
@@ -723,8 +721,8 @@ function delCurrPhoto() {
 };
 function addPhoto() {
     $("#modalGetPhoto").dialog("option","title","Add Photo for "+document.getElementById("{{frmMain.Material.id_for_label}}").value);
-    $("#modalGetPhoto").dialog("option","buttons", 
-        { 
+    $("#modalGetPhoto").dialog("option","buttons",
+        {
             "OK" : function() {
                 // set PhotoOp
                 document.getElementById("PhotoOp").value = "ADD"
@@ -736,7 +734,7 @@ function addPhoto() {
                 // $(this).dialog("close"); - don't close; the reload will clear the dialog, and seeing it reassures the user the add is happening
             },
             "Cancel" : function() {
-                $(this).dialog("close"); 
+                $(this).dialog("close");
             }
         } );
     $("#modalGetPhoto").dialog("open");
@@ -744,4 +742,3 @@ function addPhoto() {
 
 </script>
 {% endblock %}
-
