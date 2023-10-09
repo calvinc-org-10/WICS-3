@@ -74,7 +74,46 @@
                 contentType: false, 
                 success: function(data) {}
                 });
+
+            // announce the results
+            speak("Your Count Entries are Uploaded."
+                + "  {{ ResultStats.nRowsRead }} spreadsheet rows were read."
+                + "  {{ ResultStats.nRowsNoMaterial }} rows were skipped."
+                + "  There were {{ ResultStats.nRowsErrors }} rows with errors."
+                + "  {{ ResultStats.nRowsAdded }} Count Entry records were successfully uploaded."
+            );
         });    
+
+        // let there be voice!!
+        const synth = window.speechSynthesis;
+        const pitch = 1, rate = 1.3;
+
+        function speak(textToSpeak) {
+              if (textToSpeak !== "") {
+                const utterThis = new SpeechSynthesisUtterance(textToSpeak);
+
+                utterThis.onerror = function (event) {
+                  console.error("SpeechSynthesisUtterance.onerror");
+                };
+            
+                /* work in preferred voice later ...
+                const selectedOption =
+                  voiceSelect.selectedOptions[0].getAttribute("data-name");
+            
+                for (let i = 0; i < voices.length; i++) {
+                  if (voices[i].name === selectedOption) {
+                    utterThis.voice = voices[i];
+                    break;
+                  }
+                }
+                */
+                utterThis.pitch = pitch;
+                utterThis.rate = rate;
+                synth.speak(utterThis);
+              }
+        }
+
+
     </script>
 
 {% endblock %}

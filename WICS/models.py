@@ -85,7 +85,7 @@ class MaterialList(models.Model):
         if MaterialList.objects.filter(Material=self.Material).exclude(org=self.org).exists():
             # there is a Material with this number in another org; specify this org
             # return str(self.Material) + ' (' + str(self.org) + ')'
-            return f'{self.Material}  ({self.org})'
+            return f'{self.Material} ({self.org})'
         else:
             return f'{self.Material}'
 class tmpMaterialListUpdate(models.Model):
