@@ -267,6 +267,8 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
     PhotoSet = MaterialPhotos.objects.filter(Material=currRec)
 
     # display the form
+    if req.user.has_perm('WICS.Material_onlyview') and not req.user.has_perm('WICS.SuperUser'): templt = 'frm_Material_RO.html'
+    else: templt = 'frm_Material.html'
     cntext = {
             'frmMain': mtlFm,
             'PhotoSet': PhotoSet, 
@@ -281,7 +283,6 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
             'changes_saved': changes_saved,
             'changed_data': chgd_dat,
             }
-    templt = 'frm_Material.html'
     return render(req, templt, cntext)
 
 
