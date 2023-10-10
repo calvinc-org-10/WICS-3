@@ -1,13 +1,14 @@
 _base_ver_major=3
 _base_ver_minor=3
-_base_ver_patch=0
-_ver_date='2023-10-07'
+_base_ver_patch=1
+_ver_date='2023-10-09'
 _base_ver = str(_base_ver_major) +'.'+ str(_base_ver_minor) +'.'+ str(_base_ver_patch)
 sysver = {
     'DEV': 'DEV'+_base_ver, 
     'PROD':_base_ver,
     } 
 
+# 3.3.1 - 2023-10-09 Voice announcement of lengthy process completions
 # 3.3.0 - 2023-10-07 Attach Photos (1-many) to Material
 # 3.2.9 - 2023-10-02 Show id's on Requested Count Listing.  Fixed editing.
 # 3.2.8 - 2023-09-30 RunSQL - make textarea autofocus; print barcodes on Count Worksheet Material summary; Matl Form: don't include LocOnly records in summary counts

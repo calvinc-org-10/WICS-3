@@ -17,7 +17,7 @@
 
     <h4>
         {{ nRowsRead }} spreadsheet rows read <br>
-        {{ nRowsAdded }} Count Entry records successfully uploaded
+        {{ nRowsAdded }} Count Schedule records successfully uploaded
     </h4>
 
     <br>
@@ -49,5 +49,16 @@
             </div>
         </div>
     </div>
-    
+
+<script>
+
+    $( document ).ready(function() {
+        // announce the results
+        speak("Your Count Schedule Spreadsheet is Processed."
+            + "  {{ nRowsRead }} spreadsheet rows were read."
+            + "  Of those, {{ nRowsAdded }} Count Schedule records were successfully added."
+        );
+    });
+
+</script>
 {% endblock %}

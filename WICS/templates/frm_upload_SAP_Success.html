@@ -55,6 +55,13 @@
                 contentType: false, 
                 success: function(data) {}
                 });
+
+            // announce the results
+            speak("Your S.A.P. MB52 Spreadsheet is Uploaded."
+                + "  {{ nRowsRead }} rows were read."
+                + "  There were {{ UplProblems|length }} rows with problems."
+                + "  {{ nRows }} rows were added to the S.A.P. table with date {{ uploaded_at }}."
+            );
         });    
     </script>
 

@@ -97,7 +97,14 @@ Material Removed:
             contentType: false, 
             success: function(data) {}
             });
-    });
+
+        // announce the results
+        speak("The Material List is Updated from your spreadsheet."
+            + "  There were {{ ImpErrList|length }} rows with errors." 
+            + "  {{ AddedMatls|length }} Material records were added." 
+            + "  {{ RemvdMatls|length }} Material records were removed." 
+        );
+    });    
 
     /****
      document.body.onbeforeunload = function() {
