@@ -52,58 +52,59 @@
                     <h1><u> {{ RptSection.org.orgname }} </u></h1>
                 </div>    <!-- org header -->
         {% endifchanged %}
-        <hr>
-        <h3><u>{{ RptSection.Title }}</u></h3>
-        {% for ent in RptSection.outputrows %}
-            {% ifchanged ent.Material_id %}
-                <div style="break-inside: avoid;">   <!-- avoid page breaks for a single Material sheet -->
-                    <div class="CtSummDetail">
-                    <div class="row g-0 calvin-smalltext">
-                        <div class="col-1">Count Date</div>
-                        <div class="col-1">Cyc Ct ID</div>
-                        <div class="col-2">Material</div>
-                        <div class="col-3">Counter</div>
-                        <div class="col-2">LOCATION</div>
-                        <div class="col-1">PKG ID / Desc</div>
-                        <div class="col-1">TAG QTY</div>
-                    </div>
-            {% endifchanged %}
-                {% if ent.type == 'Detail' %}
+        {% if RptSection.outputrows|length > 0 %}
+            <hr>
+            <h3><u>{{ RptSection.Title }}</u></h3>
+            {% for entry in RptSection.outputrows %}
+                {% ifchanged entry.Material_id %}
+                    <div style="break-inside: avoid;">   <!-- avoid page breaks for a single Material sheet -->
+                        <div class="CtSummDetail">
+                        <div class="row g-0 calvin-smalltext">
+                            <div class="col-1">Count Date</div>
+                            <div class="col-1">Cyc Ct ID</div>
+                            <div class="col-2">Material</div>
+                            <div class="col-3">Counter</div>
+                            <div class="col-2">LOCATION</div>
+                            <div class="col-1">PKG ID / Desc</div>
+                            <div class="col-1">TAG QTY</div>
+                        </div>
+                {% endifchanged %}
+                {% if entry.type == 'Detail' %}
                     <div class="row g-0 calvin-smalltext">
                         <div class="col-1">{{ CountDate|date:"m/d" }}</div>
-                        <div class="col-1">{{ ent.CycCtID|default:"" }}</div>
-                        <div class="col-2">{{ ent.Material }}</div>
-                        <div class="col-3">{{ ent.ActCounter }}</div>
-                        <div class="col-2">{{ ent.LOCATION }}</div>
-                        <div class="col-1">{{ ent.PKGID|default:"" }}</div>
-                        <div class="col-1">{{ ent.TAGQTY|default:"" }}</div>
+                        <div class="col-1">{{ entry.CycCtID|default:"" }}</div>
+                        <div class="col-2">{{ entry.Material }}</div>
+                        <div class="col-3">{{ entry.ActCounter }}</div>
+                        <div class="col-2">{{ entry.LOCATION }}</div>
+                        <div class="col-1">{{ entry.PKGID|default:"" }}</div>
+                        <div class="col-1">{{ entry.TAGQTY|default:"" }}</div>
                     </div>
                     <div class="row g-0 small">
                         <div class="col-11 small text-end">
-                            {% if ent.ActCountNotes %}
-                                <b>Count Notes: </b>{{ ent.ActCountNotes|default:"" }}
+                            {% if entry.ActCountNotes %}
+                                <b>Count Notes: </b>{{ entry.ActCountNotes|default:"" }}
                             {% endif %}
-                            <b>Actual Count: </b> {{ ent.CTD_QTY_Expr }}
+                            <b>Actual Count: </b> {{ entry.CTD_QTY_Expr }}
                         </div>
-                        <div class="col-1">= <span class="text-end">{{ ent.CTD_QTY_Eval }}</span></div>
+                        <div class="col-1">= <span class="text-end">{{ entry.CTD_QTY_Eval }}</span></div>
                     </div>
-                    {% if ent.PossNotRec or ent.MovDurCt %}
+                    {% if entry.PossNotRec or entry.MovDurCt %}
                     <div class="text-center">
-                        {% if ent.PossNotRec %}<b>POSSIBLY NOT RECIEVED</b>{% endif %}
-                        {% if ent.MovDurCt %}<b>MOVEMENT DURING COUNT</b>{% endif %}
+                        {% if entry.PossNotRec %}<b>POSSIBLY NOT RECIEVED</b>{% endif %}
+                        {% if entry.MovDurCt %}<b>MOVEMENT DURING COUNT</b>{% endif %}
                     </div>
                     {% endif %}
-                {% elif ent.type == 'Summary' %}
+                {% elif entry.type == 'Summary' %}
                     </div>  <!-- class CtSummDetail -->
                     <div class="CtSummSummary">
                     <div>
                         <b>SAP</b> {{SAPDate}}:
-                        {% for s in ent.SAPNum %}{{ s }}{% endfor %},
-                        Typical Container Qty = {{ ent.TypicalContainerQty|default:"---" }},
-                        Typical Pallet Qty = {{ ent.TypicalPalletQty|default:"---" }}
+                        {% for s in entry.SAPNum %}{{ s }}{% endfor %},
+                        Typical Container Qty = {{ entry.TypicalContainerQty|default:"---" }},
+                        Typical Pallet Qty = {{ entry.TypicalPalletQty|default:"---" }}
                     </div>
                     <div class="row g-0">
-                        <div class="col-5"><b>Totals for {{ ent.Material }}</b></div>
+                        <div class="col-5"><b>Totals for {{ entry.Material }}</b></div>
                         <div class="col-1">Counted</div>
                         <div class="col-1">SAP</div>
                         <div class="col-1">Diff</div>
@@ -113,47 +114,48 @@
                         <div class="col-1"></div>
                     </div>
                     <div class="row g-0">
-                        <div class="col-5">Part Type {{ ent.PartType }}</div>
-                        <div class="col-1">{{ ent.CountTotal }}</div>
-                        <div class="col-1">{{ ent.SAPTotal }}</div>
-                        <div class="col-1">{{ ent.Diff }}</div>
+                        <div class="col-5">Part Type {{ entry.PartType }}</div>
+                        <div class="col-1">{{ entry.CountTotal }}</div>
+                        <div class="col-1">{{ entry.SAPTotal }}</div>
+                        <div class="col-1">{{ entry.Diff }}</div>
                         <div class="col-1
-                            {% if ent.Accuracy < AccuracyCutoff.DANGER  %} bg-danger
-                            {% elif ent.Accuracy > AccuracyCutoff.SUCCESS %} bg-success
-                            {% elif ent.Accuracy > AccuracyCutoff.WARNING %} bg-warning
+                            {% if entry.Accuracy < AccuracyCutoff.DANGER  %} bg-danger
+                            {% elif entry.Accuracy > AccuracyCutoff.SUCCESS %} bg-success
+                            {% elif entry.Accuracy > AccuracyCutoff.WARNING %} bg-warning
                             {% endif %}
-                        "><b>{{ ent.Accuracy|floatformat:2 }}%</b></div>
+                        "><b>{{ entry.Accuracy|floatformat:2 }}%</b></div>
                         <div class="col-1"></div>
                         <div class="col-1"></div>
                         {% if variation != 'REQ' %}
                         <div class="col-1">
-                            <button type="button" class="btnSchCt d-print-none" value="{{ ent.Material_id }}"><small>Schedule Count</small></button>
+                            <button type="button" class="btnSchCt d-print-none" value="{{ entry.Material_id }}"><small>Schedule Count</small></button>
                         </div>
                         {% endif %}
                     </div>
                     <div class="row g-0">
-                        Scheduled Counter: {{ ent.SchedCounter|default:'----' }}
-                        {% if ent.Requestor  %}
-                            | Requestor: {{ ent.Requestor }} | RequestFilled: {{ ent.RequestFilled|yesno|upper }}
+                        Scheduled Counter: {{ entry.SchedCounter|default:'----' }}
+                        {% if entry.Requestor  %}
+                            | Requestor: {{ entry.Requestor }} | RequestFilled: {{ entry.RequestFilled|yesno|upper }}
                         {% endif %}
                     </div>
-                    {% if ent.ReasonScheduled %}
+                    {% if entry.ReasonScheduled %}
                     <div class="row g-0 small">
-                        <div class="col"><b>Reason Scheduled: </b>{{ ent.ReasonScheduled }}</div>
+                        <div class="col"><b>Reason Scheduled: </b>{{ entry.ReasonScheduled }}</div>
                     </div>
                     {% endif %}
-                    {% if ent.SchedNotes %}
+                    {% if entry.SchedNotes %}
                     <div class="row g-0 small">
-                        <div class="col"><b>Schedule Notes: </b>{{ ent.SchedNotes }}</div>
+                        <div class="col"><b>Schedule Notes: </b>{{ entry.SchedNotes }}</div>
                     </div>
                     {% endif %}
                     </div>  <!-- class CtSummSummary -->
                     <hr>
                     </div>     <!-- avoid page breaks for previous Material sheet -->
                 {% else %}
-                    Unknown lineout.type {{ ent.type }}<br>
+                    Unknown lineout.type {{ entry.type }}<br>
                 {% endif %}
-        {% endfor %}
+            {% endfor %}
+        {% endif %}
     {% endfor %}
 </div>  <!-- final org container -->
 </div>  <!-- mainReport -->
