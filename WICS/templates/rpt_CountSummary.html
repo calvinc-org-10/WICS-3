@@ -61,7 +61,6 @@
                         <div class="CtSummDetail">
                         <div class="row g-0 calvin-smalltext">
                             <div class="col-1">Count Date</div>
-                            <div class="col-1">Cyc Ct ID</div>
                             <div class="col-2">Material</div>
                             <div class="col-3">Counter</div>
                             <div class="col-2">LOCATION</div>
@@ -72,7 +71,6 @@
                 {% if entry.type == 'Detail' %}
                     <div class="row g-0 calvin-smalltext">
                         <div class="col-1">{{ CountDate|date:"m/d" }}</div>
-                        <div class="col-1">{{ entry.CycCtID|default:"" }}</div>
                         <div class="col-2">{{ entry.Material }}</div>
                         <div class="col-3">{{ entry.ActCounter }}</div>
                         <div class="col-2">{{ entry.LOCATION }}</div>
