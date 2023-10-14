@@ -48,13 +48,14 @@
                 <div class="submit-row">
                     <input type="submit" value="login">
                     <input type="hidden" name="next" value="{% url 'initWICSuser' %}">
+                    <input type="hidden" id="localTZ" name="localTZ">
                 </div>
                 
                 <div class="row mt-5">
                     <i>{{ Greeting }}</i>
                     {% if sysver_key == 'DEV' %}
-                        <br><br>
-                        <input type="submit" name="dev_bypass" value="1">
+                        <p></p>
+                        <button type="button" id="dev_bypass_btn" onclick="devSubmit();">DEV</button>
                         <br>
                         DPW = WICS12345678
                     {% endif %}
@@ -72,4 +73,24 @@
     <br>
 {% endif %}
 </div>
+
+{% if not form.errors %}
+<script>
+    document.getElementById("login-form").addEventListener("submit", (event) => {
+        /* don't need this cookie - the form field works just fine
+        document.cookie = "localTZ=" + Intl.DateTimeFormat().resolvedOptions().timeZone;
+        */
+        document.getElementById("localTZ").value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    });
+
+    function devSubmit() {
+        dev_byp = document.createElement("input");
+            dev_byp.type="hidden";  dev_byp.name="dev_bypass";  dev_byp.value = "1";
+        loginForm = document.forms["login-form"];
+        loginForm.appendChild(dev_byp);
+        document.getElementById("localTZ").value = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        loginForm.submit();      // this will bypass validation fail if there's no username or pw
+    }
+</script>
+{% endif %}
 {% endblock %}
