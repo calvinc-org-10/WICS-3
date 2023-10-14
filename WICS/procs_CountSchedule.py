@@ -165,7 +165,7 @@ def fnUploadCountSchedSprsht(req):
 
         if ws:
             SprshtRowNum=1
-            MAX_COUNT_ROWS = 5000
+            MAX_COUNT_ROWS = 5000   # remove if this proc is made asynchronous
             for row in ws.iter_rows(min_row=SprshtRowNum+1, max_row=MAX_COUNT_ROWS, values_only=True):
                 SprshtRowNum += 1
 

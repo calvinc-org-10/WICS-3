@@ -206,10 +206,8 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
     nRowsAdded = 0
     nRowsNoMaterial = 0
     nRowsErrors = 0
-    ABSMAX_COUNT_ROWS = 500000
-    MAX_COUNT_ROWS = min(ABSMAX_COUNT_ROWS,ws.max_row)
 
-    for row in ws.iter_rows(min_row=SprshtRowNum+1, max_row=MAX_COUNT_ROWS, values_only=True):
+    for row in ws.iter_rows(min_row=SprshtRowNum+1, values_only=True):
         SprshtRowNum += 1
         if SprshtRowNum % 100 == 0:
             set_async_comm_state(
@@ -362,12 +360,6 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
         #endif not ignoreline
     # endfor row in ws.iter_rows
 
-    if SprshtRowNum >= ABSMAX_COUNT_ROWS:
-        UploadSAPResults(
-            errState = 'maxrows',
-            errmsg = f'Data in spreadsheet rows {ABSMAX_COUNT_ROWS+1} and beyond are being ignored.', 
-            rowNum = -1
-            ).save()
     UploadSAPResults(
         errState = 'nRowsTotal',
         errmsg = '', 
