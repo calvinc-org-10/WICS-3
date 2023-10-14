@@ -1,5 +1,5 @@
-# later, this will be tied to a user, who will have to log in (see _djangouser, below)
 import random
+from django.conf import settings as django_settings
 from django.contrib.auth import authenticate, login, views as auth_views
 from django.shortcuts import HttpResponse
 from typing import *
@@ -29,11 +29,13 @@ class WICSLoginView(auth_views.LoginView):
 
     def post(self, request, *args: str, **kwargs: Any) -> HttpResponse:
         if sysver_key == 'DEV':
-            if 'dev_bypass' in request.POST:
+            if 'dev_bypass' in request.POST and request.POST['dev_bypass'] != '':
                 usr = authenticate(request,username='DEV',password='devpassword')
                 if usr != None:
                     login(request,usr)
                     return self.form_valid(self.get_form())
+
+        django_settings.TIME_ZONE = request.POST['localTZ'] # set the time zone from wherever the user's at 
 
         return super().post(request, *args, **kwargs)
 
