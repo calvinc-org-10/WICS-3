@@ -206,7 +206,7 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
     nRowsAdded = 0
     nRowsNoMaterial = 0
     nRowsErrors = 0
-    ABSMAX_COUNT_ROWS = 5000
+    ABSMAX_COUNT_ROWS = 500000
     MAX_COUNT_ROWS = min(ABSMAX_COUNT_ROWS,ws.max_row)
 
     for row in ws.iter_rows(min_row=SprshtRowNum+1, max_row=MAX_COUNT_ROWS, values_only=True):
