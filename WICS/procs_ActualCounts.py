@@ -591,8 +591,8 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
             outputline['RequestFilled'] = lastrow['RequestFilled']
             outputline['PartType'] = lastrow['PartType']
             outputline['CountTotal'] = lastrow['TotalCounted']
-            outputline['SAPTotal'] = SAPTot
-            outputline['Diff'] = lastrow['TotalCounted'] - SAPTot
+            outputline['SAPTotal'] = int(SAPTot)
+            outputline['Diff'] = int(lastrow['TotalCounted'] - SAPTot)
             divsr = 1
             if lastrow['TotalCounted']!=0 or SAPTot!=0: divsr = max(lastrow['TotalCounted'], SAPTot)
             outputline['Accuracy'] = min(lastrow['TotalCounted'], SAPTot) / divsr * 100
