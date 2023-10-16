@@ -191,6 +191,9 @@ button:focus {
                 </button>
                 </div>
                 <div>   <!-- just below the PhotoSet -->
+                    {% if PhotoSet %}
+                    <div id="whichPhotoAmI"></div>
+                    {% endif %}
                 </div>
                 <input type="hidden" id="PhotoOp" name="PhotoOp" value=""></input>
             </div>
@@ -428,6 +431,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // how do I get MatlPhotoCarousel initial state?
     if ({{ PhotoSet|length }} > 0) {
         currPhoto = {'num': 0, 'element': document.getElementById("MatlPhoto-0")};
+        document.getElementById("whichPhotoAmI").innerText = "Photo "+(currPhoto.num+1).toString()+" of {{PhotoSet|length}}"
     }
 });
 
@@ -628,6 +632,7 @@ function showCountExpr(expr_fld, rslt) {
 
 MatlPhotoCarousel.addEventListener('slid.bs.carousel', event => {
     currPhoto = {'num': event.to, 'element': event.relatedTarget};
+    document.getElementById("whichPhotoAmI").innerText = "Photo "+(currPhoto.num+1).toString()+" of {{PhotoSet|length}}"
     });
 
 $("#modalGetPhoto").dialog({

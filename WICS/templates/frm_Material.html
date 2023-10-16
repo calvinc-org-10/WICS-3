@@ -193,6 +193,7 @@ button:focus {
                 </div>
                 <div>   <!-- just below the PhotoSet -->
                     {% if PhotoSet %}
+                    <div id="whichPhotoAmI"></div>
                     <button type="button" onclick="delCurrPhoto()">
                         DEL img
                     </button>
@@ -402,7 +403,7 @@ button:focus {
 </div>
 
 <div id="modalGetPhoto" class="modal">
-    Select the photo to upload (just one file at a time now - later I'll implement multichoice)
+    Select the photo to upload
     <input type="file" accept="image/*" form="FmMain" name="newPhoto"></input>
 </div>
 
@@ -448,6 +449,7 @@ document.addEventListener("DOMContentLoaded", function() {
     // how do I get MatlPhotoCarousel initial state?
     if ({{ PhotoSet|length }} > 0) {
         currPhoto = {'num': 0, 'element': document.getElementById("MatlPhoto-0")};
+        document.getElementById("whichPhotoAmI").innerText = "Photo "+(currPhoto.num+1).toString()+" of {{PhotoSet|length}}"
     }
 });
 
@@ -682,7 +684,8 @@ function showCountExpr(expr_fld, rslt) {
 
 MatlPhotoCarousel.addEventListener('slid.bs.carousel', event => {
     currPhoto = {'num': event.to, 'element': event.relatedTarget};
-    });
+    document.getElementById("whichPhotoAmI").innerText = "Photo "+(currPhoto.num+1).toString()+" of {{PhotoSet|length}}"
+});
 
 $("#modalGetPhoto").dialog({
     autoOpen: false,
