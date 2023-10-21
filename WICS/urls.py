@@ -89,6 +89,9 @@ urlpatterns = [
     path('MaterialForm/histcutoff/<int:recNum>/<str:HistoryCutoffDate>',
             procs_Material.fnMaterialForm, name='MatlFormChgHistCutoffDate'),
 
+    path('MPN',
+            procs_Material.fnMPNView, name='MPNLookup'),
+
     path('MatlByPartType',
             procs_Material.MaterialByPartType.as_view(), name='MatlByPartType'),
 

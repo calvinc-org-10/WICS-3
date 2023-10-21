@@ -150,6 +150,20 @@ class VIEW_materials(models.Model):
        db_table = 'VIEW_materials'
        managed = False
 
+class MfrPNtoMaterial(models.Model):
+    MfrPN = models.CharField(max_length=250, null=False)
+    Manufacturer = models.CharField(max_length=250, null=True, blank=True)
+    Material = models.ForeignKey(MaterialList, on_delete=models.CASCADE)
+    Notes = models.CharField(max_length=250, null=True, blank=True)
+
+    class Meta:
+        constraints = [
+                models.UniqueConstraint(fields=['MfrPN'],name="wics_mfrpntomaterial_mfrpn_unq"),
+            ]
+        indexes = [
+            models.Index(fields=['Manufacturer']),
+        ]
+
 ###########################################################
 ###########################################################
 

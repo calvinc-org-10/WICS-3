@@ -19,7 +19,7 @@ from cMenu.utils import modelobj_to_dict, calvindate, ExcelWorkbook_fileext, Exc
 from mathematical_expressions_parser.eval import evaluate
 from WICS.globals import _defaultOrg
 from WICS.forms import MaterialForm, MaterialCountSummary, PartTypesForm
-from WICS.models import MaterialList, MaterialPhotos, VIEW_materials, WhsePartTypes
+from WICS.models import MaterialList, MaterialPhotos, VIEW_materials, WhsePartTypes, MfrPNtoMaterial
 from WICS.models import CountSchedule, ActualCounts, FoundAt
 from WICS.models import SAP_SOHRecs, UnitsOfMeasure #, VIEW_SAP
 from WICS.procs_SAP import fnSAPList
@@ -531,4 +531,28 @@ def fnDeletPartTypes(req, recNum):
         next = urls.reverse('PartTypeForm')
 
     return HttpResponseRedirect(next)
+
+
+@login_required
+def fnMPNView(req):
+
+    if req.method == 'POST':
+        pass
+    else:  # req.method != 'POST'
+        pass
+    # endif req.method == 'POST'
+
+    MPNList = MfrPNtoMaterial.objects.all().order_by('MfrPN')
+
+    gotoForm = {}
+    gotoForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
+    gotoForm['gotoItem'] = None
+
+    # display the form
+    cntext = {
+        'MPNList': MPNList,
+        'gotoForm': gotoForm,
+        }
+    templt = 'frm_MPNtoMatl.html'
+    return render(req, templt, cntext)
 

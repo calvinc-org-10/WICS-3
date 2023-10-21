@@ -488,6 +488,7 @@ def FormBrowse(req, formname):
     FormNameToURL_Map['frmrequestedcountsummary'.lower()] = ('CountSummaryReport-v-init', None)
     FormNameToURL_Map['frmimportsap'.lower()] = ('UploadSAPSprSht', None)
     FormNameToURL_Map['frmmaterial'.lower()] = ('MatlForm', None)
+    FormNameToURL_Map['frmmpnlookup'.lower()] = ('MPNLookup', None)
     FormNameToURL_Map['frmParts-By-Type-with-LastCounts'.lower()] = ('MatlByPartType', None)
     FormNameToURL_Map['rptMaterialByLastCount'.lower()] = ('MatlByLastCountDate', None)
     FormNameToURL_Map['rptMaterialByDESCValue'.lower()] = ('MatlByDESCValue', None)
