@@ -80,7 +80,7 @@ tfoot {
 
 <div class="container">
 {% if MPNList %}
-<table id="MPNtable" class="" style="width:75%">
+<table id="MPNtable" class="" style="width:100%">
     <thead>
         <tr>
             <th scope="col">MPN</th>
@@ -97,16 +97,18 @@ tfoot {
         <tr>
             <td scope="col">{{MPN.MfrPN}}</td>
             <td scope="col">{{MPN.Manufacturer}}</td>
-            <td scope="col">{{MPN.Material.Material}}</td>
-            <td scope="col">{{MPN.Material.Description}}</td>
+            <td scope="col">{{MPN.Material.value}} Matl selector will go here</td>
+            <td scope="col">{% if MPN.instance.id %}{{MPN.instance.Material.Description}}{% endif %}</td>
             <td scope="col">{{MPN.Notes|default:'---'}}</td>
-            <td scope="col">
+            <td scope="col" style="width:20%">
+                {% if MPN.instance.id %}    {# is this an existing record or an extra? #}
                 <button type="button" onclick="delMPN({{MPN.id.value}})">
                     Delete
                 </button>
                 <button type="button" onclick="showMatl({{MPN.Material_id}})">
                     Show Matl Rec
                 </button>
+                {% endif %}
             </td>
         </tr>
 {% empty %}
@@ -121,16 +123,11 @@ tfoot {
     <br>
     <div class="container">
         <div class="row mx-auto max-width=100%">
-            This row reserved for adding new MPNs
-                <span width="10">
-                <button id="add_btn" type="button">
-                    <img src="{% static 'addition-color-outline-icon.svg' %}" width="20" height="20"></img>
-                    Add New MPN
-                </button>
-                </span>
-        </div>
-        <div class="row mx-auto max-width=100%">
             <div class="col-3">
+                <button id="save_btn" type="submit" {% if userReadOnly %}disabled{%endif%}>
+                    <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
+                    Save/Add changes
+                </button>
             </div>
             <div class="col-7">
             </div>
