@@ -220,7 +220,7 @@ class MaterialCountSummary(forms.Form):
 class MfrPNtoMaterialForm(forms.Form):
     class Meta:
         model = MfrPNtoMaterial
-        fields = ['id', 'Manufacturer', 'Material', 'Material__Description', 'Notes']
+        fields = ['id', 'MfrPN', 'Manufacturer', 'Material', 'Notes',]
         # fields = '__all__'
 
 ############################################################

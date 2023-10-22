@@ -64,14 +64,7 @@ tfoot {
     <div class="row mx-auto max-width=95%">
         <div class="col mx-auto">
             <h1><label for="gotoID">GoTo Material #</label>
-            <input list="Material-list" id="gotoID" name="gotoID" onfocus="$(this).select();" onchange="processGoToReq();" value="{{gotoForm.gotoItem}}">
-            <span class="bi-caret-down-square" style="position:relative;top:+0px;font-size:45px;left:-59px;" onclick="$gotoTextBox.focus();"></span>
         </h1>
-            <datalist id="Material-list">
-                {% for itm in gotoForm.choicelist %}
-                    <option value="{{itm.Material_org}}">
-                {% endfor %}
-            </datalist>
         </div>
     </div>
 </div>
@@ -79,8 +72,9 @@ tfoot {
 {% endcomment %}
 
 <div class="container">
+<form id="FrmMain">
 {% if MPNList %}
-<table id="MPNtable" class="" style="width:100%">
+<table id="MPNtable" class="" {# style="width:100%" #}>
     <thead>
         <tr>
             <th scope="col">MPN</th>
@@ -95,9 +89,18 @@ tfoot {
     {% endif %}
     {% for MPN in MPNList %}
         <tr>
+            {{ MPN.id }}
             <td scope="col">{{MPN.MfrPN}}</td>
             <td scope="col">{{MPN.Manufacturer}}</td>
-            <td scope="col">{{MPN.Material.value}} Matl selector will go here</td>
+            <td scope="col" style="width:20%;">
+                <input list="Material-list" id="{{MPNList.prefix}}-{{forloop.counter0}}-MatlNum" name="{{MPNList.prefix}}-{{forloop.counter0}}-MatlNum" onfocus="$(this).select();" onchange="changeMatl('{{MPN.Material.auto_id}}');"{% if MPN.instance.id %} value="{{MPN.instance.Material.Material}}{% endif %}">
+                <span class="bi-caret-down-square" style="position:relative;top:+1px;font-size:20px;left:-30px;"></span> {# onclick="$gotoTextBox.focus();"></span> #}
+                <input type="hidden" 
+                    id="{{MPN.Material.auto_id}}" 
+                    name="{{MPN.Material.html_name}}"  
+                    {% if MPN.instance.id %} value="{{MPN.Material.value}}"{% endif %}
+                ></input>
+            </td>
             <td scope="col">{% if MPN.instance.id %}{{MPN.instance.Material.Description}}{% endif %}</td>
             <td scope="col">{{MPN.Notes|default:'---'}}</td>
             <td scope="col" style="width:20%">
@@ -105,7 +108,7 @@ tfoot {
                 <button type="button" onclick="delMPN({{MPN.id.value}})">
                     Delete
                 </button>
-                <button type="button" onclick="showMatl({{MPN.Material_id}})">
+                <button type="button" onclick="showMatl('{{MPN.Material.auto_id}}')">
                     Show Matl Rec
                 </button>
                 {% endif %}
@@ -118,13 +121,19 @@ tfoot {
     </tbody>
 </table>
 {% endif %}
+<datalist id="Material-list">
+    {% for itm in gotoForm.choicelist %}
+        <option value="{{itm.Material_org}}">
+    {% endfor %}
+</datalist>
+</form>
 </div>
     <!-- form footer -->
     <br>
     <div class="container">
         <div class="row mx-auto max-width=100%">
             <div class="col-3">
-                <button id="save_btn" type="submit" {% if userReadOnly %}disabled{%endif%}>
+                <button id="save_btn" type="button" {# "submit" form="FrmMain" #} {% if userReadOnly %}disabled{%endif%}>
                     <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
                     Save/Add changes
                 </button>
@@ -145,15 +154,12 @@ tfoot {
 </div>
 
 <script>
-{% comment %}
-we'll come back to this ...
 // set up MatlMap for verifying if an entered Material # is valid
 var MatlMap = new Map([
     {% for itm in gotoForm.choicelist %}
     ['{{itm.Material_org}}', {{itm.id}}],
     {% endfor %}
     ]);
-{% endcomment %}
 
 //------------------
 
@@ -173,7 +179,13 @@ window.addEventListener("beforeunload",  function(event) {
 
 function YesCloseIt() {
     window.close();
-}
+};
+
+//---------------
+
+function changeMatl(recnum) {
+
+};
 
 //---------------
 
@@ -198,16 +210,6 @@ document.getElementById("close_btn").addEventListener("click",
     });
 
 //-------------------
-
-document.getElementById("add_btn").addEventListener("click", addMPN)
-
-function addMPN(event) {
-    // newRec = "{% url 'NewMatlForm' %}"
-    // start_wait_spinner();
-    // window.location = newRec;
-};
-
-//-----------------
 
 function isValid_Material() {
     if ($gotoTextBox.value.trim()=="") {

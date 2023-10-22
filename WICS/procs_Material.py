@@ -547,7 +547,7 @@ def fnMPNView(req):
         'main': {},
         }
     fieldlist = {
-        'main':  ('id', 'MfrPN', 'Manufacturer', 'Material', 'Notes',)
+        'main': FormMain.Meta.fields # ('id', 'MfrPN', 'Manufacturer', 'Material', 'Notes',)  
     }
     excludelist = {
         'main': ()
