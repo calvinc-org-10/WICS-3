@@ -1,7 +1,7 @@
 # import datetime
 from django import forms
 from cMenu.utils import calvindate
-from WICS.models import MaterialList, ActualCounts, CountSchedule, WhsePartTypes
+from WICS.models import MaterialList, MfrPNtoMaterial, ActualCounts, CountSchedule, WhsePartTypes
 from WICS.procs_misc import HolidayList
 
 
@@ -216,6 +216,12 @@ class MaterialCountSummary(forms.Form):
     SAPQty = forms.CharField(max_length=20, required=False, disabled=True)
     Diff = forms.CharField(max_length=20, required=False, disabled=True)
     Accuracy = forms.CharField(max_length=20, required=False, disabled=True)
+
+class MfrPNtoMaterialForm(forms.Form):
+    class Meta:
+        model = MfrPNtoMaterial
+        fields = ['id', 'MfrPN', 'Manufacturer', 'Material', 'Notes',]
+        # fields = '__all__'
 
 ############################################################
 ############################################################

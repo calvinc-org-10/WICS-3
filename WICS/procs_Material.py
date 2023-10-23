@@ -10,7 +10,7 @@ from django.db import models
 from django.db.models import Value, Sum
 from django.db.models import F, Value, Subquery, OuterRef
 from django.db.models.query import QuerySet
-from django.forms import inlineformset_factory, formset_factory
+from django.forms import inlineformset_factory, formset_factory, modelformset_factory
 from django.http import HttpRequest, HttpResponseRedirect #, HttpResponse
 from django.shortcuts import render
 from django.views.generic import ListView
@@ -18,7 +18,7 @@ from cMenu.models import getcParm
 from cMenu.utils import modelobj_to_dict, calvindate, ExcelWorkbook_fileext, Excelfile_fromqs
 from mathematical_expressions_parser.eval import evaluate
 from WICS.globals import _defaultOrg
-from WICS.forms import MaterialForm, MaterialCountSummary, PartTypesForm
+from WICS.forms import MaterialForm, MaterialCountSummary, MfrPNtoMaterialForm, PartTypesForm
 from WICS.models import MaterialList, MaterialPhotos, VIEW_materials, WhsePartTypes, MfrPNtoMaterial
 from WICS.models import CountSchedule, ActualCounts, FoundAt
 from WICS.models import SAP_SOHRecs, UnitsOfMeasure #, VIEW_SAP
@@ -536,13 +536,53 @@ def fnDeletPartTypes(req, recNum):
 @login_required
 def fnMPNView(req):
 
-    if req.method == 'POST':
-        pass
-    else:  # req.method != 'POST'
-        pass
-    # endif req.method == 'POST'
+    FormMain = MfrPNtoMaterialForm
 
-    MPNList = MfrPNtoMaterial.objects.all().order_by('MfrPN')
+    modelMain = FormMain.Meta.model
+
+    prefixvals = {
+        'main': 'material',
+        }
+    initialvals = {
+        'main': {},
+        }
+    fieldlist = {
+        'main': FormMain.Meta.fields # ('id', 'MfrPN', 'Manufacturer', 'Material', 'Notes',)  
+    }
+    excludelist = {
+        'main': ()
+    }
+
+    changes_saved = {
+        'main': False,
+        }
+    chgd_dat = {'main':None, }
+
+    mainFm_class = modelformset_factory(modelMain,
+                fields=fieldlist['main'],
+                exclude=excludelist['main'],
+                # form=FormMain,
+                extra=5,can_delete=True)
+
+    MPNqs = MfrPNtoMaterial.objects.all().order_by('MfrPN')
+
+    if req.method == 'POST':
+        mainFm = mainFm_class(req.POST, prefix=prefixvals['main'], initial=initialvals['main'],
+                    queryset=MPNqs)
+
+        if mainFm.is_valid():
+            if mainFm.has_changed():
+                pass
+                # try:
+                #     countSet.save()
+                #     chgd_dat['counts'] = countSet.changed_objects
+                #     changes_saved['counts'] = True
+                # except Exception as err:
+                #     messages.add_message(req,messages.ERROR,err)
+    else:  # req.method != 'POST'
+        mainFm = mainFm_class(prefix=prefixvals['main'], initial=initialvals['main'],
+                    queryset=MPNqs)
+    # endif req.method == 'POST'
 
     gotoForm = {}
     gotoForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
@@ -550,7 +590,7 @@ def fnMPNView(req):
 
     # display the form
     cntext = {
-        'MPNList': MPNList,
+        'MPNList': mainFm,
         'gotoForm': gotoForm,
         }
     templt = 'frm_MPNtoMatl.html'
