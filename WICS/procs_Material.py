@@ -562,18 +562,26 @@ def fnMPNView(req):
                 fields=fieldlist['main'],
                 exclude=excludelist['main'],
                 # form=FormMain,
-                extra=5,can_delete=False)
+                extra=5,can_delete=True)
 
     MPNqs = MfrPNtoMaterial.objects.all().order_by('MfrPN')
 
     if req.method == 'POST':
         mainFm = mainFm_class(req.POST, prefix=prefixvals['main'], initial=initialvals['main'],
                     queryset=MPNqs)
-        pass
+
+        if mainFm.is_valid():
+            if mainFm.has_changed():
+                pass
+                # try:
+                #     countSet.save()
+                #     chgd_dat['counts'] = countSet.changed_objects
+                #     changes_saved['counts'] = True
+                # except Exception as err:
+                #     messages.add_message(req,messages.ERROR,err)
     else:  # req.method != 'POST'
         mainFm = mainFm_class(prefix=prefixvals['main'], initial=initialvals['main'],
                     queryset=MPNqs)
-        pass
     # endif req.method == 'POST'
 
     gotoForm = {}

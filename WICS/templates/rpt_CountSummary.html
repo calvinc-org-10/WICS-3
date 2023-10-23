@@ -30,7 +30,7 @@
     </div>   <!-- wait spinner and choose date container -->
 </div>  <!-- form header -->
 
-<div id="mainReport" class="container-fluid mx-auto"  style="height:350px; overflow:auto;" >
+<div id="mainReport" class="container-fluid mx-auto">
     {% for RptSection in SummaryReport %}
         {% ifchanged RptSection.org %}
             {% if not forloop.first %}
@@ -168,7 +168,6 @@
                 </a>
             </button>
             <button id="swap_detail_disp_btn" type="button" class="d-print-none" onclick="swap_detail_disp();">Hide Detail</button>
-            <button id="swap_prt_disp_btn" type="button" class="d-print-none" onclick="swap_prt_disp();">Print Version</button>
         </div>
         <div class="col-2">
             <button id="close_btn" type="button">
@@ -234,16 +233,7 @@
     //---------
 
     function swap_prt_disp() {
-        // remove scroll from mainReport so it can be printed or put it back for a scrolling window
-        let scrollval = $("#mainReport").attr("style");
-        if (scrollval==undefined) {
-            $("#mainReport").attr("style",mainscroll)
-            $("#swap_prt_disp_btn").html("Print Version")
-        } else {
-            $("#mainReport").removeAttr("style")
-            $("#swap_prt_disp_btn").html("Display Version")
-        }
-    }
+    };
 
     //---------
 

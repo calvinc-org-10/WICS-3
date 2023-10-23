@@ -37,95 +37,72 @@ tfoot {
 {% block tTitle %}Manufacturer PN Lookup{% endblock %}
 
 {% block boddy %}
-<div class="container text-center mx-auto">
-<div class="row">
-    <div class="col-10 fs-2">
-        <img src={% static 'WICS-Logo.png' %} width="150" height="75">
-    </div>
-    <div class="col-2 text-end"> {{ user.get_full_name }} </div>
-</div>
-<div class="row"> <!-- status messages -->
-    <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
-    {% if messages %}
-    <ul class="messages">
-        {% for message in messages %}
-        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    {% endif %}
-</div>
-</div>
-<hr>
-{% comment %}
-{#######  implement later #######}
-<!-- GoTo -->
-<!-- <form id="gotoForm"> -->
-<div class="container text-center bg-secondary">
-    <div class="row mx-auto max-width=95%">
-        <div class="col mx-auto">
-            <h1><label for="gotoID">GoTo Material #</label>
-        </h1>
-        </div>
-    </div>
-</div>
-<!-- </form> -->
-{% endcomment %}
-
+{% include 'WICSHeader.html' %}
 <div class="container">
-<form id="FrmMain">
-{% if MPNList %}
-<table id="MPNtable" class="" {# style="width:100%" #}>
-    <thead>
-        <tr>
-            <th scope="col">MPN</th>
-            <th scope="col">Manufacturer</th>
-            <th scope="col">Material</th>
-            <th scope="col">Description</th>
-            <th scope="col">Notes</th>
-            <th scope="col"></th>
-        </tr>
-    </thead>
-    <tbody>
-    {% endif %}
-    {% for MPN in MPNList %}
-        <tr>
-            {{ MPN.id }}
-            <td scope="col">{{MPN.MfrPN}}</td>
-            <td scope="col">{{MPN.Manufacturer}}</td>
-            <td scope="col" style="width:20%;">
-                <input list="Material-list" id="{{MPNList.prefix}}-{{forloop.counter0}}-MatlNum" name="{{MPNList.prefix}}-{{forloop.counter0}}-MatlNum" onfocus="$(this).select();" onchange="changeMatl('{{MPN.Material.auto_id}}');"{% if MPN.instance.id %} value="{{MPN.instance.Material.Material}}{% endif %}">
-                <span class="bi-caret-down-square" style="position:relative;top:+1px;font-size:20px;left:-30px;"></span> {# onclick="$gotoTextBox.focus();"></span> #}
-                <input type="hidden" 
-                    id="{{MPN.Material.auto_id}}" 
-                    name="{{MPN.Material.html_name}}"  
-                    {% if MPN.instance.id %} value="{{MPN.Material.value}}"{% endif %}
-                ></input>
-            </td>
-            <td scope="col">{% if MPN.instance.id %}{{MPN.instance.Material.Description}}{% endif %}</td>
-            <td scope="col">{{MPN.Notes|default:'---'}}</td>
-            <td scope="col" style="width:20%">
-                {% if MPN.instance.id %}    {# is this an existing record or an extra? #}
-                <button type="button" onclick="delMPN({{MPN.id.value}})">
-                    Delete
-                </button>
-                <button type="button" onclick="showMatl('{{MPN.Material.auto_id}}')">
-                    Show Matl Rec
-                </button>
-                {% endif %}
-            </td>
-        </tr>
-{% empty %}
-    <h3>No Manufacturer Part Numbers in WICS</h3>
-{% endfor %}
+<form id="FrmMain" method="post">
+    {% csrf_token %}
+    {{ MPNList.management_form }}
+    {% if MPNList.non_form_errors %}{{ MPNList.non_form_errors }}{% endif %}
+    {% if MPNList.errors %}{{ MPNList.errors }}{% endif %}
+
     {% if MPNList %}
-    </tbody>
-</table>
-{% endif %}
-<datalist id="Material-list">
-    {% for itm in gotoForm.choicelist %}
-        <option value="{{itm.Material_org}}">
+    <table id="MPNtable" class="" {# style="width:100%" #}>
+        <thead>
+            <tr>
+                <th scope="col">MfrPN</th>
+                <th scope="col">Manufacturer</th>
+                <th scope="col">Material</th>
+                <th scope="col">Notes</th>
+                <th scope="col"></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% endif %}
+        {% for MPN in MPNList %}
+            <tr>
+                {% if MPN.errors %}{{MPN.errors}}</tr><tr>{% endif %}
+                {{ MPN.id }}
+                <td scope="col">{{MPN.MfrPN}}</td>
+                <td scope="col">{{MPN.Manufacturer}}</td>
+                <td scope="col" style="width:30%;">
+                    {# <input list="Material-list" id="{{MPNList.prefix}}-{{forloop.counter0}}-MatlNum" name="{{MPNList.prefix}}-{{forloop.counter0}}-MatlNum" onfocus="$(this).select();" onchange="changeMatl('{{MPN.Material.auto_id}}',this.value, this.oldvalue);"{% if MPN.instance.id %} value="{{MPN.instance.Material.Material}}{% endif %}"> #}
+                    <input list="Material-list" id="{{MPNList.prefix}}-{{forloop.counter0}}-MatlNum" onfocus="$(this).select(); this.oldvalue = this.value;" onchange="changeMatl(this, '{{MPN.Material.auto_id}}');"{% if MPN.instance.id %} value="{{MPN.instance.Material.Material}}{% endif %}">
+                    <span class="bi-caret-down-square" style="position:relative;top:+1px;font-size:20px;left:-30px;" onclick="$('#{{MPNList.prefix}}-{{forloop.counter0}}-MatlNum').focus();"></span> {##}
+                    <input type="hidden" 
+                        id="{{MPN.Material.auto_id}}" 
+                        name="{{MPN.Material.html_name}}"  
+                        {% if MPN.instance.id %} value="{{MPN.Material.value}}"{% endif %}
+                    ></input>
+                    {% if MPN.instance.id %}<br>{{MPN.instance.Material.Description}}{% endif %}
+                </td>
+                <td scope="col">{{MPN.Notes|default:'---'}}</td>
+                <td scope="col" style="width:20%">
+                    {% comment %}
+                    {% if MPN.instance.id %}    {# is this an existing record or an extra? #}
+                    <button type="button" onclick="delMPN({{MPN.id.value}})">
+                        Delete
+                    </button>
+                    {% endcomment %}
+                    DELETE: {{ MPN.DELETE }}
+                    {% if MPN.instance.id %}    {# is this an existing record or an extra? #}
+                    <button type="button" onclick="showMatl($('#{{MPN.Material.auto_id}}').val());">
+                        Show Matl Rec
+                    </button>
+                    {% endif %}
+                </td>
+            </tr>
+    {% empty %}
+        <h3>No Manufacturer Part Numbers in WICS</h3>
     {% endfor %}
-</datalist>
+        {% if MPNList %}
+        </tbody>
+    </table>
+    {% endif %}
+    <datalist id="Material-list">
+        {% for itm in gotoForm.choicelist %}
+            <option value="{{itm.Material_org}}">
+        {% endfor %}
+    </datalist>
 </form>
 </div>
     <!-- form footer -->
@@ -133,7 +110,7 @@ tfoot {
     <div class="container">
         <div class="row mx-auto max-width=100%">
             <div class="col-3">
-                <button id="save_btn" type="button" {# "submit" form="FrmMain" #} {% if userReadOnly %}disabled{%endif%}>
+                <button id="save_btn" type="button" {# "submit" form="FrmMain" #}{% if userReadOnly %}disabled{%endif%}>
                     <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
                     Save/Add changes
                 </button>
@@ -177,14 +154,25 @@ window.addEventListener("beforeunload",  function(event) {
 
 //---------------
 
-function YesCloseIt() {
-    window.close();
-};
-
-//---------------
-
-function changeMatl(recnum) {
-
+function changeMatl(InputObj, MatlInputID) {
+    oldVal = InputObj.oldvalue
+    newVal = InputObj.value
+    mVal = MatlMap.get(InputObj.value);
+    if (mVal == undefined) {
+        $("#modalGeneric").dialog("option","title","Invalid Material");
+        document.getElementById("modalGeneric").innerHTML = newVal + " is not a valid Material number"
+        
+        $("#modalGeneric").dialog("option","buttons",
+        {
+            "OK" : function() {
+                $(this).dialog("close"); }
+        });
+        $("#modalGeneric").dialog("open");
+        // how do I revert the input? Easy (also see onfocus, above, which sets oldvalue)
+        InputObj.value = oldVal;
+    } else {
+        document.getElementById(MatlInputID).value = mVal;
+    }
 };
 
 //---------------
@@ -209,37 +197,14 @@ document.getElementById("close_btn").addEventListener("click",
         window.close();
     });
 
+//---------------
+
+document.getElementById("save_btn").addEventListener("click",
+    function(evobj){
+        document.forms["FrmMain"].requestSubmit();
+    });
+
 //-------------------
-
-function isValid_Material() {
-    if ($gotoTextBox.value.trim()=="") {
-            return false;
-    } else {
-        return MatlMap.has($gotoTextBox.value);
-    }
-
-}
-
-//------------------
-
-function processGoToReq() {
-    if (!isValid_Material()) {
-        if ($gotoTextBox.value != "") {
-            $("#modalGeneric").dialog("option","title","Invalid Material");
-            document.getElementById("modalGeneric").innerHTML = $gotoTextBox.value + " is not a valid Material number"
-
-            $("#modalGeneric").dialog("option","buttons",
-                {
-                    "OK" : function() {
-                        $(this).dialog("close"); }
-                } );
-            $("#modalGeneric").dialog("open");
-            }
-        $gotoTextBox.focus();
-        return;
-    }
-    confirmLeave(loadMaterialRec);
-};
 
 function isFormChanged() {
     currState = serialize($forms);
@@ -282,12 +247,12 @@ $("#modalGeneric").dialog({
 //------------------
 
 function delMPN(MPNid) {
-
-}
+    alert('get rid of this and allow deletes on the formset');
+};
 
 function showMatl(Material_id) {
-
-}
+    alert('Open a Material Form for '+Material_id);
+};
 
 </script>
 {% endblock %}
