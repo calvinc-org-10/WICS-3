@@ -38,10 +38,13 @@ tfoot {
 
 {% block boddy %}
 {% include 'WICSHeader.html' %}
-
+<div class="container text-center">
+    <h2>Manufacturer Part Numbers</h2>
+</div>
 {% if MPNList.changed_objects %}{{ MPNList.changed_objects }}{% endif %}
 {% if MPNList.deleted_objects %}{{ MPNList.deleted_objects }}{% endif %}
 {% if MPNList.new_objects %}{{ MPNList.new_objects }}{% endif %}
+<hr>
 
 <div class="container">
 <form id="FrmMain" method="post">
