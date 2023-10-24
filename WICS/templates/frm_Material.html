@@ -383,7 +383,7 @@ button:focus {
                             <tr>
                                 {% if MPN.errors %}<td colspan=5>{{MPN.errors}}</td></tr><tr>{% endif %}
                                 {{ MPN.id }}
-                                <td scope="col">{{MPN.MfrPN}}</td>
+                                <td scope="col">{%render_field MPN.MfrPN size=40%}</td>
                                 <td scope="col">{{MPN.Manufacturer}}</td>
                                 <td scope="col">{{MPN.Notes|default:'---'}}</td>
                                 <td scope="col" style="width:20%">

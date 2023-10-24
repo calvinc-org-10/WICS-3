@@ -70,7 +70,7 @@ tfoot {
             <tr>
                 {% if MPN.errors %}<td colspan=5>{{MPN.errors}}</td></tr><tr>{% endif %}
                 {{ MPN.id }}
-                <td scope="col">{{MPN.MfrPN}}</td>
+                <td scope="col">{%render_field MPN.MfrPN size=30%}</td>
                 <td scope="col">{{MPN.Manufacturer}}</td>
                 <td scope="col" style="width:30%;">
                     {# <input list="Material-list" id="{{MPNList.prefix}}-{{forloop.counter0}}-MatlNum" name="{{MPNList.prefix}}-{{forloop.counter0}}-MatlNum" onfocus="$(this).select();" onchange="changeMatl('{{MPN.Material.auto_id}}',this.value, this.oldvalue);"{% if MPN.instance.id %} value="{{MPN.instance.Material.Material}}{% endif %}"> #}
