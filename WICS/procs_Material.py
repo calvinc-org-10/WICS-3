@@ -74,13 +74,19 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
     FormMain = MaterialForm
 
     modelMain = FormMain.Meta.model
-    modelSubs = [S for S in [ActualCounts, CountSchedule]]
+    #TODO: make this a dictionary rather than an indexed list, more like prefixvals, initialvals, etc, below
+    #      mebbe make the indices a list
+    #      subFormIndices = ['main', 'counts', 'schedule', 'MfrPN',]
+    modelSubs = [S for S in [ActualCounts, CountSchedule, MfrPNtoMaterial]]
 
+    #TODO: make this a dictionary rather than an indexed list, more like prefixvals, initialvals, etc, below
     FormFieldsSubs = [
         # 0 = ActualCounts Subform
         ['id', 'CountDate', 'Counter', 'LocationOnly', 'CTD_QTY_Expr', 'LOCATION', 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes',],
         # 1 = CountSchedule SubForm
         ['id','CountDate','Counter', 'Priority', 'ReasonScheduled', 'Notes',],
+        # 2 = MfrPN SubForm
+        ['id', 'MfrPN', 'Manufacturer', 'Notes',],
     ]
 
     # get current record
@@ -109,19 +115,27 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
         'main': 'material',
         'counts': 'countset',
         'schedule': 'schedset',
+        'MfrPN': 'MPN',
         }
     initialvals = {
         'main': {'gotoItem': thisPK, 'showPK': thisPK, 'org':_defaultOrg},
         'counts': {},
         'schedule': {},
+        'MfrPN': {},
         }
 
     changes_saved = {
         'main': False,
         'counts': False,
         'schedule': False,
+        'MfrPN': False,
         }
-    chgd_dat = {'main':None, 'counts': None, 'schedule': None}
+    chgd_dat = {
+        'main':None, 
+        'counts': None, 
+        'schedule': None,
+        'MfrPN': None,
+        }
 
     if newRec:
         SAP_SOH = fnSAPList(matl='-')
@@ -164,6 +178,11 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
         schedSet = SchedSubFm_class(req.POST, instance=currRec, prefix=prefixvals['schedule'], initial=initialvals['schedule'],
                     queryset=modelSubs[1].objects.order_by('-CountDate'))
                     # queryset=modelSubs[1].objects.filter(CountDate__gte=HistoryCutoffDate).order_by('-CountDate'))
+        MPNSubFm_class = inlineformset_factory(modelMain,modelSubs[2],
+                    fields=FormFieldsSubs[2],
+                    extra=1,can_delete=True)
+        MPNSet = MPNSubFm_class(req.POST, instance=currRec, prefix=prefixvals['MfrPN'], initial=initialvals['MfrPN'],
+                    queryset=modelSubs[2].objects.order_by('MfrPN'))
 
         # is there a request to copy a count?
         if ('copyCountFromid' in req.POST) and ('copyCountToDate' in req.POST):
@@ -174,7 +193,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
             copyCountRec.CountDate = copyCountToDate
             copyCountRec.save()
 
-        if mtlFm.is_valid() and countSet.is_valid() and schedSet.is_valid():
+        if all([mtlFm.is_valid(), countSet.is_valid(), schedSet.is_valid(), MPNSet.is_valid(), ]):
             if mtlFm.has_changed():
                 try:
                     mtlFm.save()
@@ -196,6 +215,15 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
                     changes_saved['schedule'] = True
                 except Exception as err:
                     messages.add_message(req,messages.ERROR, err)
+            if MPNSet.has_changed():
+                try:
+                    MPNSet.save()
+                    chgd_dat['MfrPN'] = MPNSet.changed_objects
+                    chgd_dat['MfrPN'].append(MPNSet.deleted_objects)
+                    chgd_dat['MfrPN'].append(MPNSet.new_objects)
+                    changes_saved['MfrPN'] = True
+                except Exception as err:
+                    messages.add_message(req,messages.ERROR, err)
 
         # count summary form is r/o.  It will not be changed
     else: # request.method == 'GET' or something else
@@ -208,13 +236,17 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
         countSet = CountSubFm_class(instance=currRec, prefix=prefixvals['counts'], initial=initialvals['counts'],
                     queryset=modelSubs[0].objects.order_by('-CountDate'))
                     # queryset=modelSubs[0].objects.filter(CountDate__gte=HistoryCutoffDate).order_by('-CountDate'))
-
         SchedSubFm_class = inlineformset_factory(modelMain,modelSubs[1],
                     fields=FormFieldsSubs[1],
                     extra=0,can_delete=False)
         schedSet = SchedSubFm_class(instance=currRec, prefix=prefixvals['schedule'], initial=initialvals['schedule'],
                     queryset=modelSubs[1].objects.order_by('-CountDate'))
                     # queryset=modelSubs[1].objects.filter(CountDate__gte=HistoryCutoffDate).order_by('-CountDate'))
+        MPNSubFm_class = inlineformset_factory(modelMain,modelSubs[2],
+                    fields=FormFieldsSubs[2],
+                    extra=1,can_delete=True)
+        MPNSet = MPNSubFm_class(instance=currRec, prefix=prefixvals['MfrPN'], initial=initialvals['MfrPN'],
+                    queryset=modelSubs[2].objects.order_by('MfrPN'))
     # endif req.method
 
     # count summary subform
@@ -279,6 +311,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
             'countset': countSet,
             'scheduleset': schedSet,
             'countsummset': summarySet,
+            'MPNset': MPNSet,
             'SAPSet': SAP_SOH,
             'changes_saved': changes_saved,
             'changed_data': chgd_dat,
@@ -572,13 +605,12 @@ def fnMPNView(req):
 
         if mainFm.is_valid():
             if mainFm.has_changed():
-                pass
-                # try:
-                #     countSet.save()
-                #     chgd_dat['counts'] = countSet.changed_objects
-                #     changes_saved['counts'] = True
-                # except Exception as err:
-                #     messages.add_message(req,messages.ERROR,err)
+                try:
+                    mainFm.save()
+                    chgd_dat['main'] = mainFm.changed_objects
+                    changes_saved['main'] = True
+                except Exception as err:
+                    messages.add_message(req,messages.ERROR,err)
     else:  # req.method != 'POST'
         mainFm = mainFm_class(prefix=prefixvals['main'], initial=initialvals['main'],
                     queryset=MPNqs)

@@ -58,6 +58,13 @@ button:focus {
             ChDat: {{ changed_data.schedule }}
         </div>
     {% endif %}
+    {% if changes_saved.MfrPN %}
+        <div class="alert alert-success p-0 alert-dismissible fade show">
+            <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
+            Mfr Pt Num changes for this Material record successfully saved.
+            ChDat: {{ changed_data.MfrPN }}
+        </div>
+    {% endif %}
 
 </div>
 </div>
@@ -223,6 +230,9 @@ button:focus {
         <li class="nav-item">
         <a class="nav-link" data-bs-toggle="pill" href="#FoundAt">Found At</a>
         </li>
+        <li class="nav-item">
+        <a class="nav-link" data-bs-toggle="pill" href="#MfrPN">Mfr Pt Num</a>
+        </li>
     </ul>
     <!-- Tab panes -->
     <div class="tab-content">
@@ -247,7 +257,7 @@ button:focus {
                         <div class="col">Count Notes</div>
                     </div>
                     </div>
-                </div>
+                </div>  <!-- card header -->
                 <div class="card-body no-padding" style="height:210px; overflow: auto;">
                     {% for ff in countset %}
                     {% ifchanged ff.CountDate.value %}{% if not forloop.first %}<hr>{% endif %}{% endifchanged %}
@@ -285,11 +295,11 @@ button:focus {
                                 Copy Count
                             </button>
                         </div>
-                    </div>
+                    </div>  <!-- row -->
                     {% endfor %}
-                </div>
-            </div>
-        </div>
+                </div>  <!-- card body-->
+            </div>  <!-- Bootstrap card -->
+        </div>  <!-- tab pane CountDetail -->
         <div class="tab-pane container fade" id="CountSummary">
             <div class="card">
                 <div class="card-header">
@@ -302,7 +312,7 @@ button:focus {
                     <div class="col-2">Diff</div>
                     <div class="col">Acc %</div>
                     </div></div>
-                </div>
+                </div>  <!-- card-header -->
                 <div class="card-body no-padding" style="height:210px; overflow: auto;">
                     <ul>
                     {% for ffrm in countsummset %}
@@ -313,9 +323,9 @@ button:focus {
                         </li>
                     {% endfor %}
                     </ul>
-                </div>
-            </div>
-        </div>
+                </div>  <!-- card-body -->
+            </div>  <!-- card -->
+        </div>    <!-- tab pane CountSummary -->
         <div class="tab-pane container fade" id="CountSchedule">
             <div class="card">
                 <div class="card-header">
@@ -349,7 +359,7 @@ button:focus {
                     {% endfor %}
                 </div>
             </div>
-        </div>
+        </div>    <!-- tab pane CountSchedule -->
         <div class="tab-pane container fade" id="FoundAt">
             <div class="card">
                 <div class="card-header">
@@ -370,8 +380,39 @@ button:focus {
                     </ul>
                 </div>
             </div>
-        </div>
-    </div>
+        </div>  <!-- tab pane FoundAt -->
+        <div class="tab-pane container fade" id="MfrPN">
+            <div class="card">
+                {{ MPNset.management_form }}
+                <div class="card-body no-padding" style="height:210px; overflow: auto;">
+                    <table id="MPNtable">
+                        <thead>
+                            <tr>
+                                <th scope="col">MfrPN</th>
+                                <th scope="col">Manufacturer</th>
+                                <th scope="col">Notes</th>
+                                <th scope="col"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        {% for MPN in MPNset %}
+                            <tr>
+                                {% if MPN.errors %}<td colspan=5>{{MPN.errors}}</td></tr><tr>{% endif %}
+                                {{ MPN.id }}
+                                <td scope="col">{{MPN.MfrPN}}</td>
+                                <td scope="col">{{MPN.Manufacturer}}</td>
+                                <td scope="col">{{MPN.Notes|default:'---'}}</td>
+                                <td scope="col" style="width:20%">
+                                    DELETE: {{ MPN.DELETE }}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>  <!-- card-body -->
+            </div>  <!-- card -->
+        </div>    <!-- tab pane MfrPN -->
+    </div>  <!-- tab-content -->
 
     <!-- form footer -->
     <br>
