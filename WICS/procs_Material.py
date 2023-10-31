@@ -222,6 +222,10 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
                     chgd_dat['MfrPN'].append(MPNSet.deleted_objects)
                     chgd_dat['MfrPN'].append(MPNSet.new_objects)
                     changes_saved['MfrPN'] = True
+    
+                    # regenerate mainFm (mainly to get new add row)
+                    MPNSet = MPNSubFm_class(instance=currRec, prefix=prefixvals['MfrPN'], initial=initialvals['MfrPN'],
+                                queryset=modelSubs[2].objects.order_by('MfrPN'))
                 except Exception as err:
                     messages.add_message(req,messages.ERROR, err)
 
@@ -609,6 +613,11 @@ def fnMPNView(req):
                     mainFm.save()
                     chgd_dat['main'] = mainFm.changed_objects
                     changes_saved['main'] = True
+
+                    # regenerate mainFm (mainly to get 5 new add rows)
+                    MPNqs = MfrPNtoMaterial.objects.all().order_by('MfrPN')     # to force reload of qs
+                    mainFm = mainFm_class(prefix=prefixvals['main'], initial=initialvals['main'],
+                                queryset=MPNqs)
                 except Exception as err:
                     messages.add_message(req,messages.ERROR,err)
     else:  # req.method != 'POST'

@@ -79,6 +79,10 @@ urlpatterns = [
             procs_CountSchedule.viewCountWorksheetReport,name='CountWorksheet'),
     path('CountWorksheet/<CountDate>',
             procs_CountSchedule.viewCountWorksheetReport,name='CountWorksheet'),
+    path('CountWorksheetLoc',
+            procs_CountSchedule.viewCountWorksheetLocReport,name='CountWorksheetLoc'),
+    path('CountWorksheetLoc/<CountDate>',
+            procs_CountSchedule.viewCountWorksheetLocReport,name='CountWorksheetLoc'),
 
     path('MaterialForm',
             procs_Material.fnMaterialForm, name='MatlForm'),

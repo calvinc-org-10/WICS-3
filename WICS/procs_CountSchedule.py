@@ -508,3 +508,247 @@ def viewCountWorksheetReport(req, CountDate=None):
 
     return render(req, templt, cntext)
     pass
+
+############################################################################
+############################################################################
+############################################################################
+
+import datetime
+import os, uuid
+import subprocess, signal
+import re as regex
+import json
+from django.conf import settings as django_settings
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Value, Subquery, OuterRef
+from django.db.models.query import QuerySet
+from django.http import HttpResponse, HttpRequest
+from django.shortcuts import render
+from django.template.loader import render_to_string
+from django.views.generic import ListView
+from django_q.tasks import async_task
+from barcode import Code128
+from userprofiles.models import WICSuser
+from cMenu.models import getcParm
+from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate, ExcelWorkbook_fileext
+from WICS.models import MaterialList, VIEW_materials, CountSchedule, VIEW_countschedule, VIEW_LastFoundAtList
+from WICS.models_async_comm import async_comm, set_async_comm_state
+from WICS.procs_SAP import fnSAPList
+from typing import *
+from openpyxl import load_workbook
+from openpyxl.utils.datetime import from_excel, WINDOWS_EPOCH
+# below: skip Sat, Sun using dateutil, dateutil.rrule, dateutil.rruleset
+# implement skipping holidays
+from cMenu.utils import calvindate
+# from WICS.procs_misc import HolidayList
+
+class CountWorksheetLocReport(LoginRequiredMixin, ListView):
+    ordering = ['Counter', 'FoundAt', 'Material__Material']
+    context_object_name = 'CtSchd'
+    template_name = 'rpt_CountWkshtLoc_main.html'
+    
+    # def setup(self, userid, reqid, *args: Any, **kwargs: Any) -> None:
+    def setup(self, reqid, *args: Any, **kwargs: Any) -> None:
+        self._reqid = reqid
+        if 'CountDate' in kwargs: self.CountDate = kwargs['CountDate']
+        else: self.CountDate = calvindate().today().as_datetime()
+        if isinstance(self.CountDate,str): self.CountDate = calvindate(self.CountDate).as_datetime()
+
+        # return super().setup(req, *args, **kwargs)
+
+    def get_queryset(self) -> QuerySet[Any]:
+        MList = MaterialList.objects.filter(
+                    pk__in=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate).values('Material'))
+                )
+        qs = VIEW_LastFoundAtList(MList).annotate(Counter=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1])).order_by(*self.ordering) if MList.exists() else []
+
+        # qs = CountSchedule.objects.filter(CountDate=self.CountDate).order_by(*self.ordering).select_related('Material','Material__PartType')
+        # qs = qs.annotate(LastCountDate=Value(0), LastFoundAt=Value(''), SAPQty=Value(0), MaterialBarCode=Value(''), Material_org=Value(''))
+        prevCtr = None
+        prevLoc = None
+        for rec in qs:
+            strMatlNum = rec['Material_org']
+            # rec.Material_org = strMatlNum
+            set_async_comm_state(
+                self._reqid,
+                statecode = 'proc-Material',
+                statetext = f'Preparing Count Worksheet for Material {strMatlNum} at {rec["FoundAt"]}',
+                )
+
+            rec['prevLoc'] = prevLoc
+            rec['prevCounter'] = prevCtr
+            prevCtr = rec['Counter']
+            prevLoc = rec['FoundAt']
+
+            bcstr = Code128(str(strMatlNum)).render(writer_options={'module_height':7.0,'module_width':0.35,'quiet_zone':0.1,'write_text':True,'text_distance':3.5})
+            bcstr = str(bcstr).replace("b'","").replace('\\r','').replace('\\n','').replace("'","")
+            rec['MaterialBarCode'] = bcstr
+            rec['LastFoundAt'] = VIEW_materials.objects.get(pk=rec['Material']).LastFoundAt
+            rec['LastCountDate'] = VIEW_materials.objects.get(pk=rec['Material']).LastCountDate
+            
+            # replace the Material number with the actual record
+            rec['Material'] = MaterialList.objects.get(pk=rec['Material'])
+
+        return qs
+
+    # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+    #     return super().get(request, *args, **kwargs)
+
+    # there is no POST processing; it's a r/o report
+    # def post(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+    #     return HttpResponse('Stop rushing me!!')
+
+    def render_to_response(self) -> HttpResponse:
+        context = {
+            self.context_object_name: self.get_queryset()
+        }
+
+        # collect the list of Counters so that tabs can be built in the html
+        set_async_comm_state(
+            self._reqid,
+            statecode = 'proc-CounterList',
+            statetext = f'Collecting List of Counters',
+            )
+        CounterList = CountSchedule.objects.filter(CountDate=self.CountDate).order_by('Counter').values('Counter').distinct()
+
+        """         
+        # form list of last found locations
+        set_async_comm_state(
+            self._reqid,
+            statecode = 'proc-Locations',
+            statetext = f'Collecting List of Locations',
+            )
+        MList = MaterialList.objects.filter(
+                    pk__in=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate).values('Material'))
+                )
+        LocationList = VIEW_LastFoundAtList(MList).annotate(Counter=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1])).order_by('FoundAt') if MList.exists() else []
+        """
+
+        context.update({
+                # 'LocationList': LocationList,
+                'CounterList': CounterList,
+                'CountDate': self.CountDate,     # .as_datetime(), -- this was done in setup()
+                # 'SAP_Updated_at': self.SAPDate,
+                })
+
+        return render_to_string(self.template_name,context)
+
+##### the suite of procs to support viewCountWorksheetLocReport
+
+def proc_CountWorksheetLoc_00InitUMLasync_comm(reqid):
+    acomm = set_async_comm_state(
+        reqid,
+        statecode = 'initializing',
+        statetext = 'Initializing ...',
+        new_async=True
+        )
+
+def proc_CountWorksheetLoc_01PrepWorksheet(reqid, CountDate):
+    CountWorksheet_instance = CountWorksheetLocReport()
+    CountWorksheet_instance.setup(reqid, CountDate=CountDate)
+    resp = CountWorksheet_instance.render_to_response()
+
+    set_async_comm_state(
+        reqid,
+        statecode = 'writing-tmpfile',
+        statetext = f'Formatting Worksheet',
+        )
+    # write rendered_worksheet to temp file for pickup when client requests
+    svdir = django_settings.STATIC_ROOT
+    if svdir is None:
+        svdir = django_settings.STATICFILES_DIRS[0]
+    fName_base = '/tmpdl/'+'CWksht' + f'{reqid}'
+    fName = svdir + fName_base
+    if svdir is not None and fName_base is not None:
+        with open(fName, "w") as destination:
+            destination.write(str(resp))
+
+    set_async_comm_state(
+        reqid,
+        statecode = 'done',
+        statetext = f'Ready to present Worksheet',
+        result=fName,
+        )
+    
+def proc_CountWorksheetLoc_99_Cleanup(reqid, tmpHTMLfil):
+    # also kill reqid, acomm, qcluster process
+    async_comm.objects.filter(pk=reqid).delete()
+
+    # kill the django-q process
+    try:
+        os.kill(int(reqid), signal.SIGTERM)
+    except AttributeError:
+        pass
+    try:
+        os.kill(int(reqid), signal.SIGKILL)
+    except AttributeError:
+        pass
+
+    # delete the temporary file  - NOPE = it's used after this proc ends
+    # os.remove(tmpHTMLfil)
+
+
+def viewCountWorksheetLocReport(req, CountDate=None):
+    client_phase = req.POST['phase'] if 'phase' in req.POST else None
+    reqid = req.COOKIES['reqid'] if 'reqid' in req.COOKIES else None
+    # if CountDate is None: CountDate = calvindate().today().as_datetime()  # this is the old way - remove this from view params
+    CountDate = req.POST['CountDate'] if 'CountDate' in req.POST else calvindate().today().as_datetime()
+
+    if req.method == 'POST':
+        retinfo = HttpResponse()
+        if client_phase=='init-upl':
+            # start django_q broker
+            reqid = subprocess.Popen(
+                ['python', f'{django_settings.BASE_DIR}/manage.py', 'qcluster']
+            ).pid
+            retinfo.set_cookie('reqid',str(reqid))
+
+            proc_CountWorksheetLoc_00InitUMLasync_comm(reqid)
+
+            async_task(proc_CountWorksheetLoc_01PrepWorksheet, reqid, CountDate)
+
+            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+            retinfo.write(json.dumps(acomm))
+            return retinfo
+        elif client_phase=='waiting':
+            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+            retinfo.write(json.dumps(acomm))
+            return retinfo
+        elif client_phase=='wantresults':
+            # get results from temp file
+            # write rendered_worksheet to temp file for pickup when client requests
+            svdir = django_settings.STATIC_ROOT
+            if svdir is None:
+                svdir = django_settings.STATICFILES_DIRS[0]
+            fName_base = '/tmpdl/'+'CWksht' + f'{reqid}'
+            fName = svdir + fName_base
+            if svdir is not None and fName_base is not None:
+                with open(fName, "r") as readfile:
+                    retHTML = readfile.read()
+
+            # do final cleanup
+            proc_CountWorksheetLoc_99_Cleanup(reqid, fName)
+            retinfo.delete_cookie('reqid')
+
+            # return to requestor for presentation
+            return retHTML
+        elif client_phase=='cleanup-after-failure':
+            pass
+        else:
+            return
+        #endif client_phase
+    else:
+        # (hopefully,) this is the initial phase; all others will be part of a POST request
+
+        SAPDate = fnSAPList(CountDate)['SAPDate']
+
+        cntext = {
+            'SAP_Updated_at': SAPDate,
+            'CountDate': CountDate,
+            }
+        templt = 'rpt_CountWkshtLoc.html'
+    #endif req.method = 'POST'
+
+    return render(req, templt, cntext)
+    pass

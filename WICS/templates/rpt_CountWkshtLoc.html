@@ -1,0 +1,241 @@
+{% extends "WICS_common.html" %}
+{% load static %}
+
+
+{% block tTitle %}Counting Agenda/Worksheet{% endblock %}
+{% block tHeader %}
+<style>
+    @page {
+        /* size: letter portrait; */
+        margin: 0;
+        padding: 0;
+    }
+    .header {
+      position: fixed;
+      top: 0;
+    }
+    .footer {
+      position: fixed;
+      bottom: 0;
+    }
+    table, th, td {
+      border: 1px solid black;
+      border-collapse: collapse;
+    }
+</style>
+{% endblock %}
+
+{% block boddy %}
+<!-- menu head -->
+<div class="container text-center mx-auto d-print-none">
+    <div class="row max-width=100%">
+        <div class="col-10">
+            <h2>
+                Counting Agenda/Worksheet for
+                <span class="container">
+                    <input type="date" id="gotoID" onchange="loadDate();" value="{{ CountDate|date:'Y-m-d' }}">
+                </span>
+            </h2>
+            SAP Date: {{ SAP_Updated_at }}
+        </div>
+        <div class="col-2 text-end">
+            {{ user.get_full_name }}
+            <br>
+            <img src={% static 'WICS-Logo.png' %} width="150" height="70">
+            {% comment %}
+            for debugging ...
+            <br>
+            <button type='button' onclick='PollBackend(document.getElementById("phase").value);'>Poll</button>
+            {% endcomment %}
+        </div>
+    </div>
+</div>
+<div class="container text-center mx-auto d-print-none">
+    <div class="row"> <!-- status messages -->
+        <div id="wait_spinner" class="container" style="display:none">
+            <div class="spinner-border text-success"></div>
+            Processing... 
+            <br>
+        </div>
+        <div id="statecodes" style="display:none">
+            <span id="retStatecode"></span>: <span id="retStatus"></span>
+        </div>
+        <div id="fatalErrMsg"></div>
+        <input id="phase" name="phase" type="hidden" value='init-upl'></input>
+    </div>
+</div>
+
+<hr>
+<!-- body -->
+
+{% csrf_token %}
+
+<div class="container mx-auto" id="MainWorksheet">
+<!-- will be filled in once constructed - see rpt_CountWksht_main.html -->
+</div>
+
+<!-- form footer -->
+<div class="container d-print-none">
+    <div class="row mx-auto max-width=100%">
+        <div class="col-10">
+        </div>
+        <div class="col-2">
+            <button
+                id="close_btn"
+                type="button"
+            >
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                Close Form
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+
+var intervalID;
+const POLLING_INTERVAL = 1500;
+var WkshtHTMLFile;
+
+function start_wait_spinner() { document.getElementById("wait_spinner").style.display = "block"; };
+function stop_wait_spinner() { document.getElementById("wait_spinner").style.display = "none"; };
+
+function show_statecodes() { document.getElementById("statecodes").style.display = "block"; };
+function hide_statecodes() { document.getElementById("statecodes").style.display = "none"; };
+
+function loadDate() {
+    // send #gotoID back into the url
+    // dVal = $("#gotoID").val().replace(" ","%20")
+
+    // newRec = "{% url 'CountWorksheet' 'passedDate' %}"
+    // newRec = newRec.replace("/passedDate","/"+dVal);
+    // start_wait_spinner();
+    // window.location = newRec;
+    document.getElementById('phase').value = 'init-upl'
+    PollBackend(document.getElementById('phase').value)
+};
+
+function SetRetData(data) {
+    document.getElementById("retStatus").innerHTML = data.statetext;
+    document.getElementById("retStatecode").innerHTML = data.statecode;
+    WkshtHTMLFile = data.result;
+};
+
+function PollBackend(phase){
+
+    // var phase = $("#phase").val()
+    document.getElementById('phase').value = phase
+    var retStatecode;
+    const formdata = new FormData();
+    formdata.append('phase',document.getElementById('phase').value);
+    formdata.append('CountDate',document.getElementById('gotoID').value);
+
+    if (phase == 'init-upl') {
+        document.getElementById("retStatus").innerHTML = "";
+        document.getElementById("fatalErrMsg").innerHTML = "";
+        start_wait_spinner()
+
+        csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        $.ajax({
+            method: 'POST', 
+            headers: {'X-CSRFToken': csrftoken},
+            data: formdata, 
+            processData: false, 
+            contentType: false, 
+            dataType: "json",
+            success: SetRetData,
+            });
+        $("#phase").val('waiting')
+        show_statecodes();
+        intervalID = setInterval(PollBackend,POLLING_INTERVAL,'waiting');
+        // disable gotoID
+        document.getElementById("gotoID").disabled = true
+    } else if (phase == 'waiting') {
+        csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        $.ajax({
+            method: 'POST', 
+            headers: {'X-CSRFToken': csrftoken},
+            data: formdata, 
+            processData: false, 
+            contentType: false, 
+            dataType: "json",
+            success: SetRetData,
+            });
+    } else if (phase == 'wantresults') {
+        // code won't make it here; normal reuqest submitted immediately on entering this phase (see retStatecode == 'done')
+    };
+
+    retStatecode = document.getElementById("retStatecode").innerHTML;
+    // the following retStatecodes are NOOPs:
+    // starting, initializing, 
+    if (retStatecode == "fatalerr") {
+        // kill intervalID = setInterval(PollBackend,1500,'waiting');
+        clearInterval(intervalID);
+
+        $( '#fatalErrMsg' ).text( $("#retStatus").text() );
+        $( '#retStatus' ).text( "" );
+        stop_wait_spinner();
+        
+        $("#phase").val('init-upl')
+        
+        // enable gotoID
+        document.getElementById("gotoID").disabled = false
+        hide_statecodes();
+        
+        // await user action
+    } else if (retStatecode == "done") {
+        // kill intervalID = setInterval(PollBackend,1500,'waiting');
+        clearInterval(intervalID);
+        
+        // switch to results
+        $("#phase").val('wantresults');
+        // $("#getUpdSprsheet").trigger("submit");
+        formdata.set('phase',document.getElementById('phase').value);
+        csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        $.ajax({
+            method: 'POST', 
+            headers: {'X-CSRFToken': csrftoken},
+            data: formdata, 
+            processData: false, 
+            contentType: false, 
+            dataType: "html",
+            success: function(retHTML) {
+                document.getElementById('MainWorksheet').innerHTML = retHTML;
+                data = {
+                    statecode: '',
+                    statetext: '',
+                    result: '',
+                };
+                SetRetData(data);       
+                stop_wait_spinner();
+                
+                // enable gotoID
+                document.getElementById("gotoID").disabled = false
+                hide_statecodes();
+                
+                // kill reqid cookie; it's obsolete now
+                document.cookie = 'reqid=; expires=01 Jan 1970 00:00:00 UTC; path=/;'
+            },
+        });
+        
+        $("#phase").val('init-upl');
+    };
+}
+
+document.addEventListener("DOMContentLoaded", function(event) { 
+    PollBackend(document.getElementById("phase").value);
+});
+
+document.body.onbeforeunload = function() {
+    start_wait_spinner();
+    // document.getElementById("wait_spinner").style.display = "block";
+}
+
+document.getElementById("close_btn").addEventListener("click",
+    function(){
+        window.close();
+});
+
+</script>
+
+{% endblock %}

@@ -228,86 +228,106 @@ button:focus {
                     {% for err in countset.errors %}
                         {% if err %}{{ err|default:'' }}<br>{% endif %}
                     {% endfor %}
-                    <div class="container">
-                    <div class="row">
-                        <div class="col-2"><button type="button" id="AddCount" {% if userReadOnly %}disabled{%endif%}>Add Count</button></div>
-                    </div>
-                    <div class="row">
-                        <div class="col-1">Count Date</div>
-                        <div class="col-2">Counter</div>
-                        <div class="col-3">Loc Only / Physical Inventory</div>
-                        <div class="col-2">LOCATION</div>
-                        <div class="col-2">Pos Not Rec / Mvmnt</div>
-                        <div class="col">Count Notes</div>
-                    </div>
-                    </div>
+					<div class="col-2"><button type="button" id="AddCount" {% if userReadOnly %}disabled{%endif%}>Add Count</button></div>
                 </div>  <!-- card header -->
                 <div class="card-body no-padding" style="height:210px; overflow: auto;">
-                    {% for ff in countset %}
-                    {% ifchanged ff.CountDate.value %}{% if not forloop.first %}<hr>{% endif %}{% endifchanged %}
-                    <div class="row">
-                        {{ ff.id }}
-                        {{ ff.instance.id }}:&nbsp;
-                        <div class="col-1">{% render_field ff.CountDate size="10" %}</div>
-                        <div class="col-1">{% render_field ff.Counter size="10" %}</div>
-                        <div class="col-4 text-start">
-                            {% with sCE_parm=forloop.counter0  %}
-                            {# django AND widget_tweaks both screw up the dynamic onchange building, so I'm doing it myself! #}
-                            <input type="checkbox"
-                                    id="{{ ff.LocationOnly.id_for_label }}"
-                                    name="{{ff.prefix}}-{{ff.LocationOnly.name}}"
-                                    onchange="sCE({{ sCE_parm }});"
-                                    {% if ff.LocationOnly.value %} checked{% endif %}
-                                    >
-                            <input type="text"
-                                    id="{{ ff.CTD_QTY_Expr.id_for_label }}"
-                                    name="{{ff.prefix}}-{{ff.CTD_QTY_Expr.name}}"
-                                    {% if ff.CTD_QTY_Expr.value != None %} value="{{ ff.CTD_QTY_Expr.value|stringformat:'s' }}"{% endif %}
-                                    maxlength="500" size="35"
-                                    onchange="sCE({{ sCE_parm }});">
-                            <span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
-                            {% endwith %}
-                        </div>
-                        <div class="col-2">
-                            {% render_field ff.LOCATION size="8" %}
-                            {{ ff.FLAG_PossiblyNotRecieved }}
-                            {{ ff.FLAG_MovementDuringCount }}
-                        </div>
-                        <div class="col-2">{% render_field ff.Notes size="30" %}</div>
-                        <div class="col-1">
-                            <button type="button" onclick="CopyCount({{forloop.counter0}})">
-                                Copy Count
-                            </button>
-                        </div>
-                    </div>  <!-- row -->
-                    {% endfor %}
+                    <table>
+						<thead>
+							<tr>
+								<th scope="col"></th>
+								<th scope="col">Count Date</th>
+								<th scope="col">Counter</th>
+								<th scope="col">Loc Only / Physical Inventory</th>
+								<th scope="col">LOCATION</th>
+								<th scope="col">Pos Not Rec / Mvmnt</th>
+								<th scope="col">Count Notes</th>
+								<th scope="col"></th>
+							</tr>
+						</thead>
+						<tbody>
+						{% for ff in countset %}
+                            {% ifchanged ff.CountDate.value %} {% if not forloop.first %}
+                            <tr> <td colspan=8>&nbsp;</td> </tr>   <!-- blank line intentional to separate dates -->
+                            {% endif %}{% endifchanged %}
+							<tr>
+								{% if ff.errors %}<td colspan=8>{{ff.errors}}</td></tr><tr>{% endif %}
+								{{ ff.id }}
+								<td scope="col">{{ ff.instance.id }}</td>
+								<td scope="col">
+                                    {% ifchanged ff.CountDate.value %}
+                                        {% render_field ff.CountDate class="border border-5 border-danger fw-bold" size="10" %}
+                                    {% else %}
+                                        {% render_field ff.CountDate size="10" %}
+                                    {% endifchanged %}
+                                </td>
+								<td scope="col">{% render_field ff.Counter size="10" %}</td>
+								<td scope="col" style="text-align:start;">
+									{% with sCE_parm=forloop.counter0  %}
+									{# django AND widget_tweaks both screw up the dynamic onchange building, so I'm doing it myself! #}
+									<input type="checkbox"
+											id="{{ ff.LocationOnly.id_for_label }}"
+											name="{{ff.LocationOnly.html_name}}"
+											onchange="sCE({{ sCE_parm }});"
+											{% if ff.LocationOnly.value %} checked{% endif %}
+											>
+									<input type="text"
+											id="{{ ff.CTD_QTY_Expr.id_for_label }}"
+											name="{{ff.CTD_QTY_Expr.html_name}}"
+											{% if ff.CTD_QTY_Expr.value != None %} value="{{ ff.CTD_QTY_Expr.value|stringformat:'s' }}"{% endif %}
+											maxlength="500" size="35"
+											onchange="sCE({{ sCE_parm }});">
+									<span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
+									{% endwith %}
+								</td>
+								<td scope="col">
+									{% render_field ff.LOCATION size="8" %}
+								</td>
+								<td scope="col" style="text-align:center;">
+									{{ ff.FLAG_PossiblyNotRecieved }}
+									{{ ff.FLAG_MovementDuringCount }}
+								</td>
+								<td scope="col">{% render_field ff.Notes size="30" %}</td>
+								<td scope="col">
+									<button type="button" onclick="CopyCount({{forloop.counter0}})">
+										Copy Count
+									</button>
+								</td>
+							</tr>  <!-- row -->
+						{% endfor %}
+						</tbody>
+					</table>
                 </div>  <!-- card body-->
             </div>  <!-- Bootstrap card -->
         </div>  <!-- tab pane CountDetail -->
         <div class="tab-pane container fade" id="CountSummary">
             <div class="card">
-                <div class="card-header">
-                    {{ countsummset.management_form }}
-                    <div class="container"><div class="row">
-                    <div class="col-2">Count Date</div>
-                    <div class="col-2">Total Counted</div>
-                    <div class="col-2">SAP Date</div>
-                    <div class="col-2">SAP Qty</div>
-                    <div class="col-2">Diff</div>
-                    <div class="col">Acc %</div>
-                    </div></div>
-                </div>  <!-- card-header -->
-                <div class="card-body no-padding" style="height:210px; overflow: auto;">
-                    <ul>
+            {{ countsummset.management_form }}
+            <div class="card-body no-padding" style="height:210px; overflow: auto;">
+            <table>
+                <thead>
+                <tr>
+                    <th scope="col" style="text-align:center;">Count Date</th>
+                    <th scope="col" style="text-align:center;">Total Counted</th>
+                    <th scope="col" style="text-align:center;">SAP Date</th>
+                    <th scope="col" style="text-align:center;">SAP Qty</th>
+                    <th scope="col" style="text-align:center;">Diff</th>
+                    <th scope="col" style="text-align:center;">Acc %</th>
+                </tr>
+                </thead>
+                <tbody>
                     {% for ffrm in countsummset %}
-                        <li>
-                        {% for ffld in ffrm %}
-                            {% if ffld.name != 'Material' %}{{ ffld }}{% endif %}
-                        {% endfor %}
-                        </li>
+                        <tr>
+                            <td scope="col">{%render_field ffrm.CountDate style="text-align:center;" size=12%}</td>
+                            <td scope="col">{%render_field ffrm.CountQTY_Eval style="text-align:center;" size=12%}</td>
+                            <td scope="col">{%render_field ffrm.SAPDate style="text-align:center;" size=12%}</td>
+                            <td scope="col">{%render_field ffrm.SAPQty style="text-align:center;" size=12%}</td>
+                            <td scope="col">{%render_field ffrm.Diff style="text-align:center;" size=12%}</td>
+                            <td scope="col">{%render_field ffrm.Accuracy style="text-align:center;" size=12%}</td>
+                        </tr>
                     {% endfor %}
-                    </ul>
-                </div>  <!-- card-body -->
+                </tbody>
+            </table>
+            </div>  <!-- card-body -->
             </div>  <!-- card -->
         </div>    <!-- tab pane CountSummary -->
         <div class="tab-pane container fade" id="CountSchedule">
