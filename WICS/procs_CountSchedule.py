@@ -513,36 +513,6 @@ def viewCountWorksheetReport(req, CountDate=None):
 ############################################################################
 ############################################################################
 
-import datetime
-import os, uuid
-import subprocess, signal
-import re as regex
-import json
-from django.conf import settings as django_settings
-from django.contrib.auth.decorators import login_required
-from django.contrib.auth.mixins import LoginRequiredMixin
-from django.db.models import Value, Subquery, OuterRef
-from django.db.models.query import QuerySet
-from django.http import HttpResponse, HttpRequest
-from django.shortcuts import render
-from django.template.loader import render_to_string
-from django.views.generic import ListView
-from django_q.tasks import async_task
-from barcode import Code128
-from userprofiles.models import WICSuser
-from cMenu.models import getcParm
-from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate, ExcelWorkbook_fileext
-from WICS.models import MaterialList, VIEW_materials, CountSchedule, VIEW_countschedule, VIEW_LastFoundAtList
-from WICS.models_async_comm import async_comm, set_async_comm_state
-from WICS.procs_SAP import fnSAPList
-from typing import *
-from openpyxl import load_workbook
-from openpyxl.utils.datetime import from_excel, WINDOWS_EPOCH
-# below: skip Sat, Sun using dateutil, dateutil.rrule, dateutil.rruleset
-# implement skipping holidays
-from cMenu.utils import calvindate
-# from WICS.procs_misc import HolidayList
-
 class CountWorksheetLocReport(LoginRequiredMixin, ListView):
     ordering = ['Counter', 'FoundAt', 'Material__Material']
     context_object_name = 'CtSchd'
@@ -561,7 +531,12 @@ class CountWorksheetLocReport(LoginRequiredMixin, ListView):
         MList = MaterialList.objects.filter(
                     pk__in=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate).values('Material'))
                 )
-        qs = VIEW_LastFoundAtList(MList).annotate(Counter=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1])).order_by(*self.ordering) if MList.exists() else []
+        qs = []
+        if MList.exists():
+            qs = VIEW_LastFoundAtList(MList).annotate(
+                Counter=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1]),
+                MaterialBarCode=Value(''),
+                ).order_by(*self.ordering) 
 
         # qs = CountSchedule.objects.filter(CountDate=self.CountDate).order_by(*self.ordering).select_related('Material','Material__PartType')
         # qs = qs.annotate(LastCountDate=Value(0), LastFoundAt=Value(''), SAPQty=Value(0), MaterialBarCode=Value(''), Material_org=Value(''))
@@ -581,9 +556,14 @@ class CountWorksheetLocReport(LoginRequiredMixin, ListView):
             prevCtr = rec['Counter']
             prevLoc = rec['FoundAt']
 
-            bcstr = Code128(str(strMatlNum)).render(writer_options={'module_height':7.0,'module_width':0.35,'quiet_zone':0.1,'write_text':True,'text_distance':3.5})
+            bcstr = Code128(str(strMatlNum)).render(writer_options={'module_height':7.0,'module_width':0.35,'quiet_zone':0.1,'write_text':False})
             bcstr = str(bcstr).replace("b'","").replace('\\r','').replace('\\n','').replace("'","")
             rec['MaterialBarCode'] = bcstr
+
+            bcstr = Code128(str(rec['FoundAt'])).render(writer_options={'module_height':7.0,'module_width':0.35,'quiet_zone':0.1,'write_text':False})
+            bcstr = str(bcstr).replace("b'","").replace('\\r','').replace('\\n','').replace("'","")
+            rec['LocationBarCode'] = bcstr
+
             rec['LastFoundAt'] = VIEW_materials.objects.get(pk=rec['Material']).LastFoundAt
             rec['LastCountDate'] = VIEW_materials.objects.get(pk=rec['Material']).LastCountDate
             
@@ -600,8 +580,9 @@ class CountWorksheetLocReport(LoginRequiredMixin, ListView):
     #     return HttpResponse('Stop rushing me!!')
 
     def render_to_response(self) -> HttpResponse:
+        Q = self.get_queryset()
         context = {
-            self.context_object_name: self.get_queryset()
+            self.context_object_name: Q
         }
 
         # collect the list of Counters so that tabs can be built in the html
@@ -612,21 +593,27 @@ class CountWorksheetLocReport(LoginRequiredMixin, ListView):
             )
         CounterList = CountSchedule.objects.filter(CountDate=self.CountDate).order_by('Counter').values('Counter').distinct()
 
-        """         
-        # form list of last found locations
+        # form Material summary list
         set_async_comm_state(
             self._reqid,
-            statecode = 'proc-Locations',
-            statetext = f'Collecting List of Locations',
+            statecode = 'proc-MatlSumm',
+            statetext = f'Collecting Material Summary List',
             )
-        MList = MaterialList.objects.filter(
+        MList = VIEW_materials.objects.filter(
                     pk__in=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate).values('Material'))
+                ).annotate(
+                    Counter=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1]),
+                    MaterialBarCode=Value(''),
+                ).order_by(
+                    'Material', 'org'
                 )
-        LocationList = VIEW_LastFoundAtList(MList).annotate(Counter=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1])).order_by('FoundAt') if MList.exists() else []
-        """
+        for rec in MList:
+            bcstr = Code128(str(rec.Material_org)).render(writer_options={'module_height':7.0,'module_width':0.35,'quiet_zone':0.1,'write_text':False})
+            bcstr = str(bcstr).replace("b'","").replace('\\r','').replace('\\n','').replace("'","")
+            rec.MaterialBarCode = bcstr
 
         context.update({
-                # 'LocationList': LocationList,
+                'MaterialList': MList,
                 'CounterList': CounterList,
                 'CountDate': self.CountDate,     # .as_datetime(), -- this was done in setup()
                 # 'SAP_Updated_at': self.SAPDate,

@@ -4,13 +4,15 @@
     {% ifchanged itm.Counter %}
         {% if not forloop.first %}
             {# print summary of Materials for previous Counter #}
-            {% for M in CtSchd %}
+            {% for M in MaterialList %}
             {% if forloop.first %}<hr><div class="fs-4" style="break-before: page;"><u>{{itm.prevCounter|default:""}} Materials</u><ul>{% endif %}
                 {% if M.Counter == itm.prevCounter %}
                 <li>
                     {{ M.MaterialBarCode|safe }}
                     {{ M.Material_org }}
-                </li>
+                    Last Found At {{ M.LastFoundAt }}
+                    on {{ M.LastCountDate }}
+                        </li>
                 {% endif %}
             {% if forloop.last %}</ul></div>{% endif %}
             {% endfor %}
@@ -51,10 +53,10 @@
         <hr>
         {% endif %}
         <div style="break-inside: avoid;">  <!-- avoid page breaks for a single Material sheet -->
-        <div class="row g-0 max-width=100%">
-            <div class="col-7 fs-2">
-                <b>Location {{ itm.FoundAt }}</b>
-            </div>
+        <div class="row g-0 max-width=100% fs-2">
+            <span>
+                <b>Location {{ itm.FoundAt }}</b> {{ itm.LocationBarCode|safe }}
+            </span>
         </div>
         <br>
         <div class="row g-0 fs-3">
@@ -106,12 +108,13 @@
     </div>
     </div>  <!-- style="break-inside: avoid;">  {!-- avoid page breaks for a single Material sheet -->
         {# print summary of Materials for previous Counter #}
-        {% for M in CtSchd %}
+        {% for M in MaterialList %}
         {% if forloop.first %}<hr><div class="fs-4" style="break-before: page;"><u>{{itm.prevCounter|default:""}} Materials</u><ul>{% endif %}
             {% if M.Counter == itm.Counter %}
             <li>
-                {{ M.MaterialBarCode|safe }}
-                {{ M.Material_org }}
+                <b>{{ M.Material_org }}</b> {{ M.MaterialBarCode|safe }}
+                Last Found At {{ M.LastFoundAt }}
+                on {{ M.LastCountDate }}
             </li>
         {% endif %}
         {% if forloop.last %}</ul></div>{% endif %}
