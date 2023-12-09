@@ -1,13 +1,14 @@
 _base_ver_major=3
 _base_ver_minor=4
-_base_ver_patch=1
-_ver_date='2023-10-30'
+_base_ver_patch=2
+_ver_date='2023-12-09'
 _base_ver = str(_base_ver_major) +'.'+ str(_base_ver_minor) +'.'+ str(_base_ver_patch)
 sysver = {
     'DEV': 'DEV'+_base_ver, 
     'PROD':_base_ver,
     } 
 
+# 3.4.2 - 2023-12-09 Reverted to a semi-automatic async process for Update Material List untill bugs squashed
 # 3.4.1 - 2023-10-30 Added Count Worksheet by Location, other small tweaks
 # 3.4.0 - 2023-10-24 Added Mfr PN lookup table, form for same, and tab in Material table
 # 3.3.2 - 2023-10-14 read/set TIME_ZONE based on browser value

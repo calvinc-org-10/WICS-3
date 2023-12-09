@@ -132,6 +132,7 @@ button:focus {
                     </div>
                     <div class="col-2">
                         <button id="SchedCount" type="button" {% if userReadOnly %}disabled{%endif%}>Schedule Count</button>
+					    <button type="button" id="AddCount" {% if userReadOnly %}disabled{%endif%}>Add Count</button>
                     </div>
                     {% comment %}
                     NOTE: if this goes back, it needs to be moved outside the form, else it makes the form dirty for exit
@@ -228,7 +229,6 @@ button:focus {
                     {% for err in countset.errors %}
                         {% if err %}{{ err|default:'' }}<br>{% endif %}
                     {% endfor %}
-					<div class="col-2"><button type="button" id="AddCount" {% if userReadOnly %}disabled{%endif%}>Add Count</button></div>
                 </div>  <!-- card header -->
                 <div class="card-body no-padding" style="height:210px; overflow: auto;">
                     <table>

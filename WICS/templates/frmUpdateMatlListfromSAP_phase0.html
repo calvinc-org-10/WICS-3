@@ -28,13 +28,11 @@
     </div>
 </div>
 <hr>
-{% comment %}
 <h4>
     The timing of this process is not easy for Calvin to program, so this is mostly a manual process. <br>
-    Make sure you start the django-q process first!
+    It helps to monitor the django-q process!
 </h4>
 <hr>
-{% endcomment %}
 <form id="getUpdSprsheet" method="post" enctype="multipart/form-data">
     {% csrf_token %}
     Where is the SAP Material List Spreadsheet? 
@@ -43,13 +41,14 @@
         accept=".xlsx,application/vnd.ms-excel">
        </input>
     </p>
-    <input id="phase" name="phase" type="hidden" value='init-upl'></input>
+    <!-- <input id="phase" name="phase" type="hidden" value='init-upl'></input> -->
+    <input id="phase" name="phase" type="text" value='init-upl'></input>
 
     <!-- form footer -->
     <div class="container">
         <div class="row mx-auto max-width=100%">
             <div class="col-6">
-                <button id="next_btn-0" type="button" onclick="PollBackend('init-upl');">
+                <button id="next_btn" type="button" onclick="PollBackend_fromInput();">
                     <img src="{% static 'upload-outbox-line-icon.svg' %}" width="20" height="20"></img>
                     Upload
                 </button>
@@ -93,6 +92,9 @@
         document.getElementById("retStatecode").innerHTML = data.statecode;
         };
 
+    function PollBackend_fromInput() {
+        PollBackend($("#phase").val())
+    }
     function PollBackend(phase){
 
         // var phase = $("#phase").val()
@@ -119,7 +121,7 @@
             
             // disable buttons
             document.getElementById("SAPFile").disabled = true
-            document.getElementById("next_btn-0").disabled = true
+            // document.getElementById("next_btn").disabled = true
         } else if (phase == 'waiting') {
             $.ajax({
                 method: 'POST', 
@@ -176,7 +178,7 @@
             $( '#SAPFile' ).trigger("focus");
 
             // await user action
-        } else if (false && retStatecode == "done-rdng-sprsht") {
+        } else if (retStatecode == "done-rdng-sprsht") {
             clearInterval(intervalID);  // stop polling
             stop_wait_spinner();
             
@@ -187,7 +189,7 @@
             $("#next_btn").text("Phase 1 processing (identify new/deleted matls)")
 
             // await user action            
-        } else if (false && retStatecode == "get-matl-link-done") {
+        } else if (retStatecode == "get-matl-link-done") {
             clearInterval(intervalID);
             stop_wait_spinner();
             
@@ -218,20 +220,4 @@
 
 </script>
 
-{% comment %}
-Ensure that execution duration is shorter than interval frequency
-If there is a possibility that your logic could take longer to execute than the interval time, it is recommended that you recursively call a named function using setTimeout(). For example, if using setInterval() to poll a remote server every 5 seconds, network latency, an unresponsive server, and a host of other issues could prevent the request from completing in its allotted time. As such, you may find yourself with queued up XHR requests that won't necessarily return in order.
-
-In these cases, a recursive setTimeout() pattern is preferred:
-
-(function loop() {
-  setTimeout(() => {
-    // Your logic here
-
-    loop();
-  }, delay);
-})();
-In the above snippet, a named function loop() is declared and is immediately executed. loop() is recursively called inside setTimeout() after the logic has completed executing. While this pattern does not guarantee execution on a fixed interval, it does guarantee that the previous interval has completed before recursing.
-
-{% endcomment %}
 {% endblock %}
