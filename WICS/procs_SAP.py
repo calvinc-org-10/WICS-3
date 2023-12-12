@@ -554,9 +554,9 @@ def done_MatlListSAPSprsheet_02_identifyexistingMaterial(reqid):
     proc_MatlListSAPSprsheet_11_DoStep3(reqid)
 
 def proc_MatlListSAPSprsheet_03_Remove(reqid):
-    MustKeepMatlsDelCond = ''
-    if MustKeepMatlsDelCond: MustKeepMatlsDelCond += ' AND '
-    MustKeepMatlsDelCond += 'id IN (SELECT DISTINCT delMaterialLink FROM WICS_tmpmateriallistupdate WHERE recStatus like "DEL%")'
+    ## MustKeepMatlsDelCond = ''
+    ## if MustKeepMatlsDelCond: MustKeepMatlsDelCond += ' AND '
+    ## MustKeepMatlsDelCond += 'id IN (SELECT DISTINCT delMaterialLink FROM WICS_tmpmateriallistupdate WHERE recStatus like "DEL%")'
 
     set_async_comm_state(
         reqid,
@@ -564,8 +564,12 @@ def proc_MatlListSAPSprsheet_03_Remove(reqid):
         statetext = f'Removing WICS Materials no longer in SAP MM60 Materials',
         )
     # do the Removals
-    DeleteMatlsDoitSQL = "DELETE FROM WICS_materiallist"
-    DeleteMatlsDoitSQL += f" WHERE ({MustKeepMatlsDelCond})"
+    ## DeleteMatlsDoitSQL = "DELETE FROM WICS_materiallist"
+    ## DeleteMatlsDoitSQL += f" WHERE ({MustKeepMatlsDelCond})"
+    DeleteMatlsDoitSQL = 'DELETE MATL'
+    DeleteMatlsDoitSQL += ' FROM WICS_materiallist AS MATL INNER JOIN WICS_tmpmateriallistupdate AS TMP'
+    DeleteMatlsDoitSQL += '    ON MATL.id = TMP.delMaterialLink'
+    DeleteMatlsDoitSQL += ' WHERE TMP.recStatus like "DEL%"'
     with connection.cursor() as cursor:
         cursor.execute(DeleteMatlsDoitSQL)
         transaction.on_commit(partial(done_MatlListSAPSprsheet_03_Remove,reqid))
