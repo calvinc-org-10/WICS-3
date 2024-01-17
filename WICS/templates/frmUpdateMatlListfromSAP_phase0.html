@@ -27,11 +27,14 @@
         <div id="fatalErrMsg"></div>
     </div>
 </div>
-<hr>
-<h4>
-    The timing of this process is not easy for Calvin to program, so this is mostly a manual process. <br>
-    It helps to monitor the django-q process!
-</h4>
+{% comment %}
+    <hr>
+    <h4>
+        The timing of this process is not easy for Calvin to program, so this is mostly a manual process. <br>
+        It helps to monitor the django-q process!
+    </h4>
+    
+{% endcomment %}
 <hr>
 <form id="getUpdSprsheet" method="post" enctype="multipart/form-data">
     {% csrf_token %}
@@ -41,8 +44,7 @@
         accept=".xlsx,application/vnd.ms-excel">
        </input>
     </p>
-    <!-- <input id="phase" name="phase" type="hidden" value='init-upl'></input> -->
-    <input id="phase" name="phase" type="text" value='init-upl'></input>
+    Phs: <input id="phase" name="phase" type="text" value='init-upl' readonly></input>
 
     <!-- form footer -->
     <div class="container">
@@ -52,21 +54,6 @@
                     <img src="{% static 'upload-outbox-line-icon.svg' %}" width="20" height="20"></img>
                     Upload
                 </button>
-                {% comment %}
-                <button id="next_btn-1" type="button" onclick="PollBackend('need-ident-exist-matl');">
-                    <span class="bi-search" ></span>
-                    Examine Sprsht for add/deletes
-                </button>
-                <button id="next_btn-2" type="button" onclick="PollBackend('need-add-del');">
-                    <span class="bi-database-fill-add" ></span>
-                    <span class="bi-database-fill-dash" ></span>
-                    Do add/deletes
-                </button>
-                <button id="next_btn-3" type="button" onclick="PollBackend('waiting');">
-                    <span class="bi-hourglass-split" ></span>
-                    Force Poll Cycle
-                </button>
-                {% endcomment %}
             </div>
             <div class="col-4"></div>
             <div class="col">
@@ -97,7 +84,7 @@
     }
     function PollBackend(phase){
 
-        // var phase = $("#phase").val()
+        // var phase = $("#phase").val() - phase gets passed in now - leave this code JIC
         $("#phase").val(phase)
         var retStatecode;
         const fform = document.getElementById("getUpdSprsheet");
@@ -117,11 +104,11 @@
                 success: SetRetData,
                 });
             $("#phase").val('waiting')
-            intervalID = setInterval(PollBackend,POLLING_INTERVAL,'waiting');
+            intervalID = setInterval(PollBackend_fromInput,POLLING_INTERVAL);
             
             // disable buttons
             document.getElementById("SAPFile").disabled = true
-            // document.getElementById("next_btn").disabled = true
+            document.getElementById("next_btn").disabled = true
         } else if (phase == 'waiting') {
             $.ajax({
                 method: 'POST', 
@@ -143,7 +130,7 @@
                 success: SetRetData,
                 });
             $("#phase").val('waiting')
-            intervalID = setInterval(PollBackend,POLLING_INTERVAL,'waiting');
+            intervalID = setInterval(PollBackend_fromInput,POLLING_INTERVAL);
         } else if (phase == 'need-add-del') {
             start_wait_spinner()
 
@@ -156,7 +143,7 @@
                 success: SetRetData,
                 });
             $("#phase").val('waiting')
-            intervalID = setInterval(PollBackend,POLLING_INTERVAL,'waiting');
+            intervalID = setInterval(PollBackend_fromInput,POLLING_INTERVAL);
         } else if (phase == 'wantresults') {
             // code won't make it here; normal reuqest submitted immediately on entering this phase (see retStatecode == 'done')
         };
@@ -173,12 +160,15 @@
             stop_wait_spinner();
             
             $("#phase").val('init-upl')
-            
+            document.getElementById("SAPFile").disabled = false
+            document.getElementById("next_btn").disabled = false
+
             $( '#SAPFile' ).val(null);
             $( '#SAPFile' ).trigger("focus");
 
             // await user action
         } else if (retStatecode == "done-rdng-sprsht") {
+            /** now that the backend runs in acceptable time, don't do this manually
             clearInterval(intervalID);  // stop polling
             stop_wait_spinner();
             
@@ -189,7 +179,9 @@
             $("#next_btn").text("Phase 1 processing (identify new/deleted matls)")
 
             // await user action            
+            **/
         } else if (retStatecode == "get-matl-link-done") {
+            /** now that the backend runs in acceptable time, don't do this manually
             clearInterval(intervalID);
             stop_wait_spinner();
             
@@ -197,7 +189,8 @@
             
             $("#next_btn").text("Phase 2 processing (do add/deletes)")
 
-            // await user action            
+            // await user action
+            **/
         } else if (retStatecode == "done") {
             // kill intervalID = setInterval(PollBackend,1500,'waiting');
             clearInterval(intervalID);
