@@ -19,6 +19,23 @@ from WICS.models import WhsePartTypes, MaterialList, tmpMaterialListUpdate
 from WICS.models_async_comm import async_comm, set_async_comm_state
 
 
+def fnSAPExists(reqDate=calvindate().today()):
+    """
+    returns true or false indicating if SAP_SOH data exists for reqDate
+    """
+
+    return SAP_SOHRecs.objects.filter(uploaded_at=calvindate(reqDate).as_datetime()).exists()
+def fnajaxSAPExists(req, reqDate=calvindate().today()):
+    """
+    returns true or false to an ajax caller indicating if SAP_SOH data exists for reqDate
+    """
+
+    retinfo = HttpResponse()
+
+    retinfo.write(json.dumps(fnSAPExists(reqDate)))
+    return retinfo
+
+
 @login_required
 def fnShowSAP(req, reqDate=calvindate().today()):
 

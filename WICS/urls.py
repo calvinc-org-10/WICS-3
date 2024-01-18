@@ -120,6 +120,8 @@ urlpatterns = [
 
     path('SAP',procs_SAP.fnShowSAP,name='showtable-SAP'),
     path('SAP/<str:reqDate>',procs_SAP.fnShowSAP,name='showtable-SAP'),
+    
+    path('SAP/exists/ajax/<str:reqDate>',procs_SAP.fnajaxSAPExists,name='SAPajaxExists'),
 
     path('UpldActCtSprsht', procs_ActualCounts.fnUploadActCountSprsht, name='UploadActualCountSprsht'),
 

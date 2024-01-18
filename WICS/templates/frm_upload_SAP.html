@@ -38,8 +38,8 @@
             <p>This upload will have date: {{ form.uploaded_at }} (if an existing upload exists for this date, it will be overwritten)</p>    
 {% endcomment %}        
         <p>This upload will have date: 
-            <input type="date" name="uploaded_at" required id="id_uploaded_at">
-            (if an existing upload exists for this date, it will be overwritten)
+            <input type="date" name="uploaded_at" required id="id_uploaded_at" onchange="checkSAPDate(this)">
+            <span id="existingupload" style="color:red; font-weight:bolder"></span>
         </p>
         <p>{{ form.SAPFile }}</p>
         <input id="phase" name="phase" type="hidden" value='init-upl'></input>
@@ -98,6 +98,22 @@
             function(){
                 window.close();
             });
+
+        function checkSAPDate(dateElmnt) {
+        // the date has changed, check the db to see if SAP_SOH entries exist for the proposed date
+            // let dStr = dtstr(dateElmnt)  // dateElmnt.value IS a string!!
+            let dStr = dateElmnt.value
+            let urlExst = "{% url 'SAPajaxExists' 'DATE' %}"
+            urlExst = urlExst.replace('DATE',dStr)
+            $.ajax({
+                url: urlExst,
+                type: "GET",
+                dataType: "json",
+            })
+            .done(function(exstRetval) {
+                $("#existingupload").html(exstRetval ? `<b>(an existing SAP upload exists for ${dStr}. It will be overwritten!!)</b>` : "")
+            })
+        }
 
         function PollServer(){
 
