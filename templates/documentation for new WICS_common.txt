@@ -1,0 +1,22 @@
+
+{#####  WICS_common blocks #####}
+{# listed in order of occurrence in rendered HTML #}
+<html>
+<head>
+	{# ... #}
+    {% block tTitle %}{% endblock %} 		- Title of the rendered page.  Generally necessary to supply.
+    {% block tHeader %}{% endblock %}		- Extra HTML for <head> block.  Generally not used.
+	{% block customCSS %}{% endblock %}		- Custom CSS for this page.  Rendered inside <style> tags inside block tHeader
+</head>
+<body ...
+	{% block boddyAttr %}{% endblock %}		- Attributes for the <body> tag.  Generally not used.
+	{% block WICSHeader_div_attr %}{% endblock %}	- Attributes for the <div> tag defining the standard header for each form.
+	{% block formName %}{% endblock %}		- Name of the form generally shown at top middle of page.  Generally necessary to supply.
+	{% block wait_spinner_msgs %}{% endblock %}		- "Extra" message to be shown with the wait_spinner.  Is often "Processing..." for forms expected to take a while.
+	{% block statusMsgs %}{% endblock %}	- Extra status messages for the page's header block.  Should be <div> blocks if given.
+	{% block boddy %}{% endblock %}			- The main part of the form.  Generally MUST be supplied.
+</body>
+</html>
+
+
+{%%%%%  WICSHeader can be removed %%%%%}
