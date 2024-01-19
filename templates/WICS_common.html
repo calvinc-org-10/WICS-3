@@ -1,3 +1,4 @@
+{#####  WICS_common  #####}
 <!DOCTYPE html>
 {% load static %}
 <html>
@@ -23,9 +24,35 @@
     <script src="{% static 'calvinprocs.js' %}"></script>
     <link rel="icon" type="image/x-icon" href="{% static 'WICS-favicon.png' %}">
     <title>{% block tTitle %}{% endblock %}</title>
-    {% block tHeader %}{% endblock %}
+    {% block tHeader %}
+	<style>{% block customCSS %}{% endblock %}</style>
+	{% endblock %}
 </head>
 <body {% block boddyAttr %}{% endblock %}>
+<div class="container text-center mx-auto {% block WICSHeader_div_attr %}{% endblock %}">
+    <div class="row">   <!-- WICS Logo, FormName and username -->
+		<div class="col-6 fs-3 text-center">{% block formName %}{% endblock %}</div>
+        <div class="col-4 fs-2 text-start"><img src={% static 'WICS-Logo.png' %} width="150" height="75"></div>
+        <div class="col-2 text-end"> {{ user.get_full_name }} </div>
+    </div>
+    <div class="row"> <!-- status messages -->
+        <div id="wait_spinner" class="container" style="display:none">
+			<div class="spinner-border text-success">
+			{% block wait_spinner_msgs %}
+			{% endblock %}
+			</div>
+		</div>
+        {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+            <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+		{% block statusMsgs %}<!-- extra status messages should be div's -->{% endblock %}
+    </div> <!-- row -->
+</div> <!-- container -->
+
 {% block boddy %}
 {% endblock %}
 </body>
