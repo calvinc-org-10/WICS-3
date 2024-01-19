@@ -266,7 +266,7 @@ def FoundAt(matl = None):
     else:
         Totalqs = VIEW_actualcounts().filter(Material=matl)
 
-    FA_qs = Totalqs.values('Material', 'Material_org', 'CountDate').annotate(FoundAt=GroupConcat('LOCATION',distinct=True, ordering='LOCATION'))
+    FA_qs = Totalqs.order_by('Material_org', '-CountDate').values('Material', 'Material_org', 'CountDate').annotate(FoundAt=GroupConcat('LOCATION',distinct=True, ordering='LOCATION'))
     return FA_qs
 
 def VIEW_LastFoundAtList(matl=None):
