@@ -3,29 +3,14 @@
 {% load static %}
 
 {% block tTitle %}Upload SAP File{% endblock %}
+{% block formName %}Upload SAP MB52 Spreadsheet{% endblock %}
+{% block wait_spinner_msgs %}Processing...<br>{% endblock %}
+{% block statusMsgs %}
+    <span id="retStatecode" style="display:none"></span><span id="Upload-Status"></span>
+    <div id="fatalErrMsg"></div>
+{% endblock %}
 
 {% block boddy %}
-    <div class="container text-center mx-auto">
-    <div class="row">
-        <div class="col-6 fs-3 text-end">
-            <br>
-            Upload SAP MB52 Spreadsheet
-        </div>
-        <div class="col-4 text-start">
-            <img src={% static 'WICS-Logo.png' %} width="200" height="100">
-        </div>
-        <div class="col-2 text-end"> {{ user.get_full_name }} </div>
-    </div>
-    <div class="row"> <!-- status messages -->
-        <div id="wait_spinner" class="container" style="display:none">
-            <div class="spinner-border text-success"></div>
-            Processing... 
-            <br>
-            <span id="retStatecode" style="display:none"></span><span id="Upload-Status"></span>
-        </div>
-        <div id="fatalErrMsg"></div>
-    </div>  <!-- row -->
-    </div>  <!-- container -->
     <hr>
 
     {% if form.errors %}{{ form.errors }}{% endif %}

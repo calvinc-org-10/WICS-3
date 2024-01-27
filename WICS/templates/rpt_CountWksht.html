@@ -3,8 +3,7 @@
 
 
 {% block tTitle %}Counting Agenda/Worksheet{% endblock %}
-{% block tHeader %}
-<style>
+{% block customCSS %}
     @page {
         /* size: letter portrait; */
         margin: 0;
@@ -22,49 +21,24 @@
       border: 1px solid black;
       border-collapse: collapse;
     }
-</style>
+{% endblock %}
+{% block formName %}
+    <span class="container fs-2">
+    Counting Agenda/Worksheet for
+        <input type="date" id="gotoID" onchange="loadDate();" value="{{ CountDate|date:'Y-m-d' }}">
+    </span>
+    SAP Date: {{ SAP_Updated_at }}
+{% endblock %}
+{% block wait_spinner_msgs %}Processing...<br>{% endblock %}
+{% block statusMsgs %}
+    <div id="statecodes" style="display:none">
+        <span id="retStatecode"></span>: <span id="retStatus"></span>
+    </div>
+    <div id="fatalErrMsg"></div>
+    <input id="phase" name="phase" type="hidden" value='init-upl'></input>
 {% endblock %}
 
 {% block boddy %}
-<!-- menu head -->
-<div class="container text-center mx-auto d-print-none">
-    <div class="row max-width=100%">
-        <div class="col-10">
-            <h2>
-                Counting Agenda/Worksheet for
-                <span class="container">
-                    <input type="date" id="gotoID" onchange="loadDate();" value="{{ CountDate|date:'Y-m-d' }}">
-                </span>
-            </h2>
-            SAP Date: {{ SAP_Updated_at }}
-        </div>
-        <div class="col-2 text-end">
-            {{ user.get_full_name }}
-            <br>
-            <img src={% static 'WICS-Logo.png' %} width="150" height="70">
-            {% comment %}
-            for debugging ...
-            <br>
-            <button type='button' onclick='PollBackend(document.getElementById("phase").value);'>Poll</button>
-            {% endcomment %}
-        </div>
-    </div>
-</div>
-<div class="container text-center mx-auto d-print-none">
-    <div class="row"> <!-- status messages -->
-        <div id="wait_spinner" class="container" style="display:none">
-            <div class="spinner-border text-success"></div>
-            Processing... 
-            <br>
-        </div>
-        <div id="statecodes" style="display:none">
-            <span id="retStatecode"></span>: <span id="retStatus"></span>
-        </div>
-        <div id="fatalErrMsg"></div>
-        <input id="phase" name="phase" type="hidden" value='init-upl'></input>
-    </div>
-</div>
-
 <hr>
 <!-- body -->
 

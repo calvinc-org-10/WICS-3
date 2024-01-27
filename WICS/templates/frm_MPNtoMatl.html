@@ -3,9 +3,7 @@
 {# {% load evaluate_arithmetic %} #}
 {% load static %}
 
-{% block tHeader %}
-{{ block.super }}
-<style>
+{% block customCSS %}
 button:focus {
     border-color:#9ecaed;   <!-- convert to rgba -->
     box-shadow: 0 0 5px rgba(0, 0, 255, 1);
@@ -30,20 +28,17 @@ tfoot {
   background-color: #3f87a6;
   color: #fff;
 }
-
-</style>
 {% endblock %}
 
 {% block tTitle %}Manufacturer PN Lookup{% endblock %}
+{% block formName %}Manufacturer Part Numbers{% endblock %}
+{% block statusMsgs %}
+    {% if MPNList.changed_objects %}{{ MPNList.changed_objects }}{% endif %}
+    {% if MPNList.deleted_objects %}{{ MPNList.deleted_objects }}{% endif %}
+    {% if MPNList.new_objects %}{{ MPNList.new_objects }}{% endif %}
+{% endblock %}
 
 {% block boddy %}
-{% include 'WICSHeader.html' %}
-<div class="container text-center">
-    <h2>Manufacturer Part Numbers</h2>
-</div>
-{% if MPNList.changed_objects %}{{ MPNList.changed_objects }}{% endif %}
-{% if MPNList.deleted_objects %}{{ MPNList.deleted_objects }}{% endif %}
-{% if MPNList.new_objects %}{{ MPNList.new_objects }}{% endif %}
 <hr>
 
 <div class="container">

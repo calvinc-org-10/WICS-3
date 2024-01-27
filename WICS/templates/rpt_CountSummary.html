@@ -3,33 +3,19 @@
 {% load static %}
 
 {% block tTitle %}{% if variation == 'REQ' %}Requested {% endif %}Count Summary{% endblock %}
-{% block tHeader %}
-<style>
+{% block customCSS %}
     @page {
         size: letter portrait;
         margin: 0;
         padding: 0;
     }
-</style>
+{% endblock %}
+{% block formName %}
+    <span class="fs-3">{{ CountDate|date:"l" }} <input id="CtDate" type="Date" value="{{ CountDate|date:'Y-m-d' }}" onchange="newCtDate();" size="5"></input></span>
+    SAP Date {{ SAPDate }}
 {% endblock %}
 
 {% block boddy %}
-<div class="container text-center mx-auto d-print-none"> <!-- form header with date chooser -->
-    <!-- GoTo Date -->
-    <div class="container-fluid text-center bg-info">   <!-- wait spinner and choose date container -->
-        <div class="row">
-            <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
-            <div class="col-1"></div>
-            <div class="col-6">
-                <h3>{{ CountDate|date:"l" }} <input id="CtDate" type="Date" value="{{ CountDate|date:'Y-m-d' }}" onchange="newCtDate();" size="5"></input></h3>
-            </div>
-            <div class="col-4 text-right">
-                SAP Date {{ SAPDate }}
-            </div>
-        </div>
-    </div>   <!-- wait spinner and choose date container -->
-</div>  <!-- form header -->
-
 <div id="mainReport" class="container-fluid mx-auto">
     {% for RptSection in SummaryReport %}
         {% ifchanged RptSection.org %}

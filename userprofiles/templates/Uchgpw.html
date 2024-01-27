@@ -4,20 +4,8 @@
 
 
 {% block tTitle %}Change Password{% endblock %}
-
+{% block formName %}<span fs-1>Change Password for {{ form.user }}</span>{% endblock formName %}
 {% block boddy %}
-<div class="container text-center mx-auto">
-    <div class="row">
-        <div class="col-10 fs-1">
-            <br>
-            Change Password for {{ form.user }}
-        </div>
-        <div class="col-2 text-end"> {{ user.get_full_name }} </div>
-    </div>
-    <div class="row"> <!-- status messages -->
-        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
-    </div>
-</div>
 <hr>
 <form method="post">
     {% csrf_token %}

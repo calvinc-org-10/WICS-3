@@ -2,32 +2,20 @@
 {% load static %}
 
 {% block tTitle %}SAP Table{% endblock %}
+{% block formName %}
+    SAP Table 
+    <span class="container">
+        <select id="gotoID" onchange="loadSAPDate();">
+        {% for SD in SAPDateList %}
+            <option value="{{SD|slice:':10'}}" 
+            {% if SD == SAPDate %} selected{% endif %}
+            >{{SD|slice:':10'}}</option>
+        {% endfor %}
+        </select>
+    </span>
+{% endblock formName %}
 {% block boddy %}
 <!-- menu head -->
-<div class="container text-center mx-auto">
-    <div class="row max-width=100%">
-        <div class="col-6 fs-2 text-end">
-            SAP Table 
-            <span class="container">
-                <select id="gotoID" onchange="loadSAPDate();">
-                {% for SD in SAPDateList %}
-                    <option value="{{SD|slice:':10'}}" 
-                    {% if SD == SAPDate %} selected{% endif %}
-                    >{{SD|slice:':10'}}</option>
-                {% endfor %}
-                </select>
-            </span>
-        </div>
-        <div class="col-4 text-start">
-            <img src={% static 'WICS-Logo.png' %} width="200" height="100">
-        </div>
-        <div class="col-2 text-end"> {{ user.get_full_name }} </div>
-    </div>
-    <div class="row"> <!-- status messages -->
-        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
-    </div>
-</div>
-
 <hr>
 <div class="container">
     <ul>

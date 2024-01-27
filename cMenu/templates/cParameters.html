@@ -4,34 +4,20 @@
 
 {% block tTitle %}Parameters{% endblock %}
 {% block tHeader %}{% endblock %}
-{% block boddy %}
-<!-- form head -->
-<div class="container text-center mx-auto">
-    <div class="row max-width=100%">
-        <div class="col-3 text-start"></div>
-        <div class="col-6 text-center fs-3"><u>WICS Parameters</u></div>
-        <div class="col-3 text-end">{{ user.get_full_name }}</div>
-    </div>
-    <div class="row"> <!-- status messages -->
-        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
-        {% if Changes.changed or Changes.deleted or Changes.added %}
-            Changed: {{ Changes.changed }}
-            <br>
-            Deleted: {{ Changes.deleted }}
-            <br>
-            Added: {{ Changes.added }}
-            {% comment %}
-            <div class="alert alert-success p-0 alert-dismissible fade show">
-                <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
-                Count record {{ changes_saved.main }} successfully saved.
-                ChData: {{ changed_data.main }}
-            </div>
-            {% endcomment %}
-        {% endif %}
-    </div><!-- row -->
-</div><!-- container -->
-<hr>
 
+{% block formName %}<u>WICS Parameters</u>{% endblock formName %}
+{% block statusMsgs %}
+    {% if Changes.changed or Changes.deleted or Changes.added %}
+        Changed: {{ Changes.changed }}
+        <br>
+        Deleted: {{ Changes.deleted }}
+        <br>
+        Added: {{ Changes.added }}
+    {% endif %}
+{% endblock %}
+
+{% block boddy %}
+<hr>
     <!-- form body -->
 <form method="post">  <!-- action=?? - not needed - submit will submit to calling view -->
     <!-- form header -->

@@ -4,38 +4,18 @@
 
 {% block tTitle %}Greetings{% endblock %}
 
-{% block boddy %}
-<div class="container text-center mx-auto"> <!-- status messages and such -->
-    <div class="row">
-        <div class="col-5 fs-3 text-end">
-            Login Greetings (Quotations)
-        </div>
-        <div class="col-5 text-start">
-            <img src={% static 'WICS-Logo.png' %} width="200" height="100">
-        </div>
-    <div class="col-2 text-end"> {{ user.get_full_name }} </div>
-    <div class="row">
-        <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
-        {% if changes.changed or changes.deleted or changes.added %}
-            Changed: {{ changes.changed }}
-            <br>
-            Deleted: {{ changes.deleted }}
-            <br>
-            Added: {{ changes.added }}
-        {% endif %}
-    </div><!-- row -->
-    {% if messages %}
-    <div class="row">
-    <ul class="messages">
-        {% for message in messages %}
-        <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-        {% endfor %}
-    </ul>
-    </div>
+{% block formName %}Login Greetings (Quotations){% endblock %}
+{% block statusMsgs %}
+    {% if changes.changed or changes.deleted or changes.added %}
+    Changed: {{ changes.changed }}
+    <br>
+    Deleted: {{ changes.deleted }}
+    <br>
+    Added: {{ changes.added }}
     {% endif %}
+{% endblock %}
 
-</div>  <!-- status messages and such -->
-
+{% block boddy %}
 <!-- header row -->
 <div class="container">
     <div class="row mx-auto max-width=100%">

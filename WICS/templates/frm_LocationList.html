@@ -2,25 +2,13 @@
 {% load widget_tweaks %}
 {% load static %}
 
-{# I gotta clean this template up too... #}
-
-
 {% block tTitle %}Material Locations{% endblock %}
+{% block formName %}
+    <div class="fs-4">Material Locations as of {% now "DATE_FORMAT" %}</div>
+    By Location
+{% endblock %}
 
 {% block boddy %}
-<div class="container text-center mx-auto">
-    <div class="row">
-        <div class="col-5 text-end">
-            <h4>Material Locations as of {% now "DATE_FORMAT" %}</h4>
-            By Location
-        </div>
-        <div class="col-5 text-start">
-            <img src={% static 'WICS-Logo.png' %} width="200" height="100">
-        </div>
-        <div class="col-2 text-end"> {{ user.get_full_name }} </div>
-    </div>
-</div>
-<!-- header row -->
 <hr>
 <div id="mainReport" class="container ">
     <ul>

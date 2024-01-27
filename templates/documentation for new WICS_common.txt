@@ -11,6 +11,7 @@
 <body ...
 	{% block boddyAttr %}{% endblock %}		- Attributes for the <body> tag.  Generally not used.
 	{% block WICSHeader_div_attr %}{% endblock %}	- Attributes for the <div> tag defining the standard header for each form.
+	{% block WICSHdr_LogoFormNameUserName %}{% endblock %}	- To override the row in the standard header containing these.  Generally not used.
 	{% block formName %}{% endblock %}		- Name of the form generally shown at top middle of page.  Generally necessary to supply.
 	{% block wait_spinner_msgs %}{% endblock %}		- "Extra" message to be shown with the wait_spinner.  Is often "Processing..." for forms expected to take a while.
 	{% block statusMsgs %}{% endblock %}	- Extra status messages for the page's header block.  Should be <div> blocks if given.

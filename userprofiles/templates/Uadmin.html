@@ -5,29 +5,11 @@
 {% block tTitle %}WICS User Admin{% endblock %}
 {% block tHeader %}
 {% endblock %}
+{% block formName %}<h1>WICS User Administration</h1>{% endblock %}
 {% block boddy %}
-    <!-- HTML body head -->
-    <div class="container">
-        {{ PW }} is default PW for new users
-        <div class="row max-width=100%">
-            <div class="col-3 text-start"></div>
-            <div class="col-6 text-center"><h1>WICS User Administration</h1></div>
-            <div class="col-3 text-end">{{ user.get_full_name }}</div>
-        </div> <!-- row -->
-        <div class="row"> <!-- status messages -->
-            <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
-            {% if messages %}
-            <ul class="messages">
-                {% for message in messages %}
-                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
-                {% endfor %}
-            </ul>
-            {% endif %}
-        </div> <!-- row -->
-    
-    </div> <!-- form head -->
-
     <!-- form body -->
+    {{ PW }} is default PW for new users
+    <hr>
     <form id="mainForm" name="mainForm" method="post">  <!-- action=?? - not needed - submit will submit to calling view -->
 
     <div class="container text-center"> <!-- user Form header -->

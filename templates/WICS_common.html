@@ -30,17 +30,19 @@
 </head>
 <body {% block boddyAttr %}{% endblock %}>
 <div class="container text-center mx-auto {% block WICSHeader_div_attr %}{% endblock %}">
+    {% block WICSHdr_LogoFormNameUserName %}
     <div class="row">   <!-- WICS Logo, FormName and username -->
 		<div class="col-6 fs-3 text-center">{% block formName %}{% endblock %}</div>
         <div class="col-4 fs-2 text-start"><img src={% static 'WICS-Logo.png' %} width="150" height="75"></div>
         <div class="col-2 text-end"> {{ user.get_full_name }} </div>
     </div>
+    {% endblock %}
     <div class="row"> <!-- status messages -->
         <div id="wait_spinner" class="container" style="display:none">
 			<div class="spinner-border text-success">
+			</div>
 			{% block wait_spinner_msgs %}
 			{% endblock %}
-			</div>
 		</div>
         {% if messages %}
         <ul class="messages">

@@ -2,9 +2,7 @@
 {% load widget_tweaks %}
 {% load static %}
 
-{% block tHeader %}
-{{ block.super }}
-<style>
+{% block customCSS %}
 button:focus {
     border-color:#9ecaed;   <!-- convert to rgba -->
     box-shadow: 0 0 5px rgba(0, 0, 255, 1);
@@ -12,27 +10,16 @@ button:focus {
     -moz-box-shadow: 0 0 5px rgba(0, 0, 255, 1);
     border:1px solid rgba(0,0,255, 0.8); 
 }
-</style>
 {% endblock %}
 
 {% block tTitle %}Requested Counts{% endblock %}
-
-{% block boddy %}
-<div class="container text-center mx-auto">
-<div class="row">
-    <div class="col-5 text-end">
-        <span class="fs-3">Requested Counts</span>
-        {% if ShowFilled %}
-        <br>(Including Filled Requests)
-        {% endif %}
-    </div>
-    <div class="col-5 text-start">
-        <img src={% static 'WICS-Logo.png' %} width="200" height="100">
-    </div>
-<div class="col-2 text-end"> {{ user.get_full_name }} </div>
-</div>
-<div class="row"> <!-- status messages -->
-    <div id="wait_spinner" class="spinner-border text-success" style="display:none"></div>
+{% block formName %}
+    Requested Counts
+    {% if ShowFilled %}
+    <br>(Including Filled Requests)
+    {% endif %}
+{% endblock %}
+{% block statusMsgs %}
     {% if changes_saved.main %}
         <div class="alert alert-success p-0 alert-dismissible fade show">
             <button type="button" class="btn-close p-0" data-bs-dismiss="alert"></button>
@@ -40,8 +27,9 @@ button:focus {
             ChData: {{ changed_data.main }}
         </div>
     {% endif %}
-</div><!-- row -->
-</div><!-- container -->
+{% endblock %}
+
+{% block boddy %}
 <hr>
 
 {% if frmMain.total_error_count %}
