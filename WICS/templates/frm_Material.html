@@ -11,6 +11,7 @@ button:focus {
     -moz-box-shadow: 0 0 5px rgba(0, 0, 255, 1);
     border:1px solid rgba(0,0,255, 0.8);
 }
+{% include "proposed-table-CSS.css" %}
 {% endblock %}
 {% block tTitle %}Materials{% endblock %}
 {% block formName %}Materials{% endblock %}
@@ -85,14 +86,14 @@ button:focus {
         <div class="row">
             <div class="col-10">
                 <div class="row">
-                    <div class="col-7">
+                    <div class="col-8">
                         {{ frmMain.instance.org }}
                         Material: {% render_field frmMain.Material size="15" %}
                         Description: {% render_field frmMain.Description size="40" %}
                         <input type="hidden" name="OrigMaterial" value="{{ frmMain.Material.value }}"></input>
                         <input type="hidden" name="MatlPK" value="{{ frmMain.instance.pk }}"></input>
                     </div>
-                    <div class="col-5">
+                    <div class="col">
                         Part Type:  {% render_field frmMain.PartType style="width:10em" %}
                     </div>
                 </div>
@@ -140,9 +141,9 @@ button:focus {
                         >
                     </div>
                     {% endcomment %}
-                </div>
-            </div>
-            <div class="col-2" style="border-left: solid;">
+                </div>  <!-- row for SAP/LastFound info-->
+            </div>  <!-- Left side of Material Info header info (photo is on right side) -->
+            <div class="col" style="border-left: solid;">
                 {# Photos will go here #}
                 <div id="MatlPhotoCarousel" class="carousel slide" data-bs-ride="false">
                 <div class="carousel-indicators">
@@ -166,7 +167,7 @@ button:focus {
                     {% empty %}
                         <h3>No Photos for {{ frmMain.Material.value }}</h3>
                     {% endfor %}
-                </div>
+                </div>  <!-- photo carousel inner div -->
                 <button class="carousel-control-prev" type="button" data-bs-target="#MatlPhotoCarousel" data-bs-slide="prev">
                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                     <span class="visually-hidden">Previous</span>
@@ -175,7 +176,7 @@ button:focus {
                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
                     <span class="visually-hidden">Next</span>
                 </button>
-                </div>
+                </div>  <!-- id="MatlPhotoCarousel" -->
                 <div>   <!-- just below the PhotoSet -->
                     {% if PhotoSet %}
                     <div id="whichPhotoAmI"></div>
@@ -188,9 +189,9 @@ button:focus {
                     </button>
                 </div>
                 <input type="hidden" id="PhotoOp" name="PhotoOp" value=""></input>
-            </div>
-        </div>
-    </div>
+            </div>  <!-- right side of Material header (photos) -->
+        </div>  <!-- SAP LastFound info row -->
+    </div>  <!-- Material form header -->
 
     <hr>
 
@@ -215,147 +216,155 @@ button:focus {
     <!-- Tab panes -->
     <div class="tab-content">
         <div class="tab-pane container-fluid active" id="CountDetail">
-            <div class="card">
-                <div class="card-header">
-                    {{ countset.management_form }}
-                    {{ countset.non_form_errors }}
-                    {% for err in countset.errors %}
-                        {% if err %}{{ err|default:'' }}<br>{% endif %}
+            {{ countset.management_form }}
+            <table>
+                <thead>
+                    {% if countset.non_form_errors %}
+                    <tr><td colspan=7>
+                        {{ countset.non_form_errors }}
+                    </td></tr>
+                    {% endif %}
+                    <tr>
+                        <td colspan=7>
+                            {% for err in countset.errors %}
+                                {% if err %}{{ err|default:'' }}<br>{% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>   <!-- id -->
+                        <td>Count Date</td>
+                        <td>Counter</td>
+                        <td>Loc Only / Physical Inventory</td>
+                        <td>LOCATION</td>
+                        <td>Pos Not Rec / Mvmnt</td>
+                        <td>Count Notes</td>
+                        <td></td>   <!-- Copy Count button-->
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ff in countset %}
+                    {% ifchanged ff.CountDate.value %}{% if not forloop.first %}
+                    <tr><td colspan=8>&nbsp;</td></tr>   <!-- blank line intentional to separate dates -->
+                    {% endif %}{% endifchanged %}
+                    {% if ff.errors %}
+                        <tr><td colspan=8>{{ff.errors}}</td></tr>
+                    {% endif %}
+                    <tr>
+                        <td>
+                            {{ ff.id }}
+                            {{ ff.instance.id }}:&nbsp;
+                        </td>
+                        <td>
+                            {% ifchanged ff.CountDate.value %}
+                                {% render_field ff.CountDate class="border border-5 border-danger fw-bold" size="10" %}
+                            {% else %}
+                                {% render_field ff.CountDate size="10" %}
+                            {% endifchanged %}
+                        </td>
+                        <td>{% render_field ff.Counter size="10" %}</td>
+                        <td style="text-align:start;">
+                            {% with sCE_parm=forloop.counter0  %}
+                            {# django AND widget_tweaks both screw up the dynamic onchange building, so I'm doing it myself! #}
+                            <input type="checkbox"
+                                    id="{{ ff.LocationOnly.id_for_label }}"
+                                    name="{{ff.LocationOnly.html_name}}"
+                                    onchange="sCE({{ sCE_parm }});"
+                                    {% if ff.LocationOnly.value %} checked{% endif %}
+                                    >
+                            &nbsp;&nbsp;
+                            <input type="text"
+                                    id="{{ ff.CTD_QTY_Expr.id_for_label }}"
+                                    name="{{ff.CTD_QTY_Expr.html_name}}"
+                                    {% if ff.CTD_QTY_Expr.value != None %} value="{{ ff.CTD_QTY_Expr.value|stringformat:'s' }}"{% endif %}
+                                    maxlength="500" size="35"
+                                    onchange="sCE({{ sCE_parm }});">
+                            <span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
+                            {% endwith %}
+                        </td>
+                        <td>
+                            {% render_field ff.LOCATION size="8" %}
+                        </td>
+                        <td style="text-align:center;">
+                            {{ ff.FLAG_PossiblyNotRecieved }}
+                            {{ ff.FLAG_MovementDuringCount }}
+                        </td>
+                        <td>{% render_field ff.Notes size="30" %}</td>
+                        <td>
+                            <button type="button" onclick="CopyCount({{forloop.counter0}})">
+                                Copy Count
+                            </button>
+                        </td>
+                    </tr>  <!-- row -->
                     {% endfor %}
-                </div>  <!-- card header -->
-                <div class="card-body no-padding" style="height:210px; overflow: auto;">
-                    <table>
-						<thead>
-							<tr>
-								<th scope="col"></th>
-								<th scope="col">Count Date</th>
-								<th scope="col">Counter</th>
-								<th scope="col">Loc Only / Physical Inventory</th>
-								<th scope="col">LOCATION</th>
-								<th scope="col">Pos Not Rec / Mvmnt</th>
-								<th scope="col">Count Notes</th>
-								<th scope="col"></th>
-							</tr>
-						</thead>
-						<tbody>
-						{% for ff in countset %}
-                            {% ifchanged ff.CountDate.value %} {% if not forloop.first %}
-                            <tr> <td colspan=8>&nbsp;</td> </tr>   <!-- blank line intentional to separate dates -->
-                            {% endif %}{% endifchanged %}
-							<tr>
-								{% if ff.errors %}<td colspan=8>{{ff.errors}}</td></tr><tr>{% endif %}
-								{{ ff.id }}
-								<td scope="col">{{ ff.instance.id }}</td>
-								<td scope="col">
-                                    {% ifchanged ff.CountDate.value %}
-                                        {% render_field ff.CountDate class="border border-5 border-danger fw-bold" size="10" %}
-                                    {% else %}
-                                        {% render_field ff.CountDate size="10" %}
-                                    {% endifchanged %}
-                                </td>
-								<td scope="col">{% render_field ff.Counter size="10" %}</td>
-								<td scope="col" style="text-align:start;">
-									{% with sCE_parm=forloop.counter0  %}
-									{# django AND widget_tweaks both screw up the dynamic onchange building, so I'm doing it myself! #}
-									<input type="checkbox"
-											id="{{ ff.LocationOnly.id_for_label }}"
-											name="{{ff.LocationOnly.html_name}}"
-											onchange="sCE({{ sCE_parm }});"
-											{% if ff.LocationOnly.value %} checked{% endif %}
-											>
-									<input type="text"
-											id="{{ ff.CTD_QTY_Expr.id_for_label }}"
-											name="{{ff.CTD_QTY_Expr.html_name}}"
-											{% if ff.CTD_QTY_Expr.value != None %} value="{{ ff.CTD_QTY_Expr.value|stringformat:'s' }}"{% endif %}
-											maxlength="500" size="35"
-											onchange="sCE({{ sCE_parm }});">
-									<span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
-									{% endwith %}
-								</td>
-								<td scope="col">
-									{% render_field ff.LOCATION size="8" %}
-								</td>
-								<td scope="col" style="text-align:center;">
-									{{ ff.FLAG_PossiblyNotRecieved }}
-									{{ ff.FLAG_MovementDuringCount }}
-								</td>
-								<td scope="col">{% render_field ff.Notes size="30" %}</td>
-								<td scope="col">
-									<button type="button" onclick="CopyCount({{forloop.counter0}})">
-										Copy Count
-									</button>
-								</td>
-							</tr>  <!-- row -->
-						{% endfor %}
-						</tbody>
-					</table>
-                </div>  <!-- card body-->
-            </div>  <!-- Bootstrap card -->
+                </tbody>
+            </table>
         </div>  <!-- tab pane CountDetail -->
         <div class="tab-pane container fade" id="CountSummary">
-            <div class="card">
             {{ countsummset.management_form }}
-            <div class="card-body no-padding" style="height:210px; overflow: auto;">
             <table>
                 <thead>
                 <tr>
-                    <th scope="col" style="text-align:center;">Count Date</th>
-                    <th scope="col" style="text-align:center;">Total Counted</th>
-                    <th scope="col" style="text-align:center;">SAP Date</th>
-                    <th scope="col" style="text-align:center;">SAP Qty</th>
-                    <th scope="col" style="text-align:center;">Diff</th>
-                    <th scope="col" style="text-align:center;">Acc %</th>
+                    <td style="text-align:center;">Count Date</td>
+                    <td style="text-align:center;">Total Counted</td>
+                    <td style="text-align:center;">SAP Date</td>
+                    <td style="text-align:center;">SAP Qty</td>
+                    <td style="text-align:center;">Diff</td>
+                    <td style="text-align:center;">Acc %</td>
                 </tr>
                 </thead>
                 <tbody>
                     {% for ffrm in countsummset %}
                         <tr>
-                            <td scope="col">{%render_field ffrm.CountDate style="text-align:center;" size=12%}</td>
-                            <td scope="col">{%render_field ffrm.CountQTY_Eval style="text-align:center;" size=12%}</td>
-                            <td scope="col">{%render_field ffrm.SAPDate style="text-align:center;" size=12%}</td>
-                            <td scope="col">{%render_field ffrm.SAPQty style="text-align:center;" size=12%}</td>
-                            <td scope="col">{%render_field ffrm.Diff style="text-align:center;" size=12%}</td>
-                            <td scope="col">{%render_field ffrm.Accuracy style="text-align:center;" size=12%}</td>
+                            <td>{%render_field ffrm.CountDate style="text-align:center;" size=12%}</td>
+                            <td>{%render_field ffrm.CountQTY_Eval style="text-align:center;" size=12%}</td>
+                            <td>{%render_field ffrm.SAPDate style="text-align:center;" size=12%}</td>
+                            <td>{%render_field ffrm.SAPQty style="text-align:center;" size=12%}</td>
+                            <td>{%render_field ffrm.Diff style="text-align:center;" size=12%}</td>
+                            <td>{%render_field ffrm.Accuracy style="text-align:center;" size=12%}</td>
                         </tr>
                     {% endfor %}
                 </tbody>
             </table>
-            </div>  <!-- card-body -->
-            </div>  <!-- card -->
         </div>    <!-- tab pane CountSummary -->
         <div class="tab-pane container fade" id="CountSchedule">
-            <div class="card">
-                <div class="card-header">
-                    {{ scheduleset.management_form }}
-                    {{ scheduleset.non_form_errors }}
-                    {% for err in scheduleset.errors %}
-                        {% if err %}{{ err }}{% endif %}
-                    {% endfor %}
-                    <div class="container"><div class="row">
-                        <div class="col-4">
-                            Count Date - Counter - Priority
-                        </div>
-                        <div class="col-4">Reason Scheduled</div>
-                        <div class="col-2">Notes</div>
-                        <div class="col-2"></div>
-                    </div></div>
-                </div>
-                <div class="card-body no-padding" style="height:210px; overflow: auto;">
+            {{ scheduleset.management_form }}
+            <table>
+                <thead>
+                    {% if scheduleset.non_form_errors %}
+                    <tr><td colspan=6>
+                        {{ scheduleset.non_form_errors }}
+                    </td></tr>
+                    {% endif %}
+                    <tr>
+                        <td colspan=6>
+                            {% for err in scheduleset.errors %}
+                                {% if err %}{{ err|default:'' }}<br>{% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Count Date</td>
+                        <td>Counter</td>
+                        <td>Priority</td>
+                        <td>Reason Scheduled</td>
+                        <td>Notes</td>
+                    </tr>    <!-- container with header row -->
+                </thead>  <!-- card-header -->
+                <tbody>
                     {% for ff in scheduleset %}
-                    <div class="row">
-                        {{ ff.id }}
-                        {{ ff.instance.id }}:&nbsp;
-                        <div class="col-4">
-                            {% render_field ff.CountDate size="10" %}
-                            {% render_field ff.Counter size="10" %}
-                            {% render_field ff.Priority size="10" %}
-                        </div>
-                        <div class="col-4">{% render_field ff.ReasonScheduled size="40" %}</div>
-                        <div class="col-3">{% render_field ff.Notes size="30" %}</div>
-                    </div>
+                    <tr>
+                        <td>{{ ff.id }}{{ ff.instance.id }}:&nbsp;</td>
+                        <td>{% render_field ff.CountDate size="10" %}</td>
+                        <td>{% render_field ff.Counter size="10" %}</td>
+                        <td>{% render_field ff.Priority size="10" %}</td>
+                        <td>{% render_field ff.ReasonScheduled size="40" %}</td>
+                        <td>{% render_field ff.Notes size="30" %}</td>
+                    </tr>
                     {% endfor %}
-                </div>
-            </div>
+                </tbody>
+            </table>
         </div>    <!-- tab pane CountSchedule -->
         <div class="tab-pane container fade" id="FoundAt">
             <div class="card">
@@ -385,10 +394,10 @@ button:focus {
                     <table id="MPNtable">
                         <thead>
                             <tr>
-                                <th scope="col">MfrPN</th>
-                                <th scope="col">Manufacturer</th>
-                                <th scope="col">Notes</th>
-                                <th scope="col"></th>
+                                <td>MfrPN</td>
+                                <td>Manufacturer</td>
+                                <td>Notes</td>
+                                <td></td>
                             </tr>
                         </thead>
                         <tbody>
@@ -396,10 +405,10 @@ button:focus {
                             <tr>
                                 {% if MPN.errors %}<td colspan=5>{{MPN.errors}}</td></tr><tr>{% endif %}
                                 {{ MPN.id }}
-                                <td scope="col">{%render_field MPN.MfrPN size=40%}</td>
-                                <td scope="col">{{MPN.Manufacturer}}</td>
-                                <td scope="col">{{MPN.Notes|default:'---'}}</td>
-                                <td scope="col" style="width:20%">
+                                <td>{%render_field MPN.MfrPN size=40%}</td>
+                                <td>{{MPN.Manufacturer}}</td>
+                                <td>{{MPN.Notes|default:'---'}}</td>
+                                <td style="width:20%">
                                     DELETE: {{ MPN.DELETE }}
                                 </td>
                             </tr>

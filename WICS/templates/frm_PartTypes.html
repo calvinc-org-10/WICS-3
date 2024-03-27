@@ -3,6 +3,9 @@
 {% load static %}
 
 {% block tTitle %}Part Types{% endblock %}
+{% block customCSS %}
+{% include "proposed-table-CSS.css" %}
+{% endblock %}
 {% block formName %}Part Types{% endblock %}
 {% block statusMsgs %}
     {% if changes_saved.main %}
@@ -60,49 +63,47 @@
                 InactivePartType? {% render_field frmMain.InactivePartType %}
             </div>
         </div>
-    </div>
-    <hr>
-
-    <!-- subforms -->
-    <div class="container-fluid active" id="Materials">
-        <div class="card">
-            <div class="card-header">
-                {{ materials.management_form }}
-                {% if materials.non_form_errors %} {{ materials.non_form_errors }} <br> {% endif %}
-                {% for err in materials.errors %} {% if err %} {{ err }} {% endif %} {% endfor %}
-                To change the Part Type of a Material or add new Materials, use the Material Form
-                <br>
-                <div class="container"><div class="row">
-                ..... 
-                <div class="col-2">Material</div>
-                <div class="col-3">Price / PriceUnit</div>
-                <div class="col-3">TypeContQty / TypePltQty</div>
-                </div></div>
-            </div>
-            <div class="card-body no-padding" style="height:210px; overflow: auto;">
-                <ul>
-                {% for ff in materials %}
-                <li>
-                <div class="row">
-                    {{ ff.id }}{{ff.id.value }}
-                    <div class="col-2">({{ ff.instance.org.orgname }}) {{ ff.Material.value }} {% render_field ff.org hidden=True %}{% render_field ff.Material hidden=True %}</div>
-                    <div class="col-3"> {% render_field ff.Price style="width:6em;" %}  {% render_field ff.PriceUnit style="width:6em;" %} </div>
-                    <div class="col-3"> {% render_field ff.TypicalContainerQty style="width:6em;" %}  {% render_field ff.TypicalPalletQty style="width:6em;" %} </div>
-                </div>
-                <div class="row">
-                    ... 
-                    <div class="col-5">Desc: {% render_field ff.Description size="50" %}</div>
-                    <div class="col-5">Notes: {% render_field ff.Notes size="50" %}</div>
-                </div>
-            </li>
-                {% endfor %}
-            </ul>
-            </div>
-            <div class="card-footer no-padding">
-            </div>
-        </div>
-    </div>
+        <hr>
+        <b>To change the Part Type of a Material or add new Materials, use the Material Form</b>
     
+    <!-- subforms -->
+    <table id="Materials" style="height:350px;">
+        <thead>
+            <tr style="border-bottom:thin solid;">
+                <td colspan=6>
+                    {{ materials.management_form }}
+                    {% if materials.non_form_errors %} {{ materials.non_form_errors }} <br> {% endif %}
+                    {% for err in materials.errors %} {% if err %} {{ err }} {% endif %} {% endfor %}
+                </td>
+            </tr>
+            <tr>
+                <td></td>
+                <td>Material</td>
+                <td>Price</td>
+                <td>PriceUnit</td>
+                <td>TypicalContQty</td>
+                <td>TypicalPltQty</td>
+            </tr>
+        </thead>
+        <tbody>
+            {% for ff in materials %}
+            <tr>
+                <td>{{ ff.id }}{{ff.id.value }}&nbsp;&nbsp;</td>
+                <td>({{ ff.instance.org.orgname }}) {{ ff.Material.value }} {% render_field ff.org hidden=True %}{% render_field ff.Material hidden=True %}</td>
+                <td>{% render_field ff.Price style="width:6em;" %}</td>
+                <td>{% render_field ff.PriceUnit style="width:6em;" %}</td>
+                <td>{% render_field ff.TypicalContainerQty style="width:6em;" %}</td>
+                <td>{% render_field ff.TypicalPalletQty style="width:6em;" %} </td>
+            </tr>
+            <tr style="border-bottom:thin solid;">
+                <td colspan=3>{% render_field ff.Description size="50" %}</td>
+                <td colspan=3>Notes: {% render_field ff.Notes size="50" %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
     <!-- form footer -->
     <br>
     <div class="container">

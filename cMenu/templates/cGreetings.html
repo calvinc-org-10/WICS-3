@@ -52,7 +52,7 @@
 {% for itm in GreetingsList %}
     {{ itm.id }}  
     {% if itm.errors %} {{ itm.errors }}<br> {% endif %}
-    <div class="row g-0">
+    <div class="row p-3">
         <div class="col-10 text-start">
             Greeting {{ itm.instance.id|default_if_none:"** NEW **" }}
             <br>

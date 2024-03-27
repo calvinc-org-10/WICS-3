@@ -432,11 +432,14 @@ def proc_MatlListSAPSprsheet_01ReadSpreadsheet(reqid, fName):
     SAP_SSName_TableName_map = {
             'Material': 'Material',
             'Material description': 'Description',
-            'Plant': 'Plant',
-            'Material type': 'SAPMaterialType',
-            'Material Group': 'SAPMaterialGroup',
-            'Price': 'Price',
-            'Price unit': 'PriceUnit',
+            'Plant': 'Plant', 'Plnt': 'Plant',
+            'Material type': 'SAPMaterialType',  'MTyp': 'SAPMaterialType',
+            'Material Group': 'SAPMaterialGroup', 'Matl Group': 'SAPMaterialGroup',
+            # 'Manufact.': 'SAPManuf', 
+            # 'MPN': 'SAPMPN', 
+            # 'ABC': 'SAPABC', 
+            'Price': 'Price', 'Standard price': 'Price',
+            'Price unit': 'PriceUnit', 'per': 'PriceUnit',
             'Currency':'Currency',
             }
     for col in SAPcolmnNames:
@@ -468,6 +471,14 @@ def proc_MatlListSAPSprsheet_01ReadSpreadsheet(reqid, fName):
         if row[SAPcol['Material']]==None: MatNum = ''
         else: MatNum = row[SAPcol['Material']]
         ## refuse to work with special chars embedded in the MatNum
+        #####
+        #####
+        RESTARTHERE
+        ## create a blank tmpMaterialListUpdate record,
+        ## populate by looping through SAPcol,
+        ## then save
+        #####
+        #####
         if regex.match(".*[\n\t\xA0].*",MatNum):
             tmpMaterialListUpdate(
                 recStatus = 'err-MatlNum',

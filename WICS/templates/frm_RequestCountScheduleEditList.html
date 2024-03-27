@@ -10,6 +10,7 @@ button:focus {
     -moz-box-shadow: 0 0 5px rgba(0, 0, 255, 1);
     border:1px solid rgba(0,0,255, 0.8); 
 }
+{% include "proposed-table-CSS.css" %}
 {% endblock %}
 
 {% block tTitle %}Requested Counts{% endblock %}
@@ -40,63 +41,55 @@ button:focus {
 </div>
 <hr>
 {%endif%}
-<!-- header row -->
-<div id="mainReport" class="container">
-    <div class="row g-0">
-        <div class="col-5">
-            &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-            CountDate | 
-            Requestor |
-            Material
-        </div> 
-        <div class="col-4">
-            Counter |
-            Priority |
-            Reason Scheduled
-        </div>
-        <div class="col-2">
-            RequestFilled 
-        </div>
-    </div>
-    <hr>
-</div>
-<div id="mainReport" class="container" style="height:350px; overflow: auto;">
 <form method="post" id="ReqSchdForm">
-    {% csrf_token %}
-    {{ frmMain.management_form }}
+{% csrf_token %}
+{{ frmMain.management_form }}
+    <div class="container"><table id="mainReport">
+    <thead>
+    <tr>
+        <td></td>
+        <td>CountDate</td>
+        <td>Requestor</td>
+        <td>Material</td>
+        <td>Counter</td>
+        <td>Priority</td>
+        <td>Reason Scheduled</td>
+        <td>Request Filled</td>
+    </tr>
+    </thead>
+    <tbody>
     {% for itm in frmMain %}
-    <div class="row g-0 text-start">
-        {{ itm.id }}
-        {{ itm.instance.id }} | &nbsp;
-        <div class="col-5 text-start">
-            {% render_field itm.CountDate size="10" %} | 
-            {% render_field itm.Requestor size="10" %} |
-            {{ itm.instance.Material.Material }}
+    <tr>
+        <td>
+            {{ itm.id }}
+            {{ itm.instance.id }}&nbsp;&nbsp;
+        </td>
+        <td>{% render_field itm.CountDate size="10" %}</td>
+        <td>{% render_field itm.Requestor size="10" %}</td>
+        <td>{{ itm.instance.Material.Material }}
             {# constructing this by hand because it must be present, but django doesn't render it the way I want #}
-            {# Material is r/o (hidden) in this form #} |
+            {# Material is r/o (hidden) in this form #}
             <input type="hidden" name="{{ itm.Material.html_name }}" id="{{ itm.Material.auto_id }}" value="{{ itm.Material.value }}"></input>
-        </div> 
-        <div class="col-4 text-start">
-            {% render_field itm.Counter size="10" %} |
-            {% render_field itm.Priority size="10" %} |
-            {% render_field itm.ReasonScheduled size="10" %}
-        </div>
-        <div class="col-2 text-start">
-            {% render_field itm.RequestFilled %}
-        </div>
-    </div>
+        </td> 
+        <td>{% render_field itm.Counter size="10" %}</td>
+        <td>{% render_field itm.Priority size="10" %}</td>
+        <td>{% render_field itm.ReasonScheduled size="10" %}</td>
+        <td>{% render_field itm.RequestFilled %}</td>
+    </tr>
     {% if itm.instance.hascounts %}
-    <div class="row g-0 text-start">
-        <div class="col"><b>COUNTS HAVE BEEN RECORDED FOR THIS DAY AND MATERIAL</b></div>
-    </div>
+    <tr>
+        <td></td>
+        <td colspan=7><b>COUNTS HAVE BEEN RECORDED FOR THIS DAY AND MATERIAL</b></div>
+    </tr>
     {% endif %}
-    <div class="row g-0 text-start">
-        <div class="col"><b>Schedule Notes:</b>  {% render_field itm.Notes size="80" %}</div>
-    </div>
-    <hr>
+    <tr style="border-bottom:thin solid;">
+        <td></td>
+        <td colspan=7><b>Schedule Notes:</b>  {% render_field itm.Notes size="80" %}</td>
+    </tr>
     {% endfor %}
+    </tbody>
+    </table></div>
 </form>
-</div>
 
 <!-- form footer -->
 <hr>

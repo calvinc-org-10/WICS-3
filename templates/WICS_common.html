@@ -25,7 +25,12 @@
     <link rel="icon" type="image/x-icon" href="{% static 'WICS-favicon.png' %}">
     <title>{% block tTitle %}{% endblock %}</title>
     {% block tHeader %}
-	<style>{% block customCSS %}{% endblock %}</style>
+	<style>
+        {% comment %}
+        {# include "proposed-table-CSS.css" #}
+        {% endcomment %}
+        {% block customCSS %}{% endblock %}
+    </style>
 	{% endblock %}
 </head>
 <body {% block boddyAttr %}{% endblock %}>

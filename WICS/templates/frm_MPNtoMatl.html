@@ -12,11 +12,18 @@ button:focus {
     border:1px solid rgba(0,0,255, 0.8);
 }
 table {
+	display:block; height:350px; overflow:auto;
     border-collapse: collapse;
     border: 2px solid rgb(200, 200, 200);
     letter-spacing: 1px;
     font-family: sans-serif;
     // font-size: 0.8rem;
+}
+thead { 
+    position: sticky; 
+    top:0; 
+    z-index:1; 
+    background-color:gray; 
 }
 td,
 th {

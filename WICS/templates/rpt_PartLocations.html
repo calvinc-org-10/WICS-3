@@ -3,6 +3,10 @@
 {% load static %}
 
 {% block tTitle %}Material Locations{% endblock %}
+{% block customCSS %}
+{% include "proposed-table-CSS.css" %}
+{% endblock %}
+
 {% block formName %}
     <span class="fs-4">Material Locations as of {% now "DATE_FORMAT" %}</span>
     {% if showSAP %}SAP Date {{ SAPDate }}{% endif %}
@@ -10,52 +14,49 @@
 {% block boddy %}
 <!-- header row -->
 <div id="mainReport" class="container-fluid mx-auto calvin-smalltext">
-    <div class="row">
-        <div class="col-1">
-        </div>
-        <div class="col-3">
-            Material Number 
-        </div>
-        <div class="col-3">
-        </div>
-        <div class="col">
-            Last Count Date |
-            Last Found At
-        </div>
-    </div>
-    <hr>
+<table style="height:auto;">
+    <thead>
+    <tr>
+        <td>Material Number</td>
+        <td>Part Type</td>
+        <td></td>
+        <td>Last Count Date | Last Found At</td>
+    </tr>
+    </thead>
+    <tbody>
     {% for itm in MatlList %}
     {% if not itm.DoNotShow %}
-        <div class="row">
-            <div class="col-2 border border-bottom-0 border-dark">
+        <tr>
+            <td>
             {{ itm.OrgName }}
             {{ itm.Material }}
-            </div>
-            <div class="col-1 border border-bottom-0 border-dark">
+            </td>
+            <td>
             {{ itm.PartType }}
-            </div>
-            <div class="col-4 border border-bottom-0 border-dark">
+            </td>
+            <td>
             {{ itm.Description }}
-            </div>
-            <div class="col-4 border border-bottom-0 border-dark">
+            </td>
+            <td>
             {{ itm.LastCountDate|date:'m-d-Y' }} | 
             {{ itm.LastFoundAt }}  
-            </div>
-        </div>
+            </td>
+        </tr>
         {% if showSAP %}
-        <div class="row">
-            <div class="col-11 border border-top-0 border-dark">
+        <tr>
+            <td colspan=4>
             {{ itm.SAPList }}
-            </div>
-        </div>
+            </td>
+        </tr>
         {% endif %}
-        <div class="row">
-            <div class="col-11 border border-top-0 border-dark">
+        <tr style="border-bottom:thin solid">
+            <td colspan=4>
             {{ itm.Notes }}
-            </div>
-        </div>
+            </td>
+        </tr>
     {% endif %}
     {% endfor %}
+    </tbody>
 </div>
 
 <!-- form footer -->

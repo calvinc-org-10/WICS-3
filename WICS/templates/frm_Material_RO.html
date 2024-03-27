@@ -11,6 +11,7 @@ button:focus {
     -moz-box-shadow: 0 0 5px rgba(0, 0, 255, 1);
     border:1px solid rgba(0,0,255, 0.8);
 }
+{% include "proposed-table-CSS.css" %}
 {% endblock %}
 {% block tTitle %}Materials{% endblock %}
 {% block formName %}{% endblock %}  {# purposely left blank #}
@@ -85,14 +86,14 @@ button:focus {
         <div class="row">
             <div class="col-10">
                 <div class="row">
-                    <div class="col-7">
+                    <div class="col-8">
                         {{ frmMain.instance.org }}
                         Material: {% render_field frmMain.Material size="15" readonly="true" %}
-                        Description: {% render_field frmMain.Description size="40" readonly="true" %}
+                        Description: {% render_field frmMain.Description size="50" readonly="true" %}
                         <input type="hidden" name="OrigMaterial" value="{{ frmMain.Material.value }}"></input>
                         <input type="hidden" name="MatlPK" value="{{ frmMain.instance.pk }}"></input>
                     </div>
-                    <div class="col-5">
+                    <div class="col">
                         Part Type:  {% render_field frmMain.PartType style="width:10em" disabled="true" %}
                     </div>
                 </div>
@@ -108,7 +109,7 @@ button:focus {
                 </div>
                 <div class="row">
                 <div class="col">
-                    Notes: {% render_field frmMain.Notes size="80" readonly="true" %}
+                    Notes: {% render_field frmMain.Notes size="100" readonly="true" %}
                 </div>
                 </div>
                 <hr>
@@ -123,8 +124,10 @@ button:focus {
                         <br>
                         Last Found At {{ lastFoundAt.LastFoundAt }} on {{ lastFoundAt.LastCountDate }}
                     </div>
+                    <!-- 
                     <div class="col-2">
                     </div>
+                    ``-->
                     {% comment %}
                     NOTE: if this goes back, it needs to be moved outside the form, else it makes the form dirty for exit
                     <div class="col text-end">
@@ -138,9 +141,9 @@ button:focus {
                         >
                     </div>
                     {% endcomment %}
-                </div>
-            </div>
-            <div class="col-2" style="border-left: solid;">
+                </div>  <!-- row for SAP/LastFound info-->
+            </div>  <!-- Left side of Material Info header info (photo is on right side) -->
+            <div class="col" style="border-left: solid;">
                 {# Photos will go here #}
                 <div id="MatlPhotoCarousel" class="carousel slide" data-bs-ride="false">
                 <div class="carousel-indicators">
@@ -151,7 +154,7 @@ button:focus {
                 <div class="carousel-inner">
                     {% for photo in PhotoSet %}
                         <div id="MatlPhoto-{{ forloop.counter0 }}" class="carousel-item {% if forloop.first %}active{% endif %}">
-                        <img src="{{ photo.Photo.url }}" class="d-block w-100" alt="...">
+                        <img src="{{ photo.Photo.url }}" class="d-block w-100" height=200 alt="...">
                         <input type="hidden" class="photo-id" name="Photo{{ forloop.counter0 }}-id" value="{{ photo.pk }}"></input>
                         {% comment %}
                         Leave this around in case there's a need to implement Notes, already in the model
@@ -164,7 +167,7 @@ button:focus {
                     {% empty %}
                         <h3>No Photos for {{ frmMain.Material.value }}</h3>
                     {% endfor %}
-                </div>
+                </div>  <!-- photo carousel inner div -->
                 <button class="carousel-control-prev" type="button" data-bs-target="#MatlPhotoCarousel" data-bs-slide="prev">
                     <span class="carousel-control-prev-icon" aria-hidden="true"></span>
                     <span class="visually-hidden">Previous</span>
@@ -173,16 +176,16 @@ button:focus {
                     <span class="carousel-control-next-icon" aria-hidden="true"></span>
                     <span class="visually-hidden">Next</span>
                 </button>
-                </div>
+                </div>  <!-- id="MatlPhotoCarousel" -->
                 <div>   <!-- just below the PhotoSet -->
                     {% if PhotoSet %}
                     <div id="whichPhotoAmI"></div>
                     {% endif %}
                 </div>
                 <input type="hidden" id="PhotoOp" name="PhotoOp" value=""></input>
-            </div>
-        </div>
-    </div>
+            </div>  <!-- right side of Material header (photos) -->
+        </div>  <!-- SAP LastFound info row -->
+    </div>  <!-- Material form header -->
 
     <hr>
 
@@ -204,45 +207,57 @@ button:focus {
     <!-- Tab panes -->
     <div class="tab-content">
         <div class="tab-pane container-fluid active" id="CountDetail">
-            <div class="card">
-                <div class="card-header">
-                    {{ countset.management_form }}
-                    {{ countset.non_form_errors }}
-                    {% for err in countset.errors %}
-                        {% if err %}{{ err|default:'' }}<br>{% endif %}
-                    {% endfor %}
-                    <div class="container">
-                    <div class="row">
-                        <div class="col-1">Count Date</div>
-                        <div class="col-2">Counter</div>
-                        <div class="col-3">Loc Only / Physical Inventory</div>
-                        <div class="col-2">LOCATION</div>
-                        <div class="col-2">Pos Not Rec / Mvmnt</div>
-                        <div class="col">Count Notes</div>
-                    </div>
-                    </div>
-                </div>
-                <div class="card-body no-padding" style="height:210px; overflow: auto;">
+            {{ countset.management_form }}
+            <table>
+                <thead>
+                    {% if countset.non_form_errors %}
+                    <tr><td colspan=7>
+                        {{ countset.non_form_errors }}
+                    </td></tr>
+                    {% endif %}
+                    <tr>
+                        <td colspan=7>
+                            {% for err in countset.errors %}
+                                {% if err %}{{ err|default:'' }}<br>{% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>   <!-- id -->
+                        <td>Count Date</td>
+                        <td>Counter</td>
+                        <td>Loc Only / Physical Inventory</td>
+                        <td>LOCATION</td>
+                        <td>Pos Not Rec / Mvmnt</td>
+                        <td>Count Notes</td>
+                    </tr>
+                </thead>
+                <tbody>
                     {% for ff in countset %}
-                    {% ifchanged ff.CountDate.value %}{% if not forloop.first %}<hr>{% endif %}{% endifchanged %}
-                    <div class="row">
-                        {{ ff.id }}
-                        {{ ff.instance.id }}:&nbsp;
-                        <div class="col-1">{% render_field ff.CountDate size="10" readonly="true" %}</div>
-                        <div class="col-1">{% render_field ff.Counter size="10" readonly="true" %}</div>
-                        <div class="col-4 text-start">
+                    {% ifchanged ff.CountDate.value %}{% if not forloop.first %}
+                    <tr><td colspan=7>&nbsp;</td></tr>   <!-- blank line intentional to separate dates -->
+                    {% endif %}{% endifchanged %}
+                    <tr>
+                        <td>
+                            {{ ff.id }}
+                            {{ ff.instance.id }}:&nbsp;
+                        </td>
+                        <td>{% render_field ff.CountDate size="10" readonly="true" %}</td>
+                        <td>{% render_field ff.Counter size="10" readonly="true" %}</td>
+                        <td>
                             {% with sCE_parm=forloop.counter0  %}
                             {# django AND widget_tweaks both screw up the dynamic onchange building, so I'm doing it myself! #}
                             <input type="checkbox"
                                     id="{{ ff.LocationOnly.id_for_label }}"
-                                    name="{{ff.prefix}}-{{ff.LocationOnly.name}}"
+                                    name="{{ff.LocationOnly.html_name}}"
                                     onchange="sCE({{ sCE_parm }});"
                                     disabled
                                     {% if ff.LocationOnly.value %} checked{% endif %}
                                     >
+                            &nbsp;&nbsp;
                             <input type="text"
                                     id="{{ ff.CTD_QTY_Expr.id_for_label }}"
-                                    name="{{ff.prefix}}-{{ff.CTD_QTY_Expr.name}}"
+                                    name="{{ff.CTD_QTY_Expr.html_name}}"
                                     {% if ff.CTD_QTY_Expr.value != None %} value="{{ ff.CTD_QTY_Expr.value|stringformat:'s' }}"{% endif %}
                                     maxlength="500" size="35"
                                     onchange="sCE({{ sCE_parm }});"
@@ -250,80 +265,83 @@ button:focus {
                                     >
                             <span class="container-md" id="EvalExpr{{ sCE_parm }}">????</span>
                             {% endwith %}
-                        </div>
-                        <div class="col-2">
+                        </td>
+                        <td>
                             {% render_field ff.LOCATION size="8" readonly="true" %}
+                        </td>
+                        <td style="text-align:center;">
                             {{ ff.FLAG_PossiblyNotRecieved|attr:"disabled" }}
                             {{ ff.FLAG_MovementDuringCount|attr:"disabled" }}
-                        </div>
-                        <div class="col-2">{% render_field ff.Notes size="30" readonly="true" %}</div>
-                        <div class="col-1">
-                        </div>
-                    </div>
+                        </td>
+                        <td>{% render_field ff.Notes size="30" readonly="true" %}</td>
+                    </tr>
                     {% endfor %}
-                </div>
-            </div>
-        </div>
+                </tbody>
+            </table>
+        </div>  <!-- CountDetail tab -->
         <div class="tab-pane container fade" id="CountSummary">
-            <div class="card">
-                <div class="card-header">
-                    {{ countsummset.management_form }}
-                    <div class="container"><div class="row">
-                    <div class="col-2">Count Date</div>
-                    <div class="col-2">Total Counted</div>
-                    <div class="col-2">SAP Date</div>
-                    <div class="col-2">SAP Qty</div>
-                    <div class="col-2">Diff</div>
-                    <div class="col">Acc %</div>
-                    </div></div>
-                </div>
-                <div class="card-body no-padding" style="height:210px; overflow: auto;">
-                    <ul>
+            {{ countsummset.management_form }}
+            <table>
+                <thead>
+                    <tr>
+                        <td>Count Date</td>
+                        <td>Total Counted</td>
+                        <td>SAP Date</td>
+                        <td>SAP Qty</td>
+                        <td>Diff</td>
+                        <td>Acc %</td>
+                    </tr>
+                </thead>
+                <tbody>
                     {% for ffrm in countsummset %}
-                        <li>
+                        <tr>
                         {% for ffld in ffrm %}
-                            {% if ffld.name != 'Material' %}{{ ffld }}{% endif %}
+                            {% if ffld.name != 'Material' %}<td>{{ ffld }}</td>{% endif %}
                         {% endfor %}
-                        </li>
+                        </tr>
                     {% endfor %}
-                    </ul>
-                </div>
-            </div>
-        </div>
+                </tbody>  <!-- card-body of CountSummary tab -->
+            </table>  <!-- card for CountSummary -->
+        </div>  <!-- CountSummary tab -->
         <div class="tab-pane container fade" id="CountSchedule">
-            <div class="card">
-                <div class="card-header">
-                    {{ scheduleset.management_form }}
-                    {{ scheduleset.non_form_errors }}
-                    {% for err in scheduleset.errors %}
-                        {% if err %}{{ err }}{% endif %}
-                    {% endfor %}
-                    <div class="container"><div class="row">
-                        <div class="col-4">
-                            Count Date - Counter - Priority
-                        </div>
-                        <div class="col-4">Reason Scheduled</div>
-                        <div class="col-2">Notes</div>
-                        <div class="col-2"></div>
-                    </div></div>
-                </div>
-                <div class="card-body no-padding" style="height:210px; overflow: auto;">
+            {{ scheduleset.management_form }}
+            <table>
+                <thead>
+                    {% if scheduleset.non_form_errors %}
+                    <tr><td colspan=6>
+                        {{ scheduleset.non_form_errors }}
+                    </td></tr>
+                    {% endif %}
+                    <tr>
+                        <td colspan=6>
+                            {% for err in scheduleset.errors %}
+                                {% if err %}{{ err|default:'' }}<br>{% endif %}
+                            {% endfor %}
+                        </td>
+                    </tr>
+                    <tr>
+                        <td></td>
+                        <td>Count Date</td>
+                        <td>Counter</td>
+                        <td>Priority</td>
+                        <td>Reason Scheduled</td>
+                        <td>Notes</td>
+                    </tr>    <!-- container with header row -->
+                </thead>  <!-- card-header -->
+                <tbody>
                     {% for ff in scheduleset %}
-                    <div class="row">
-                        {{ ff.id }}
-                        {{ ff.instance.id }}:&nbsp;
-                        <div class="col-4">
-                            {% render_field ff.CountDate size="10" readonly="true" %}
-                            {% render_field ff.Counter size="10" readonly="true" %}
-                            {% render_field ff.Priority size="10" readonly="true" %}
-                        </div>
-                        <div class="col-4">{% render_field ff.ReasonScheduled size="40" readonly="true" %}</div>
-                        <div class="col-3">{% render_field ff.Notes size="30" readonly="true" %}</div>
-                    </div>
+                    <tr>
+                        <td>{{ ff.id }}{{ ff.instance.id }}:&nbsp;</td>
+                        <td>{% render_field ff.CountDate size="10" readonly="true" %}</td>
+                        <td>{% render_field ff.Counter size="10" readonly="true" %}</td>
+                        <td>{% render_field ff.Priority size="10" readonly="true" %}</td>
+                        <td>{% render_field ff.ReasonScheduled size="40" readonly="true" %}</td>
+                        <td>{% render_field ff.Notes size="30" readonly="true" %}</td>
+                    </tr>  <!-- row -->
                     {% endfor %}
-                </div>
-            </div>
-        </div>
+                </tbody>  <!-- card body -->
+            </table>  <!-- card for CountSchedule tab -->
+        </div>  <!-- CountSchedule tab -->
         <div class="tab-pane container fade" id="FoundAt">
             <div class="card">
                 <div class="card-header">

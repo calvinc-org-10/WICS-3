@@ -1,7 +1,7 @@
 {% extends "WICS_common.html" %}
 {% load static %}
 
-{% block tTitle %}WICS Log in{% endblock %}
+{% block tTitle %}WICS Log in{% if sysver_key == 'DEV' %} D{%endif%}{% endblock %}
 {% block tHeader %}
     <meta name="viewport" content="user-scalable=no, width=device-width, initial-scale=1.0, maximum-scale=1.0">
     <meta name="robots" content="NONE,NOARCHIVE">

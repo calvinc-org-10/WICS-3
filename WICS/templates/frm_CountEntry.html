@@ -12,6 +12,7 @@ button:focus {
     -moz-box-shadow: 0 0 5px rgba(0, 0, 255, 1);
     border:1px solid rgba(0,0,255, 0.8); 
 }
+{% include "proposed-table-CSS.css" %}
 {% endblock %}
 
 {% block tTitle %}Count Entry{% endblock %}
@@ -143,54 +144,66 @@ button:focus {
         </div>
         </div>  <!-- container-fluid, on same level with rows -->
         {% if todayscounts %}
-            <hr>
-            <u>All Counts for this date</u>
-            <div class="Container" style="height:70px; overflow-y:auto; overflow-x:clip">
-            {% for ctRec in todayscounts %}
-                <div class="row g-0">
-                    <div class="col">
-                        {{ ctRec }} / 
-                        {% if ctRec.LocationOnly %}
-                            <b>LOCATION ONLY</b>
-                        {% else %}
-                            {{ ctRec.CTD_QTY_Expr }} = {{ ctRec.CTD_QTY_Expr|eval_arith }}
-                        {% endif %}
-                    </div>
-                </div>
-            {% endfor %}
-            </div>
+			<div class="container m-1">
+				<hr>
+				<u>All Counts for this date</u>
+				<table style="height:100px;">
+				{% for ctRec in todayscounts %}
+					<tr>
+						<td>
+							{{ ctRec }}
+						</td>
+                        <td>&nbsp;&nbsp;</td>
+						<td>	
+							{% if ctRec.LocationOnly %}
+								<b>LOCATION ONLY</b>
+							{% else %}
+								{{ ctRec.CTD_QTY_Expr }} = {{ ctRec.CTD_QTY_Expr|eval_arith }}
+							{% endif %}
+						</td>
+					</tr>
+				{% endfor %}
+				</table>
+			</div>
         {% endif %}
         <hr>
-        <u><b>Schedule Info</b></u>
-        <br>
-        {% if noSchedInfo %}
-            <div class="col-8">  <h3>MATERIAL NOT SCHEDULED FOR COUNT ON THIS DATE</h3>  </div>
-            <div class="col-4">  <button id="SchedCount" type="button" class="need-Matl-Dt" >Schedule Count</button>  </div>
-        {% else %}
-            {# {{ frmSchedInfo }} #}
-            <div class="card">
-                <div class="card-header">
-                    {% if frmSchedInfo.errors %}{{ frmSchedInfo.errors }}{% endif %}
-                    <div class="container"><div class="row g-0">
-                        <div class="col-1">Count Date</div>
-                        <div class="col-2">Counter</div>
-                        <div class="col-1">Priority</div>
-                        <div class="col-3">Reason Scheduled</div>
-                        <div class="col-3">Notes</div>
-                    </div></div>
-                </div>
-                <div class="card-body no-padding" style="height:70px; overflow: auto;">
-                    <div class="row g-0">
-                        {{ frmSchedInfo.id }} {# render_field frmSchedInfo.id hidden="true" #}
-                        <div class="col-1">{% render_field frmSchedInfo.CountDate size="10" %}</div>
-                        <div class="col-2">{% render_field frmSchedInfo.Counter class="need-Matl-Dt" size="10" tabindex="-1" %}</div>
-                        <div class="col-1">{% render_field frmSchedInfo.Priority class="need-Matl-Dt" size="10" tabindex="-1" %}</div>
-                        <div class="col-3">{% render_field frmSchedInfo.ReasonScheduled class="need-Matl-Dt" size="30" tabindex="-1" %}</div>
-                        <div class="col-3">{% render_field frmSchedInfo.Notes class="need-Matl-Dt" size="30" tabindex="-1" %}</div>
-                    </div>
-                </div>
-            </div>
-        {% endif %}
+		<div class="container m-1">
+			<u><b>Schedule Info</b></u>
+			<br>
+			{% if noSchedInfo %}
+				<div class="col-8">  <h3>MATERIAL NOT SCHEDULED FOR COUNT ON THIS DATE</h3>  </div>
+				<div class="col">  <button id="SchedCount" type="button" class="need-Matl-Dt" >Schedule Count</button>  </div>
+			{% else %}
+				{# {{ frmSchedInfo }} #}
+				<table>
+					<thead>
+						<tr>
+                            <td colspan=6>
+						    {% if frmSchedInfo.errors %}{{ frmSchedInfo.errors }}{% endif %}
+                            </td>
+						</tr>
+						<tr>
+							<td></td>
+							<td>Count Date</td>
+							<td>Counter</td>
+							<td>Priority</td>
+							<td>Reason Scheduled</td>
+							<td>Notes</td>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>{{ frmSchedInfo.id }} {# render_field frmSchedInfo.id hidden="true" #}</td>
+							<td>{% render_field frmSchedInfo.CountDate size="10" %}</td>
+							<td>{% render_field frmSchedInfo.Counter class="need-Matl-Dt" size="10" tabindex="-1" %}</td>
+							<td>{% render_field frmSchedInfo.Priority class="need-Matl-Dt" size="10" tabindex="-1" %}</td>
+							<td>{% render_field frmSchedInfo.ReasonScheduled class="need-Matl-Dt" size="30" tabindex="-1" %}</td>
+							<td>{% render_field frmSchedInfo.Notes class="need-Matl-Dt" size="30" tabindex="-1" %}</td>
+						</tr>
+					</tbody>
+				</table>
+			{% endif %}
+		</div>
     </form>
 
     <!-- form footer -->

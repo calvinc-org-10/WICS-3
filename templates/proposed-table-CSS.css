@@ -1,0 +1,10 @@
+table { display:block; height:210px; overflow:auto; }
+thead { 
+    position: sticky; 
+    top:0; 
+    z-index:1; 
+    background-color:gray; 
+}
+thead td {
+    border: solid;
+}
