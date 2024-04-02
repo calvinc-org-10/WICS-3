@@ -2,6 +2,9 @@
 {% load widget_tweaks %}
 {% load static %}
 
+{% block customCSS %}
+{% include "proposed-table-CSS.css" %}
+{% endblock %}
 
 {% block tTitle %}SQL Results{% endblock %}
 {% block tHeader %}{% endblock %}
@@ -13,29 +16,26 @@
     {{ nRecs }} Records<br>
     {{ colNames }}
 </div>
-<div class="container">
-<!-- div class="container"  style="height:350px; overflow:auto;" -->
-<div class="container">
-
-    <ul>
+<table>
+    <thead>
+        <tr>
+            {% for col in colNames %}
+                <th>{{ col }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
     {% for row in SQLresults %}
-        <li>
-        {{ row }}
-        {% comment %}
-        {% for vv in row %}
-            {% for x in vv %} {{ x }}/ {% endfor %} |
-        {% endfor %}
-        {% endcomment %}
-        {% comment %}
-        {% for key, val in row %}
-            {{ key }}:{{ val }} |
-        {% endfor %}
-        {% endcomment %}
-        </li>
+        <tr style="bottom-border: solid;">
+            {% for vv in row %}
+                <td>{{ vv }}</td>
+            {% endfor %}
+        </tr>
     {% endfor %}
-    </ul>
-    <hr>
-</div>
+    </tbody>
+</table>
+<hr>
+
 <div class="row mx-auto max-width=100%">
     <div class="col-4"></div>
     <div class="col-5">
@@ -54,7 +54,6 @@
             Close
         </button>
     </div>
-</div>
 </div>
 
 <script>
