@@ -2,12 +2,13 @@
 {% load widget_tweaks %}
 {% load static %}
 
+
+{% block tTitle %}SQL Results{% endblock %}
+{# {% block tHeader %}{% endblock %} #}
 {% block customCSS %}
 {% include "proposed-table-CSS.css" %}
 {% endblock %}
 
-{% block tTitle %}SQL Results{% endblock %}
-{% block tHeader %}{% endblock %}
 {% block boddy %}
 <hr>
 
@@ -16,17 +17,19 @@
     {{ nRecs }} Records<br>
     {{ colNames }}
 </div>
-<table>
+<hr>
+<div class="container">
+<table style="height:360px;">
     <thead>
         <tr>
             {% for col in colNames %}
-                <th>{{ col }}</th>
+                <td>{{ col }}</td>
             {% endfor %}
         </tr>
     </thead>
     <tbody>
     {% for row in SQLresults %}
-        <tr style="bottom-border: solid;">
+        <tr style="border-bottom: solid;">
             {% for vv in row %}
                 <td>{{ vv }}</td>
             {% endfor %}
@@ -35,6 +38,7 @@
     </tbody>
 </table>
 <hr>
+</div>
 
 <div class="row mx-auto max-width=100%">
     <div class="col-4"></div>
