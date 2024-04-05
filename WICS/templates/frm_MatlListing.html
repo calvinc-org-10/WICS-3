@@ -2,6 +2,9 @@
 {% load widget_tweaks %}
 {% load static %}
 
+{% block customCSS %}
+{% include "proposed-table-CSS.css" %}
+{% endblock %}
 
 {% block tTitle %}{{rptName}}{% endblock %}
 {% block formName %}
@@ -12,53 +15,97 @@
 {% block boddy %}
 <!-- header row -->
 <hr>
-<div id="mainReport" class="container" style="height:350px; overflow-y:auto; overflow-x:hidden;">
-    <ul>
+{% if groupBy != 'PartType' %}
+<table id="mainReport"style="height:450px; margin:1%;">
+    <thead>
+    <tr>
+        <td></td>
+        <td>org / Material</td>
+        <td>Part Type</td>
+        <td>Last Counted</td>
+        <td>Last Found At</td>
+        <td>SAP Qty</td>
+        <td>Total Value</td>
+        <td>Unit Value</td>
+        <td>&nbsp;</td>
+    </tr>
+    </thead>
+    <tbody>
+{% else %}
+<div id="mainReport" class="container" style="height:450px; margin:1%; overflow-y:auto; overflow-x:hidden;">
+{% endif %}
     {% for itm in MatlList %}
         {% if groupBy == 'PartType' %}
             {% ifchanged itm.PartType %}
-                <h3><u>{{ itm.PartType }}</u></h3>
+                {% if not forloop.first %}
+                    </table>
+                {% endif %}
+                <h3>Part Type <u>{{ itm.PartType }}</u></h3>
+                <table>
+                    <thead>
+                    <tr>
+                        <td></td>
+                        <td>org / Material</td>
+                        <td>Part Type</td>
+                        <td>Last Counted</td>
+                        <td>Last Found At</td>
+                        <td>SAP Qty</td>
+                        <td>Total Value</td>
+                        <td>Unit Value</td>
+                        <td>&nbsp;</td>
+                    </tr>
+                    </thead>
+                    <tbody>
             {% endifchanged %}
         {% endif %}
-        <div class="row">
-            <div class="col-9">
-            {{ itm.id }} |
-            {{ itm.org }} {{ itm.Material }} |
-            Part Type: {{ itm.PartType }} |
-            Last Counted: 
-            {% if itm.LastCountDate|date:"Y-m-d" == '0001-01-01' %}
-            {# A date of 0001-01-01 is secret code for no date #}
-                                |
-            {% else %}
-                {{ itm.LastCountDate }} |
-            {% endif %}
-            Last Found At: {{ itm.LastFoundAt }} |
-            {% if itm.SAPQty %}
-                SAPQty = {{ itm.SAPQty|floatformat:"1" }} |
-            {% else %}
-                <b>No SAP Qty</b> |
-            {% endif %}
-            {{ itm.SAPValue|floatformat:"2g" }} {{ itm.SAPCurrency }} |
-            Unit Value: {{ itm.UnitValue|floatformat:"2g"}} |
-            {{ itm.Notes }}
-            <br>
-            <span class="calvin-smalltext">{{ itm.Description }}</span>
-            </div>
-            <div class="col-3">
+        <tr>
+            <td>{{ itm.id }}</td>
+            <td>{{ itm.org }} {{ itm.Material }}</td>
+            <td>{{ itm.PartType }}</td>
+            <td> 
+                {% if itm.LastCountDate|date:"Y-m-d" == '0001-01-01' %}
+                {# A date of 0001-01-01 is secret code for no date #}
+                {% else %}
+                    {{ itm.LastCountDate }}
+                {% endif %}
+            </td>
+            <td>{{ itm.LastFoundAt }}</td>
+            <td>
+                {% if itm.SAPQty %}
+                    {{ itm.SAPQty|floatformat:"1" }}
+                {% else %}
+                    <b>No SAP Qty</b>
+                {% endif %}
+            </td>
+            <td>{{ itm.SAPValue|floatformat:"2g" }} {{ itm.SAPCurrency }}</td>
+            <td>{{ itm.UnitValue|floatformat:"2g"}}</td>
+            <td rowspan=2>
                 {% if itm.ScheduledForToday %}
                     <b>SCHEDULED FOR COUNT TODAY</b>
                 {% endif %}
                 {% if itm.NextScheduledCount %}
                     {% if itm.ScheduledForToday %}<br>{% endif %}
-                    Next Sched Count: {{ itm.NextScheduledCount }}{% endif %}
+                    Next Sched Count: {{ itm.NextScheduledCount }}
+                {% endif %}
                 {% if itm.NextScheduledCount or itm.NextScheduledCount %}<br>{% endif %}
-                <button id="SchedCt{{ itm.id }}" class="SchedCt" value="{{ itm.id }}" type="button">Schedule Count</button>
-            </div>
-        </div>
-    <hr>
+                <button id="SchedCt{{ itm.id }}" class="SchedCt" value="{{ itm.id }}" type="button">Schedule<br>Count</button>
+            </td>
+        </tr>
+        {% if itm.Notes %}
+            <tr><td></td><td colspan=7>
+                <b>Notes:</b> {{ itm.Notes }}
+            </td></tr>
+        {% endif %}
+        <tr style="border-bottom:thin solid">
+            <td></td>
+            <td colspan=7><span class="calvin-smalltext">{{ itm.Description }}</span></td>
+        </tr>
     {% endfor %}
-    </ul>
+    </tbody>
+</table>
+{% if groupBy == 'PartType' %}
 </div>
+{% endif %}
 
 <!-- form footer -->
 <hr>

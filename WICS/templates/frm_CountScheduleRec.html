@@ -63,7 +63,7 @@ button:focus {
         <div class="row g-0">
             <div class="col-2">Count Dt: {% render_field frmMain.CountDate type="date" autofocus=True size="8" onchange="loadExtraInfo();" %}</div>
             <div class="col-4">Material:
-                {# {% render_field frmMain.Material onchange="loadExtraInfo()" %}</div> #}
+                {# {% render_field frmMain.Material onchange="loadExtraInfo()" %}< /div> #}
                 <input list="Material-list"
                     id="{{frmMain.Material.id_for_label}}" name="{{frmMain.Material.html_name}}"
                     onfocus="$(this).select();"
@@ -103,11 +103,12 @@ button:focus {
         </div>
         </div>
         <hr>
+        <div class="container m-2">
         <div class="row g-0">
             Material Info
         </div>
-        <div class=row g-0>
-            {{ frmMatlInfo.id }}
+        <div class="row g-0">
+            {{ frmMatlInfo.id|default:'--' }}&nbsp;&nbsp;
             <input type="hidden" id="MatlPK" name="MatlPK" value={{ frmMatlInfo.id }} required></input>
             <div class="col-5">Description: {% render_field frmMatlInfo.Description class="need-Matl-Dt" size="50" tabindex="-1" %}</div>
             <div class="col-2">Part Type: {% render_field frmMatlInfo.PartType class="need-Matl-Dt" style="width:7em" tabindex="-1" %}</div>
@@ -116,7 +117,7 @@ button:focus {
                 Typ Plt Qty: {% render_field frmMatlInfo.TypicalPalletQty class="need-Matl-Dt" style="width:7em" tabindex="-1" %}
             </div>
         </div>
-        <div class=row g-0>
+        <div class="row g-0">
             <div class="col-12">Material Notes: {% render_field frmMatlInfo.Notes size="100" class="need-Matl-Dt" tabindex="-1" %}</div>
         </div>
         </div>  <!-- container-fluid, on same level with rows -->

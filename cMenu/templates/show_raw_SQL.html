@@ -4,7 +4,11 @@
 
 
 {% block tTitle %}SQL Results{% endblock %}
-{% block tHeader %}{% endblock %}
+{# {% block tHeader %}{% endblock %} #}
+{% block customCSS %}
+{% include "proposed-table-CSS.css" %}
+{% endblock %}
+
 {% block boddy %}
 <hr>
 
@@ -13,29 +17,29 @@
     {{ nRecs }} Records<br>
     {{ colNames }}
 </div>
+<hr>
 <div class="container">
-<!-- div class="container"  style="height:350px; overflow:auto;" -->
-<div class="container">
-
-    <ul>
+<table style="height:360px;">
+    <thead>
+        <tr>
+            {% for col in colNames %}
+                <td>{{ col }}</td>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
     {% for row in SQLresults %}
-        <li>
-        {{ row }}
-        {% comment %}
-        {% for vv in row %}
-            {% for x in vv %} {{ x }}/ {% endfor %} |
-        {% endfor %}
-        {% endcomment %}
-        {% comment %}
-        {% for key, val in row %}
-            {{ key }}:{{ val }} |
-        {% endfor %}
-        {% endcomment %}
-        </li>
+        <tr style="border-bottom: solid;">
+            {% for vv in row %}
+                <td>{{ vv }}</td>
+            {% endfor %}
+        </tr>
     {% endfor %}
-    </ul>
-    <hr>
+    </tbody>
+</table>
+<hr>
 </div>
+
 <div class="row mx-auto max-width=100%">
     <div class="col-4"></div>
     <div class="col-5">
@@ -54,7 +58,6 @@
             Close
         </button>
     </div>
-</div>
 </div>
 
 <script>

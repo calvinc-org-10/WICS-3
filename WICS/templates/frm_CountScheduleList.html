@@ -28,7 +28,7 @@
             Req. Filled: {{ itm.RequestFilled|yesno }}
             {% endif %}
         </div>
-        <div class="col-6">{{ itm.ScheduleNotes }}</div>
+        <div class="col-6">{{ itm.ScheduleNotes|default:'~no notes~' }}</div>
         <div class="col-2">
             <button id="edit{{ itm.id }}" class="edit" value="{{ itm.id }}" type="button">Edit</button>
         </div>

@@ -3,28 +3,34 @@
 {% load evaluate_arithmetic %}
 {% load static %}
 
-{# I gotta clean this template up too... #}
-
 {% block tTitle %}Actual Counts{% endblock %}
+{% block customCSS %}
+{% include "proposed-table-CSS.css" %}
+tbody tr {
+    border-bottom:solid;
+}
+{% endblock %}
 {% block formName %}Actual Count Records{% endblock formName %}
 {% block boddy %}
-<div class="container">
 {% csrf_token %}
+<table style="height:350px;">
 <!-- header row -->
-<div class="row g-0">
-    <div class="col-1"></div>
-    <div class="col-7 text-start">
-        Count Date | Counter | Material | LOCATION | Counted Quantity
-    </div> 
-</div>
-<hr>
-<div class="container" style="height:350px; overflow-y:auto; overflow-x:clip">
+<thead>
+    <tr>
+        <td></td>
+        <td>
+            Count Date | Counter | Material | LOCATION | Counted Quantity
+        </td> 
+        <td></td>
+    </tr>
+</thead>
+<tbody>
     {% for itm in ActCtList %}
-    <div class="row g-0">
-        <div class="col-1">
-            {{ itm.id }}  
-        </div>
-        <div class="col-8 text-start">
+    <tr>
+        <td>
+            {{ itm.id }}:&nbsp;&nbsp;
+        </td>
+        <td>
             {{ itm.CountDate }} | 
             {{ itm.Counter }} |
             {{ itm.Material }} |
@@ -38,18 +44,17 @@
                 <br>
                 {{ itm.Notes }}
             {% endif %}
-        </div>
-        <div class="col-2">
+        <td>
+        <td>
             <!--TODO: Make all of these buttons work the same way -->
             <button id="edit{{ itm.id }}" class="edit" value="{{ itm.id }}" type="button">Edit</button>
             <button type="button" onclick="CopyCount({{itm.id}})">Copy Count</button>
             <button type="button" onclick="DeleteCount({{itm.id}})">Delete Count</button>
-        </div>
-    </div>
-    <hr>
+        </td>
+    </tr>
     {% endfor %}
-</div>
-</div>
+</tbody>
+</table>
 <!-- form footer -->
 <hr>
 <div class="container">
@@ -58,7 +63,7 @@
             <button 
                 id="add_btn" 
                 type="button">
-                <img src="{% static 'addition-color-outline-icon.svg' %}" width="20" height="20"></img>
+                <img src="{% static 'addition-color-outline-icon.svg' %}" width="20" height="20" />
                 Add New Count
             </button>
         </div>
@@ -69,7 +74,7 @@
                 id="close_btn" 
                 type="button" 
                 onclick="window.close();">
-                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20"></img>
+                <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20" />
                 Close Form
             </button>
         </div>

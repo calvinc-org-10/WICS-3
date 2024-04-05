@@ -53,7 +53,7 @@ def fnWICSuserForm(req):
         return initd
     # enddef  load_initial_WICSuserForm():
         
-    uFormSet_class = formset_factory(WICSUfrm,max_num=300,extra=0)
+    uFormSet_class = formset_factory(WICSUfrm,max_num=300,extra=1)
     
     templt = 'Uadmin.html'
     nChangedRecs = 0
