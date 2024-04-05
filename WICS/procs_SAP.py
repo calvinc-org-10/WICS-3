@@ -473,7 +473,7 @@ def proc_MatlListSAPSprsheet_01ReadSpreadsheet(reqid, fName):
         ## refuse to work with special chars embedded in the MatNum
         #####
         #####
-        RESTARTHERE
+        # RESTARTHERE
         ## create a blank tmpMaterialListUpdate record,
         ## populate by looping through SAPcol,
         ## then save
