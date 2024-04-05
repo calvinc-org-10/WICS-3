@@ -3,7 +3,8 @@
 {% load static %}
 
 {% block tTitle %}WICS User Admin{% endblock %}
-{% block tHeader %}
+{% block customCSS %}
+{% include "proposed-table-CSS.css" %}
 {% endblock %}
 {% block formName %}<h1>WICS User Administration</h1>{% endblock %}
 {% block boddy %}
@@ -12,7 +13,7 @@
     <hr>
     <form id="mainForm" name="mainForm" method="post">  <!-- action=?? - not needed - submit will submit to calling view -->
 
-    <div class="container text-center"> <!-- user Form header -->
+    <div class="container text-center"> <!-- user Form -->
         {% csrf_token %}
         {{ ulist.management_form }}
 
@@ -20,38 +21,50 @@
         <div class="row">
             {{ ulist.non_form_errors }}
         </div>
+        <hr>
         {% endif %}
-        <hr>
-        <div class="row">
-                ID --------- UserName --------- Menu Group ----------------------- First Name ------------------ Last Name -------------------- email --- 
-                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; super? - admin? - actv? &nbsp;&nbsp;&nbsp;&nbsp;&nbsp; --- Last Login
-        </div>
-        <hr>
-    </div> <!-- User form header -->
-    <div class="container" style="height:300px; overflow: auto;"> <!-- user Form body - scrollable list of users -->
-        <div class="row">
-            <ul id="form_set">
+        <table style="height:380px;">
+            <thead>
+                <tr>
+                    <td>ID</td>
+                    <td>UserName</td>
+                    <td>Menu Group</td>
+                    <td>First Name</td>
+                    <td>Last Name</td>
+                    <td>email</td>
+                    <td>super? - admin? - actv?</td>
+                    <td>Last Login</td>
+                </tr>
+            </thead>
+            <tbody id="form_set">
             {% for u in ulist %}
-                {% if u.errors %}{{ u.errors }}{% endif %}  
-                <li>
-                    {% render_field u.showuid size="3" %}
-                    {% render_field u.uname size="12" %}
-                    {% render_field u.menuGroup style="width:15em" %}  
-                    {% render_field u.fname size="20" %}
-                    {% render_field u.lname size="20" %}
-                    {% render_field u.email size="20" %}
-                    {% render_field u.superuser %}
-                    {% render_field u.admin %}
-                    {% render_field u.active %}
-                    {% render_field u.last_login size="15" %}
-                    <button type="button" onclick="chpw('{{ u.uname.value }}');">Change Password</button>
-                    <button type="button" onclick="delusr({{ u.WICSuid.value }}, '{{ u.uname.value }}');">Remove user</button>
-                </li>
-                <hr>
+                {% if u.errors %}<tr><td colspan=8>{{ u.errors }}</td></tr>{% endif %}  
+                <tr>
+                    <td>{% render_field u.showuid size="3" %}</td>
+                    <td>{% render_field u.uname size="12" %}</td>
+                    <td>{% render_field u.menuGroup style="width:15em" %}</td>
+                    <td>{% render_field u.fname size="20" %}</td>
+                    <td>{% render_field u.lname size="20" %}</td>
+                    <td>{% render_field u.email size="20" %}</td>
+                    <td>
+                        {% render_field u.superuser %}
+                        {% render_field u.admin %}
+                        {% render_field u.active %}
+                    </td>
+                    <td>{% render_field u.last_login size="15" %}</td>
+                </tr>
+                <tr style="border-bottom:solid;">
+                    <td colspan=5></td>
+                    <td colspan=3>
+                        <button type="button" onclick="chpw('{{ u.uname.value }}');">Change Password</button>
+                        <button type="button" onclick="delusr({{ u.WICSuid.value }}, '{{ u.uname.value }}');">Remove user</button>
+                    </td>
+                </tr>
             {% endfor %}
-            </ul>
+            </tbody>
+        </table>
         </div> <!-- row -->
-    </div> <!-- user Form body - scrollable list of users -->
+    </div> <!-- user Form -->
 
     <!-- form footer -->
     <div class="container">
@@ -61,7 +74,7 @@
                     <img src="{% static 'poem-poetry-icon.svg' %}" width="20" height="20"></img>
                     Save changes
                 </button>
-                <button id="add-user" type="button" onclick="create_empty_user()">
+                <button id="add-user" type="button" onclick="create_empty_user()" disabled>
                     Add user
                 </button>
             </div>
@@ -77,19 +90,20 @@
 
     <input type="hidden" id="delusrid" name="delusrid"></input>
     <div id="empty_form" hidden>
-        <li>
-            {% render_field ulist.empty_form.showuid size="4" %}
-            {% render_field ulist.empty_form.uname size="12" %}
-            {% render_field ulist.empty_form.menuGroup %}  <!-- size will be # of dropdowns.  How to specify width? -->
-            {% render_field ulist.empty_form.fname size="20" %}
-            {% render_field ulist.empty_form.lname size="20" %}
-            {% render_field ulist.empty_form.email size="20" %}
-            {% render_field ulist.empty_form.superuser %}
-            {% render_field ulist.empty_form.admin %}
-            {% render_field ulist.empty_form.active %}
-            {% render_field ulist.empty_form.last_login size="20" %}
-        </li>
-        <hr>
+        <tr style="border-bottom:solid;">
+            <td>{% render_field ulist.empty_form.showuid size="4" %}</td>
+            <td>{% render_field ulist.empty_form.uname size="12" %}</td>
+            <td>{% render_field ulist.empty_form.menuGroup %}</td>
+            <td>{% render_field ulist.empty_form.fname size="20" %}</td>
+            <td>{% render_field ulist.empty_form.lname size="20" %}</td>
+            <td>{% render_field ulist.empty_form.email size="20" %}</td>
+            <td>
+                {% render_field ulist.empty_form.superuser %}
+                {% render_field ulist.empty_form.admin %}
+                {% render_field ulist.empty_form.active %}
+            </td>
+            <td>{% render_field ulist.empty_form.last_login size="20" %}</td>
+        </tr>
     </div>
 
     </form>
