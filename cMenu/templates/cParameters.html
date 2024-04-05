@@ -25,62 +25,46 @@
     {{ plist.management_form }}
     <div class="container text-center">
         {% if plist.non_form_errors %}
-        <div class="row">
+        <div>
             {{ plist.non_form_errors }}
         </div>
         <hr>
         {% endif %}
-        <div class="row">
-            <div class="col-3">
-                ParmName 
-            </div>
-            <div class="col-3">
-                ParmValue 
-            </div>
-            <div class="col-1">
-                UserModifiable 
-            </div>
-            <div class="col-2">
-                Comments 
-            </div>
-            <div class="col">
-                Delete?
-            </div>
-        </div>
-        <hr>
+        <table>
+            <thead>
+                <tr>
+                    <td>ParmName</td>
+                    <td>ParmValue</td>
+                    <td>UserModifiable</td>
+                    <td>Comments</td>
+                    <td>Delete?</td>
+                </tr>
+            </thead>
+            <tbody>
+            {% for cprm in plist %}
+                {% if cprm.UserModifiable.value == True or request.user.is_superuser %}
+                {% if cprm.errors %}
+                    <tr>
+                    <td colspan=5>{{ cprm.errors }}</td>
+                    </tr>
+                {% endif %}
+                <tr style="border-bottom:solid;">
+                    <td>{% render_field cprm.ParmName %}</td>
+                    <td>{% render_field cprm.ParmValue %}</td>
+                    <td>{% render_field cprm.UserModifiable %}</td>
+                    <td>{% render_field cprm.Comments %}</td>
+                    <td>
+                        {% if plist.can_delete %}
+                            {{ cprm.DELETE }}
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endif %}
+            {% endfor %}
+            </tbody>
+        </table>
     </div>
     <!-- form main -->
-    <div class="container">
-        <ul id="form_set">
-        {% for cprm in plist %}
-            {% if cprm.UserModifiable.value == True or request.user.is_superuser %}
-            <li>
-            <div class="row mx-auto max-width=100%">
-                {% if cprm.errors %} {{ cprm.errors }}<br> {% endif %}
-                <div class="col-3">
-                    {% render_field cprm.ParmName %}
-                </div>
-                <div class="col-3">
-                    {% render_field cprm.ParmValue %}
-                </div>
-                <div class="col-1">
-                    {% render_field cprm.UserModifiable %}
-                </div>
-                <div class="col-3">
-                    {% render_field cprm.Comments %}
-                </div>
-                <div class="col">
-                    {% if plist.can_delete %}
-                        {{ cprm.DELETE }}
-                    {% endif %}
-                </div>
-            </div>
-            </li>
-            <hr>
-            {% endif %}
-        {% endfor %}
-        </ul>
-    </div>
 
     <!-- form footer -->
     <div class="container">
