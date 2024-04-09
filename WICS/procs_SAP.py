@@ -470,46 +470,27 @@ def proc_MatlListSAPSprsheet_01ReadSpreadsheet(reqid, fName):
 
         if row[SAPcol['Material']]==None: MatNum = ''
         else: MatNum = row[SAPcol['Material']]
-        ## refuse to work with special chars embedded in the MatNum
-        #####
-        #####
-        # RESTARTHERE
+        validTmpRec = False
         ## create a blank tmpMaterialListUpdate record,
-        ## populate by looping through SAPcol,
-        ## then save
-        #####
-        #####
+        newrec = tmpMaterialListUpdate()
         if regex.match(".*[\n\t\xA0].*",MatNum):
-            tmpMaterialListUpdate(
-                recStatus = 'err-MatlNum',
-                errmsg = f'error: {MatNum!a} is an unusable part number. It contains invalid characters and cannot be added to WICS',
-                Material = row[SAPcol['Material']],
-                # MaterialLink = MaterialLink,
-                Description = row[SAPcol['Description']],
-                Plant = row[SAPcol['Plant']],
-                SAPMaterialType = row[SAPcol['SAPMaterialType']],
-                SAPMaterialGroup = row[SAPcol['SAPMaterialGroup']],
-                Price = row[SAPcol['Price']],
-                PriceUnit = row[SAPcol['PriceUnit']],
-                Currency = row[SAPcol['Currency']]
-                ).save()
-            continue
+            validTmpRec = True
+            ## refuse to work with special chars embedded in the MatNum
+            newrec.recStatus = 'err-MatlNum'
+            newrec.errmsg = f'error: {MatNum!a} is an unusable part number. It contains invalid characters and cannot be added to WICS'
         elif len(str(MatNum)):
+            validTmpRec = True
             _org = SAPPlants_org.objects.filter(SAPPlant=row[SAPcol['Plant']])[0].org
-            tmpMaterialListUpdate(
-                org = _org,
-                Material = row[SAPcol['Material']],
-                # MaterialLink = MaterialLink,
-                Description = row[SAPcol['Description']],
-                Plant = row[SAPcol['Plant']],
-                SAPMaterialType = row[SAPcol['SAPMaterialType']],
-                SAPMaterialGroup = row[SAPcol['SAPMaterialGroup']],
-                Price = row[SAPcol['Price']],
-                PriceUnit = row[SAPcol['PriceUnit']],
-                Currency = row[SAPcol['Currency']]
-                ).save()
+            newrec.org = _org
         # endif invalid Material
+        if validTmpRec:
+            ## populate by looping through SAPcol,
+            ## then save
+            for dbColName, ssColNum in SAPcol.items():
+                setattr(newrec,dbColName,row[ssColNum])
+            newrec.save()
     # endfor
+
     wb.close()
     os.remove(fName)
 def done_MatlListSAPSprsheet_01ReadSpreadsheet(t):
