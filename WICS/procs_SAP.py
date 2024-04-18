@@ -740,7 +740,7 @@ def proc_MatlListSAPSprsheet_99_Cleanup(reqid):
         pass
 
     # delete the temporary table
-    #debug - tmpMaterialListUpdate.objects.all().delete()
+    tmpMaterialListUpdate.objects.all().delete()
 
 @login_required
 def fnUpdateMatlListfromSAP(req):
