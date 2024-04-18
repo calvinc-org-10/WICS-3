@@ -204,10 +204,11 @@ class MaterialForm(forms.ModelForm):
     class Meta:
         model = MaterialList
         fields = ['id', 'org', 'Material', 'Description','PartType',
-                'SAPMaterialType', 'SAPMaterialGroup', 'Price',
+                'SAPMaterialType', 'SAPMaterialGroup', 'SAPManuf','SAPMPN','SAPABC', 'Price',
                 'TypicalContainerQty', 'TypicalPalletQty', 'PriceUnit', 'Notes']
         # fields = '__all__'
-
+   
+ 
 class MaterialCountSummary(forms.Form):
     Material = forms.CharField(max_length=100, disabled=True)
     CountDate = forms.DateField(required=False, disabled=True)

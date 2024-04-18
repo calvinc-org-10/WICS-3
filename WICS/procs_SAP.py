@@ -1,4 +1,5 @@
 import os, uuid, re as regex
+import ast
 import subprocess, signal
 import json
 from functools import partial
@@ -11,6 +12,7 @@ from django.http import HttpResponse #, HttpResponseNotModified
 from django.shortcuts import render
 from django_q.tasks import async_task
 from openpyxl import load_workbook
+import WICS.procs_SAP
 from cMenu.models import getcParm
 from cMenu.utils import calvindate, ExcelWorkbook_fileext
 import WICS.globals
@@ -392,11 +394,17 @@ def fnSAPList(for_date = calvindate().today(), matl = None):
 
 ##### the suite of procs to support fnUpdateMatlListfromSAP
 
-def proc_MatlListSAPSprsheet_00InitUMLasync_comm(reqid):
+def proc_MatlListSAPSprsheet_00InitUMLasync_comm(reqid, UpdateExistFldList):
     acomm = set_async_comm_state(
         reqid,
         statecode = 'rdng-sprsht-init',
         statetext = 'Initializing ...',
+        new_async=True
+        )
+    set_async_comm_state(
+        f"{reqid}-UpdExstFldList",
+        statecode = 'UpdateExistFldList',
+        statetext = f'{UpdateExistFldList}',
         new_async=True
         )
 
@@ -435,9 +443,9 @@ def proc_MatlListSAPSprsheet_01ReadSpreadsheet(reqid, fName):
             'Plant': 'Plant', 'Plnt': 'Plant',
             'Material type': 'SAPMaterialType',  'MTyp': 'SAPMaterialType',
             'Material Group': 'SAPMaterialGroup', 'Matl Group': 'SAPMaterialGroup',
-            # 'Manufact.': 'SAPManuf', 
-            # 'MPN': 'SAPMPN', 
-            # 'ABC': 'SAPABC', 
+            'Manufact.': 'SAPManuf', 
+            'MPN': 'SAPMPN', 
+            'ABC': 'SAPABC', 
             'Price': 'Price', 'Standard price': 'Price',
             'Price unit': 'PriceUnit', 'per': 'PriceUnit',
             'Currency':'Currency',
@@ -503,7 +511,7 @@ def done_MatlListSAPSprsheet_01ReadSpreadsheet(t):
             statecode = 'done-rdng-sprsht',
             statetext = f'Finished Reading Spreadsheet',
             )
-        proc_MatlListSAPSprsheet_11_DoStep2(reqid)
+        proc_MatlListSAPSprsheet_02_identifyexistingMaterial(reqid)
 
 def proc_MatlListSAPSprsheet_02_identifyexistingMaterial(reqid):
     set_async_comm_state(
@@ -560,9 +568,62 @@ def done_MatlListSAPSprsheet_02_identifyexistingMaterial(reqid):
         statecode = 'get-matl-link-done',
         statetext = f'Finished linking SAP MM60 list to existing WICS Materials',
         )
-    proc_MatlListSAPSprsheet_11_DoStep3(reqid)
+    
+    proc_MatlListSAPSprsheet_03_UpdateExistingRecs(reqid)
 
-def proc_MatlListSAPSprsheet_03_Remove(reqid):
+def proc_MatlListSAPSprsheet_03_UpdateExistingRecs(reqid):
+    def setstate_MatlListSAPSprsheet_03_UpdateExistingRecs(fldName):
+        acomm = set_async_comm_state(
+            reqid,
+            statecode = 'upd-existing-recs',
+            statetext = f'Updating _{fldName}_ Field in Existing Records',
+            )
+
+    setstate_MatlListSAPSprsheet_03_UpdateExistingRecs("")
+
+    # (Form Name, db fld Name, zero/blank value)
+    FormTodbFld_map = [
+        ('Description','Description','""'),
+        ('SAPMatlType','SAPMaterialType','""'),
+        ('SAPMatlGroup','SAPMaterialGroup','""'),
+        ('SAPManuf','SAPManuf','""'),
+        ('SAPMPN','SAPMPN','""'),
+        ('SAPABC','SAPABC','""'),
+        ('SAPPrice','Price',0),
+        ('SAPPrice','PriceUnit',0),
+        ('SAPPrice','Currency','""'),
+    ]
+
+    UpdateExistFldList_str = async_comm.objects.get(pk=f"{reqid}-UpdExstFldList").statetext
+    UpdateExistFldList = ast.literal_eval(UpdateExistFldList_str)
+
+    if UpdateExistFldList:
+        for formName, dbName, zeroVal in FormTodbFld_map:
+            if formName in UpdateExistFldList:
+                setstate_MatlListSAPSprsheet_03_UpdateExistingRecs(dbName)
+                # UPDATE this field
+                UpdSQLSetStmt = f"MatlList.{dbName}=tmpMatl.{dbName}"
+                UpdSQLWhereStmt = f"(IFNULL(tmpMatl.{dbName},{zeroVal}) != {zeroVal} AND IFNULL(MatlList.{dbName},{zeroVal})!=IFNULL(tmpMatl.{dbName},{zeroVal}))"
+
+                UpdSQLStmt = "UPDATE WICS_materiallist AS MatlList, WICS_tmpmateriallistupdate AS tmpMatl"
+                UpdSQLStmt += f" SET {UpdSQLSetStmt}"
+                UpdSQLStmt += f" WHERE (tmpMatl.MaterialLink_id=MatlList.id) AND {UpdSQLWhereStmt}"
+                print(f'DDDDDDdebug - upd {dbName} SQL: {UpdSQLStmt}')
+                with connection.cursor() as cursor:
+                    cursor.execute(UpdSQLStmt)
+            #endif formName in UpdateExistFldList
+        #endfor
+    # endif UpdateExistFldList not empty
+    done_MatlListSAPSprsheet_03_UpdateExistingRecs(reqid)
+def done_MatlListSAPSprsheet_03_UpdateExistingRecs(reqid):
+    set_async_comm_state(
+        reqid,
+        statecode = 'upd-existing-recs-done',
+        statetext = f'Finished Updating Existing Records to MM60 values',
+        )
+    proc_MatlListSAPSprsheet_04_Remove(reqid)
+
+def proc_MatlListSAPSprsheet_04_Remove(reqid):
     ## MustKeepMatlsDelCond = ''
     ## if MustKeepMatlsDelCond: MustKeepMatlsDelCond += ' AND '
     ## MustKeepMatlsDelCond += 'id IN (SELECT DISTINCT delMaterialLink FROM WICS_tmpmateriallistupdate WHERE recStatus like "DEL%")'
@@ -581,8 +642,8 @@ def proc_MatlListSAPSprsheet_03_Remove(reqid):
     DeleteMatlsDoitSQL += ' WHERE TMP.recStatus like "DEL%"'
     with connection.cursor() as cursor:
         cursor.execute(DeleteMatlsDoitSQL)
-        transaction.on_commit(partial(done_MatlListSAPSprsheet_03_Remove,reqid))
-def done_MatlListSAPSprsheet_03_Remove(reqid):
+        transaction.on_commit(partial(done_MatlListSAPSprsheet_04_Remove,reqid))
+def done_MatlListSAPSprsheet_04_Remove(reqid):
     mandatorytaskdonekey = f'MatlX{reqid}'
     statecodeVal = ".03D."
     existingstatecode = ''
@@ -599,9 +660,9 @@ def done_MatlListSAPSprsheet_03_Remove(reqid):
         statecode = 'done-del-matl',
         statetext = f'Finished Removing WICS Materials no longer in SAP MM60 Materials',
         )
-    proc_MatlListSAPSprsheet_03_Add(reqid)
+    proc_MatlListSAPSprsheet_04_Add(reqid)
 
-def proc_MatlListSAPSprsheet_03_Add(reqid):
+def proc_MatlListSAPSprsheet_04_Add(reqid):
     set_async_comm_state(
         reqid,
         statecode = 'add-matl',
@@ -637,8 +698,8 @@ def proc_MatlListSAPSprsheet_03_Add(reqid):
     UpdMaterialLinkSQL += "   and (MaterialLink_id IS NULL) AND (recStatus = 'ADD')"
     with connection.cursor() as cursor:
         cursor.execute(UpdMaterialLinkSQL)
-        transaction.on_commit(partial(done_MatlListSAPSprsheet_03_Add,reqid))
-def done_MatlListSAPSprsheet_03_Add(reqid):
+        transaction.on_commit(partial(done_MatlListSAPSprsheet_04_Add,reqid))
+def done_MatlListSAPSprsheet_04_Add(reqid):
     mandatorytaskdonekey = f'MatlX{reqid}'
     statecodeVal = ".03A."
     existingstatecode = ''
@@ -656,12 +717,6 @@ def done_MatlListSAPSprsheet_03_Add(reqid):
         statetext = f'Finished Adding SAP MM60 Materials new to WICS',
         )
 
-def proc_MatlListSAPSprsheet_11_DoStep2(reqid):
-    proc_MatlListSAPSprsheet_02_identifyexistingMaterial(reqid)
-
-def proc_MatlListSAPSprsheet_11_DoStep3(reqid):
-    proc_MatlListSAPSprsheet_03_Remove(reqid)
-
 def proc_MatlListSAPSprsheet_99_FinalProc(reqid):
     set_async_comm_state(
         reqid,
@@ -672,6 +727,7 @@ def proc_MatlListSAPSprsheet_99_FinalProc(reqid):
 def proc_MatlListSAPSprsheet_99_Cleanup(reqid):
     # also kill reqid, acomm, qcluster process
     async_comm.objects.filter(pk=reqid).delete()
+    async_comm.objects.filter(pk=f"{reqid}-UpdExstFldList").delete()
 
     # when we can start django-q programmatically, this is where we kill that process
     try:
@@ -684,7 +740,7 @@ def proc_MatlListSAPSprsheet_99_Cleanup(reqid):
         pass
 
     # delete the temporary table
-    tmpMaterialListUpdate.objects.all().delete()
+    #debug - tmpMaterialListUpdate.objects.all().delete()
 
 @login_required
 def fnUpdateMatlListfromSAP(req):
@@ -712,7 +768,8 @@ def fnUpdateMatlListfromSAP(req):
             # reqid = random.randint(1, 100000000000)
             retinfo.set_cookie('reqid',str(reqid))
 
-            proc_MatlListSAPSprsheet_00InitUMLasync_comm(reqid)
+            UpdateExistFldList = req.POST.getlist('UpIfCh', default=[])
+            proc_MatlListSAPSprsheet_00InitUMLasync_comm(reqid, UpdateExistFldList)
 
             UMLSSName = proc_MatlListSAPSprsheet_00CopyUMLSpreadsheet(req, reqid)
             async_task(proc_MatlListSAPSprsheet_01ReadSpreadsheet, reqid, UMLSSName, hook=done_MatlListSAPSprsheet_01ReadSpreadsheet)

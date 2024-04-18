@@ -99,12 +99,19 @@ button:focus {
                 </div>
                 <div class="row">
                     <div class="col">
-                        SAP Matl Type: {% render_field frmMain.SAPMaterialType size="4" %}
-                        SAP Matl Grp: {% render_field frmMain.SAPMaterialGroup size="4" %}
+                        SAP ABC Designation: {% render_field frmMain.SAPABC size="4" %}
                         Price: {% render_field frmMain.Price style="width:8em" %}
                         Price Unit: {% render_field frmMain.PriceUnit style="width:8em" %}
                         Typ Container Qty: {% render_field frmMain.TypicalContainerQty style="width:6em" %}
                         Typ Plt Qty: {% render_field frmMain.TypicalPalletQty style="width:6em" %}
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        SAP Manufacturer: {% render_field frmMain.SAPManuf size="15" %}
+                        SAP MPN: {% render_field frmMain.SAPMPN size="15" %}
+                        SAP Matl Type: {% render_field frmMain.SAPMaterialType size="4" %}
+                        SAP Matl Grp: {% render_field frmMain.SAPMaterialGroup size="4" %}
                     </div>
                 </div>
                 <div class="row">

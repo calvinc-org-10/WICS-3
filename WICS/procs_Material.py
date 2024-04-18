@@ -143,8 +143,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
         SAP_SOH = fnSAPList(matl=currRec)
 
     gotoForm = {}
-    gotoForm['choicelist'] = \
-    VIEW_materials.objects.all().values('id','Material_org')
+    gotoForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
     gotoForm['gotoItem'] = currRec
 
     if req.method == 'POST':

@@ -3,7 +3,7 @@
 {% load static %}
 
 {% block tTitle %}Update Material List from SAP Spreadsheet{% endblock %}
-{% block formName %}Update Material List from SAP MM60 Spreadsheet{% endblock %}
+{% block formName %}Update Material List from SAP MM60 or ZMSQV001 Spreadsheet{% endblock %}
 {% block wait_spinner_msgs %}Processing...<br>{% endblock %}
 {% block statusMsgs %}
     <div>
@@ -16,13 +16,29 @@
 <hr>
 <form id="getUpdSprsheet" method="post" enctype="multipart/form-data">
     {% csrf_token %}
-    Where is the SAP Material List Spreadsheet? 
-    <p><input id="SAPFile" type="file"
-        name="SAPFile"
-        accept=".xlsx,application/vnd.ms-excel">
-       </input>
-    </p>
-    Phs: <input id="phase" name="phase" type="text" value='init-upl' readonly></input>
+    <div class="container">
+        <div class="row">
+            <div class="col">
+                Where is the SAP Material List Spreadsheet? 
+                <p><input id="SAPFile" type="file"
+                    name="SAPFile"
+                    accept=".xlsx,application/vnd.ms-excel">
+                </input>
+                </p>
+                Phs: <input id="phase" name="phase" type="text" value='init-upl' readonly></input>
+            </div>
+            <div class="col">
+                <b><u>Update Existing Records if Changed:</u></b>
+                <div><label><input type="checkbox" class="UpIfCh" name="UpIfCh" value="Description" /> Description</label></div>
+                <div><label><input type="checkbox" class="UpIfCh" name="UpIfCh" value="SAPMatlType" /> SAP Material Type</label></div>
+                <div><label><input type="checkbox" class="UpIfCh" name="UpIfCh" value="SAPMatlGroup" /> SAP Material Group</label></div>
+                <div><label><input type="checkbox" class="UpIfCh" name="UpIfCh" value="SAPManuf" /> SAP Manufacturer</label></div>
+                <div><label><input type="checkbox" class="UpIfCh" name="UpIfCh" value="SAPMPN" /> SAP MPN</label></div>
+                <div><label><input type="checkbox" class="UpIfCh" name="UpIfCh" value="SAPABC" /> SAP ABC Designation</label></div>
+                <div><label><input type="checkbox" class="UpIfCh" name="UpIfCh" value="SAPPrice" /> Price, Price Unit and Currency</label></div>
+            </div>
+        </div>
+    </div>
 
     <!-- form footer -->
     <div class="container">
@@ -48,6 +64,29 @@
 
     var intervalID;
     const POLLING_INTERVAL = 2000;
+
+
+    document.getElementById("close_btn").addEventListener("click",
+        function(){
+            window.close();
+        });
+
+    // add listeners to the Update If Changed choices to hilight them if clicked
+    const UpIfChChoices = document.querySelectorAll(".UpIfCh")
+    UpIfChChoices.forEach(
+        function (UpIfChChoiceBox) {
+            UpIfChChoiceBox.addEventListener("change",
+                function(event) {
+                    let enclosingDiv = event.target.parentElement;
+                    let isChecked = event.target.checked;
+                    if (enclosingDiv) {
+                        enclosingDiv.style.color = isChecked ? "green" : "black";
+                        enclosingDiv.style.setProperty("font-weight", isChecked ? "bold" : "normal");
+                      }
+                }
+          );
+        }
+    )
 
     function start_wait_spinner() { document.getElementById("wait_spinner").style.display = "block"; };
     function stop_wait_spinner() { document.getElementById("wait_spinner").style.display = "none"; };
@@ -183,11 +222,6 @@
     document.body.onbeforeunload = function() {
         document.getElementById("wait_spinner").style.display = "block";
         }
-
-    document.getElementById("close_btn").addEventListener("click",
-        function(){
-            window.close();
-        });
 
 </script>
 
