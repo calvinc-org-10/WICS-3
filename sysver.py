@@ -1,13 +1,14 @@
 _base_ver_major=3
 _base_ver_minor=8
-_base_ver_patch=0
-_ver_date='2024-04-17'
+_base_ver_patch=1
+_ver_date='2024-04-20'
 _base_ver = str(_base_ver_major) +'.'+ str(_base_ver_minor) +'.'+ str(_base_ver_patch)
 sysver = {
     'DEV': 'DEV'+_base_ver, 
     'PROD':_base_ver,
     } 
 
+# 3.8.1 - 2024-04-20 add progress bar to spreadsheet reads
 # 3.8.0 - 2024-04-13 added SAPMfr, SAPMPN, SAPABC flds to MaterialList
 # 3.7.0 - 2024-04-05 replaced a lot of Bootstrap col/rows with HTML tables
 # 3.6.0 - 2024-01-26 New WICS_common.html used everywhere

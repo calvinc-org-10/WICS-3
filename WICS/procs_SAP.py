@@ -175,7 +175,7 @@ def proc_UpSAPSpreadsheet_01ReadSheet(reqid, fName, UplDate):
             set_async_comm_state(
                 reqid,
                 statecode = 'rdng-sprsht',
-                statetext = f'Reading Spreadsheet ... record {SprshtRowNum} of {numrows}',
+                statetext = f'Reading Spreadsheet ... record {SprshtRowNum} of {numrows}<br><progress max="{numrows}" value="{SprshtRowNum}"></progress>',
                 )
 
         if row[SAPcolmnMap[_TblName_Material]]==None: MatlNum = ''
@@ -473,7 +473,7 @@ def proc_MatlListSAPSprsheet_01ReadSpreadsheet(reqid, fName):
             set_async_comm_state(
                 reqid,
                 statecode = 'rdng-sprsht',
-                statetext = f'Reading Spreadsheet ... record {nRows} of {numrows}',
+                statetext = f'Reading Spreadsheet ... record {nRows} of {numrows}<br><progress max="{numrows}" value="{nRows}"></progress>',
                 )
 
         if row[SAPcol['Material']]==None: MatNum = ''
@@ -608,7 +608,6 @@ def proc_MatlListSAPSprsheet_03_UpdateExistingRecs(reqid):
                 UpdSQLStmt = "UPDATE WICS_materiallist AS MatlList, WICS_tmpmateriallistupdate AS tmpMatl"
                 UpdSQLStmt += f" SET {UpdSQLSetStmt}"
                 UpdSQLStmt += f" WHERE (tmpMatl.MaterialLink_id=MatlList.id) AND {UpdSQLWhereStmt}"
-                print(f'DDDDDDdebug - upd {dbName} SQL: {UpdSQLStmt}')
                 with connection.cursor() as cursor:
                     cursor.execute(UpdSQLStmt)
             #endif formName in UpdateExistFldList

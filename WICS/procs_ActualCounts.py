@@ -213,7 +213,7 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
             set_async_comm_state(
                 reqid,
                 statecode = 'rdng-sprsht',
-                statetext = f'Reading Spreadsheet ... record {SprshtRowNum} of {ws.max_row}',
+                statetext = f'Reading Spreadsheet ... record {SprshtRowNum} of {ws.max_row}<br><progress max="{ws.max_row}" value="{SprshtRowNum}"></progress>',
                 )
 
         ignoreline = ( ( (NOTdbFld_flags[0] in SprshtcolmnMap) and (row[SprshtcolmnMap[NOTdbFld_flags[0]]]) )
