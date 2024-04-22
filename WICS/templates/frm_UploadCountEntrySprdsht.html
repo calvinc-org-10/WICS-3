@@ -60,8 +60,8 @@
             const formdata = new FormData(fform);
 
             function SetRetData(data) {
-                $( '#Upload-Status' ).text( data.statetext );
-                $( "#retStatecode" ).text(data.statecode);
+                document.getElementById("Upload-Status").innerHTML = data.statetext;
+                document.getElementById("retStatecode").innerHTML = data.statecode;
                 };
 
             if (phase == 'init-upl') {
@@ -70,21 +70,21 @@
                 document.getElementById("wait_spinner").style.display = "block";
 
                 $.ajax({
-                    method: 'POST', 
-                    data: formdata, 
-                    processData: false, 
-                    contentType: false, 
+                    method: 'POST',
+                    data: formdata,
+                    processData: false,
+                    contentType: false,
                     });
                 $("#phase").val('waiting')
                 intervalID = setInterval(PollServer,POLLING_INTERVAL);
                 $( "#retStatecode" ).text('waiting');   // fake code to skip rest of this iteration
             } else if (phase == 'waiting') {
                 $.ajax({
-                    method: 'POST', 
-                    data: formdata, 
+                    method: 'POST',
+                    data: formdata,
                     dataType: "json",
-                    processData: false, 
-                    contentType: false, 
+                    processData: false,
+                    contentType: false,
                     success: SetRetData,
                     });
             };
@@ -97,9 +97,9 @@
                 $( '#fatalErrMsg' ).text( $("#Upload-Status").text() );
                 $( '#Upload-Status' ).text( "" );
                 document.getElementById("wait_spinner").style.display = "none";
-                
+
                 $("#phase").val('init-upl')
-                
+
                 $( '#id_CEFile' ).val(null);
                 $( '#id_CEFile' ).trigger("focus");
             }

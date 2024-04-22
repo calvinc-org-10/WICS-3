@@ -6,7 +6,7 @@
 {% block formName %}Upload SAP MB52 Spreadsheet{% endblock %}
 {% block wait_spinner_msgs %}Processing...<br>{% endblock %}
 {% block statusMsgs %}
-    <span id="retStatecode" style="display:none"></span><span id="Upload-Status"></span>
+    <div><span id="retStatecode" style="display:none"></span><span id="Upload-Status"></span></div>
     <div id="fatalErrMsg"></div>
 {% endblock %}
 
@@ -20,9 +20,9 @@
         <p>Last Upload was <span class="h4"> {{ LastSAPUploadDate|date:'Y-m-d' }}</span></p>
 {% comment %}
             Django won't render this as a date field
-            <p>This upload will have date: {{ form.uploaded_at }} (if an existing upload exists for this date, it will be overwritten)</p>    
-{% endcomment %}        
-        <p>This upload will have date: 
+            <p>This upload will have date: {{ form.uploaded_at }} (if an existing upload exists for this date, it will be overwritten)</p>
+{% endcomment %}
+        <p>This upload will have date:
             <input type="date" name="uploaded_at" required id="id_uploaded_at" onchange="checkSAPDate(this)">
             <span id="existingupload" style="color:red; font-weight:bolder"></span>
         </p>
@@ -108,8 +108,8 @@
             const formdata = new FormData(fform);
 
             function SetRetData(data) {
-                $( '#Upload-Status' ).text( data.statetext );
-                $( "#retStatecode" ).text(data.statecode);
+                document.getElementById("Upload-Status").innerHTML = data.statetext;
+                document.getElementById("retStatecode").innerHTML = data.statecode;
                 };
 
             if (phase == 'init-upl') {
@@ -118,21 +118,21 @@
                 document.getElementById("wait_spinner").style.display = "block";
 
                 $.ajax({
-                    method: 'POST', 
-                    data: formdata, 
-                    processData: false, 
-                    contentType: false, 
+                    method: 'POST',
+                    data: formdata,
+                    processData: false,
+                    contentType: false,
                     });
                 $("#phase").val('waiting')
                 intervalID = setInterval(PollServer,POLLING_INTERVAL);
                 $( "#retStatecode" ).text('waiting');   // fake code to skip rest of this iteration
             } else if (phase == 'waiting') {
                 $.ajax({
-                    method: 'POST', 
-                    data: formdata, 
+                    method: 'POST',
+                    data: formdata,
                     dataType: "json",
-                    processData: false, 
-                    contentType: false, 
+                    processData: false,
+                    contentType: false,
                     success: SetRetData,
                     });
             };
@@ -145,9 +145,9 @@
                 $( '#fatalErrMsg' ).text( $("#Upload-Status").text() );
                 $( '#Upload-Status' ).text( "" );
                 document.getElementById("wait_spinner").style.display = "none";
-                
+
                 $("#phase").val('init-upl')
-                
+
                 $( '#{{form.SAPFile.id_for_label}}' ).val(null);
                 $( '#{{form.SAPFile.id_for_label}}' ).trigger("focus");
             }
