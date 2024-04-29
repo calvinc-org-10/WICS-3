@@ -18,7 +18,7 @@ class WICSUfrm(forms.Form):
     uid = forms.IntegerField(disabled = True, required=False)   # later, make hideden : u.user.pk
     WICSuid = forms.IntegerField(disabled = True, required=False)   # later, make hideden : u.pk
     showuid = forms.CharField(disabled = True, required=False, initial="* NEW *")
-    menuGroup = forms.ModelChoiceField(queryset=menuGroups.objects.all(), empty_label=None)   #: u.menuGroup
+    menuGroup = forms.ModelChoiceField(queryset=menuGroups.objects.all())   #: u.menuGroup
     uname = forms.CharField()   # : u.user.username
     fname = forms.CharField()   # : u.user.first_name
     lname = forms.CharField()   # : u.user.last_name
