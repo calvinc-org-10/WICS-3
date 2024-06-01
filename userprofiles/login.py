@@ -39,3 +39,34 @@ class WICSLoginView(auth_views.LoginView):
 
         return super().post(request, *args, **kwargs)
 
+
+class WICSDemoLoginView(auth_views.LoginView):
+    template_name = "DemoLogin.html"
+
+    def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
+        svK = 'DEMO'
+        cntext = super().get_context_data(**kwargs)
+
+        grts = cGreetings.objects.all().values('Greeting')
+        Greeting = random.choice(grts)['Greeting']
+
+        cntext.update({
+            'Greeting':Greeting,
+            'sysver_key': svK,
+            'sysver':sysver[svK],
+            })
+
+        return cntext
+
+    def post(self, request, *args: str, **kwargs: Any) -> HttpResponse:
+        svK = 'demo'
+
+        usr = authenticate(request,username=svK,password=svK)
+        if usr != None:
+            login(request,usr)
+            return self.form_valid(self.get_form())
+
+        django_settings.TIME_ZONE = request.POST['localTZ'] # set the time zone from wherever the user's at 
+
+        return super().post(request, *args, **kwargs)
+
