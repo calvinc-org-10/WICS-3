@@ -22,6 +22,7 @@ from cMenu import menucommand_handlers
 from cMenu.menucommand_handlers import MENUCOMMAND
 from cMenu.models import menuCommands, menuItems, menuGroups, cParameters, cGreetings
 from cMenu.menuformname_viewMap import FormNameToURL_Map
+from cMenu.externalWebPageURL_Map import ExternalWebPageURL_Map
 from sysver import sysver
 from django_support.settings import sysver_key
 
@@ -116,6 +117,8 @@ def HandleMenuCommand(req,CommandNum,CommandArg):
         return redirect('RunSQL')
     elif CommandNum == MENUCOMMAND.ConstructSQLStatement.value:
         pass
+    elif CommandNum  == MENUCOMMAND.LoadExtWebPage.value:
+        retHTTP = fn_LoadExtWebPage(req, CommandArg)
     elif CommandNum == MENUCOMMAND.ChangePW.value:
         return redirect('change_password')
     elif CommandNum == MENUCOMMAND.EditMenu.value :
@@ -668,3 +671,14 @@ def fn_cGreetings(req):
         processedForm = process_get()
 
     return processedForm
+
+#https://calvinc440.great-site.net/
+def fn_LoadExtWebPage(req, extpageURL):
+
+    templt = "cUtilLoadExt.html"
+    cntext = {
+        'extpageURL': ExternalWebPageURL_Map[extpageURL],
+        }
+    theForm = render(req, templt, cntext)
+
+    return theForm
