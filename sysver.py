@@ -1,15 +1,17 @@
 _base_ver_major=3
 _base_ver_minor=9
-_base_ver_patch=0
-_ver_date='2024-06-01'
-_base_ver = str(_base_ver_major) +'.'+ str(_base_ver_minor) +'.'+ str(_base_ver_patch)
+_base_ver_patch=1
+_ver_date='2024-06-19?'
+_base_ver = f'{_base_ver_major}.{_base_ver_minor}.{_base_ver_patch}'
 sysver = {
     'DEV': f'DEV{_base_ver}', 
     'PROD': _base_ver,
     'DEMO': f'DEMO{_base_ver}'
     } 
 
-# 3.9.0 - 2024-06-01 support demo vs prod db
+# 3.9.1 - 2024-06-19? - modifying code to use demo db if user is demo
+# 3.9.0a - 2024-06-01 handle empty Greetings table
+# 3.9.0 - 2024-06-01 support demo vs prod db (laying foundations, contructing db, tables)
 # 3.8.1 - 2024-04-20 add progress bar to spreadsheet reads
 # 3.8.0 - 2024-04-13 added SAPMfr, SAPMPN, SAPABC flds to MaterialList
 # 3.7.0 - 2024-04-05 replaced a lot of Bootstrap col/rows with HTML tables

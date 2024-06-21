@@ -1,7 +1,9 @@
 from cMenu.utils import calvindate
+from django.http import HttpRequest
+from typing import List
 
 
-def HolidayList():
+def HolidayList(req:HttpRequest, includePast:bool = True) -> List:
     # hardcoded until Holiday table is built and utilized
     HList = [
         calvindate('2023-01-02').as_datetime(),

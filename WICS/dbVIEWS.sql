@@ -1,42 +1,90 @@
 -- define first - most other views derive from this
--- `calvinc460$default`.VIEW_materials source
+-- `demo01`.VIEW_materials source
 
 CREATE OR REPLACE
 ALGORITHM = UNDEFINED VIEW `VIEW_materials` AS
 select
     `MATL`.`id` AS `id`,
-    `MATL`.`org_id` AS `org_id`,
     `MATL`.`Material` AS `Material`,
     `MATL`.`Description` AS `Description`,
-    MATL.Plant AS Plant,
     `MATL`.`SAPMaterialType` AS `SAPMaterialType`,
     `MATL`.`SAPMaterialGroup` AS `SAPMaterialGroup`,
+    `MATL`.`SAPABC` AS `SAPABC`,
+    `MATL`.`SAPMPN` AS `SAPMPN`,
+    `MATL`.`SAPManuf` AS `SAPManuf`,
     `MATL`.`Price` AS `Price`,
     `MATL`.`PriceUnit` AS `PriceUnit`,
-    MATL.Currency AS Currency,
     `MATL`.`Notes` AS `Notes`,
     `MATL`.`PartType_id` AS `PartType_id`,
+    `MATL`.`org_id` AS `org_id`,
     `MATL`.`TypicalContainerQty` AS `TypicalContainerQty`,
     `MATL`.`TypicalPalletQty` AS `TypicalPalletQty`,
+    `MATL`.`Currency` AS `Currency`,
+    `MATL`.`Plant` AS `Plant`,
     `PTYPE`.`WhsePartType` AS `PartType`,
     `PTYPE`.`PartTypePriority` AS `PartTypePriority`,
-    `org`.`orgname` as `OrgName`,
-    if((
+    `ORG`.`orgname` AS `OrgName`,
+    `ACTCOUNT`.`CountDate` AS `LastCountDate`,
+    `ACTCOUNT`.`LastFoundAt` AS `LastFoundAt`,
+    if(((
     select
-        count(*)
+        count(0)
     from
         `WICS_materiallist` `numdups`
     where
-        `numdups`.`Material` = `matl`.`Material`
-        and `numdups`.`org_id` != `matl`.`org_id`) > 0,
-    concat(`matl`.`Material`, ' (', `org`.`orgname`, ')'),
-    `matl`.`Material`) as `Material_org`
+        ((`numdups`.`Material` = `MATL`.`Material`)
+            and (`numdups`.`org_id` <> `MATL`.`org_id`))) > 0),
+    concat(`MATL`.`Material`, ' (', `ORG`.`orgname`, ')'),
+    `MATL`.`Material`) AS `Material_org`,
+    `SCHD`.`NextScheduledCount` AS `NextScheduledCount`,
+    exists(
+    select
+        1
+    from
+        `WICS_countschedule` `U1`
+    where
+        ((`U1`.`Material_id` = `MATL`.`id`)
+            and (`U1`.`CountDate` = curdate()))) AS `ScheduledForToday`
 from
-    ((`WICS_materiallist` `MATL`
+    ((((`WICS_materiallist` `MATL`
 join `WICS_organizations` `ORG` on
     ((`MATL`.`org_id` = `ORG`.`id`)))
 left join `WICS_whseparttypes` `PTYPE` on
-    ((`MATL`.`PartType_id` = `PTYPE`.`id`)));
+    ((`MATL`.`PartType_id` = `PTYPE`.`id`)))
+left join (
+    select
+        min(`WICS_countschedule`.`CountDate`) AS `NextScheduledCount`,
+        `WICS_countschedule`.`Material_id` AS `Material_id`
+    from
+        `WICS_countschedule`
+    where
+        (`WICS_countschedule`.`CountDate` > curdate())
+    group by
+        `WICS_countschedule`.`Material_id`) `SCHD` on
+    (((`SCHD`.`Material_id` = `MATL`.`id`)
+        or isnull(`SCHD`.`Material_id`))))
+left join (
+    select
+        `AC`.`Material_id` AS `Material_id`,
+        `AC`.`CountDate` AS `CountDate`,
+        group_concat(distinct `AC`.`LOCATION` order by `AC`.`LOCATION` ASC separator ', ') AS `LastFoundAt`
+    from
+        (`WICS_actualcounts` `AC`
+    join (
+        select
+            max(`WICS_actualcounts`.`CountDate`) AS `MaxCountDate`,
+            `WICS_actualcounts`.`Material_id` AS `Material_id`
+        from
+            `WICS_actualcounts`
+        group by
+            `WICS_actualcounts`.`Material_id`) `MAXAC` on
+        (((`AC`.`Material_id` = `MAXAC`.`Material_id`)
+            and (`AC`.`CountDate` = `MAXAC`.`MaxCountDate`))))
+    group by
+        `AC`.`Material_id`,
+        `AC`.`CountDate`) `ACTCOUNT` on
+    (((`ACTCOUNT`.`Material_id` = `MATL`.`id`)
+        or isnull(`ACTCOUNT`.`Material_id`))));
 
 
 -- `calvinc460$default`.VIEW_SAP source
@@ -80,8 +128,7 @@ select
 from
     ((`WICS_sap_sohrecs` `SAP`
 left join `VIEW_materials` `MATL` on
-    (((`SAP`.`Material` = `MATL`.`Material`)
-        and (`SAP`.`org_id` = `MATL`.`org_id`))))
+    (`SAP`.`Material_id` = `MATL`.`id`))
 left join `WICS_unitsofmeasure` `UOMTable` on
     ((`UOMTable`.`UOM` = `SAP`.`BaseUnitofMeasure`)));
 
@@ -96,11 +143,10 @@ select
     `AC`.`Material_id` AS `Material_id`,
     `MATL`.`Material` AS `Material`,
     `MATL`.`Material_org` AS `Material_org`,
+    AC.LOCATION as LOCATION,
     `AC`.`CycCtID` AS `CycCtID`,
     `AC`.`Counter` AS `Counter`,
     `AC`.`CTD_QTY_Expr` AS `CTD_QTY_Expr`,
-    `AC`.`BLDG` AS `BLDG`,
-    `AC`.`LOCATION` AS `LOCATION`,
     `AC`.`FLAG_PossiblyNotRecieved` AS `FLAG_PossiblyNotRecieved`,
     `AC`.`FLAG_MovementDuringCount` AS `FLAG_MovementDuringCount`,
     `AC`.`Notes` AS `CountNotes`,
@@ -166,7 +212,7 @@ select DISTINCT
     `AC`.`Material` AS `Material`,
     `AC`.`Material_org` AS `Material_org`,
     `AC`.`CountDate` AS `CountDate`,
-    group_concat(distinct concat_ws('_', `AC`.`BLDG`, `AC`.`LOCATION`) order by `AC`.`BLDG` ASC, `AC`.`LOCATION` ASC separator ', ') AS `FoundAt`
+    group_concat(distinct `AC`.`LOCATION` order by `AC`.`LOCATION` ASC separator ', ') AS `FoundAt`
 from
     `VIEW_actualcounts` `AC`
 group by
@@ -206,9 +252,8 @@ select distinct
     `AC`.`Material` AS `Material`,
     `AC`.`Material_org` AS `Material_org`,
     `AC`.`CountDate` AS `CountDate`,
-    `AC`.`BLDG` AS `BLDG`,
     `AC`.`LOCATION` AS `LOCATION`,
-    concat_ws('_', `AC`.`BLDG`, `AC`.`LOCATION`) AS `FoundAt`
+    `AC`.`LOCATION` AS `FoundAt`
 from
     `VIEW_actualcounts` `AC`
 where
@@ -221,7 +266,6 @@ where
         (`A2`.`Material_id` = `AC`.`Material_id`)))
 order by
     `AC`.`Material`,
-    `AC`.`BLDG`,
     `AC`.`LOCATION`;
 
 
@@ -380,3 +424,4 @@ left join `VIEW_lastfoundat` `lfa` on
     (`matl`.`id` = `lfa`.`Material_id`))
 left join `VIEW_lastsap` `sap` on
     (`matl`.`id` = `sap`.`Material_id`));
+

@@ -1,9 +1,11 @@
 from typing import Any
+from django.contrib.auth.models import User
 from django.db import connection, models
 from django.db.models import F, Exists, OuterRef, Value, Case, When, Subquery, Max, Min, QuerySet
 from django.db.models.functions import Concat
+from django.http import HttpRequest
 from userprofiles.models import WICSuser
-from cMenu.utils import GroupConcat, dictfetchall, calvindate
+from cMenu.utils import GroupConcat, dictfetchall, user_db
 
 from .models_async_comm import *
 
@@ -116,12 +118,6 @@ class tmpMaterialListUpdate(models.Model):
             models.Index(fields=['delMaterialLink']),
             ]
 
-def fnMaterial_id(org_id:int,Material:str) -> str | None:
-    try:
-        return MaterialList.objects.get(org_id=org_id, Material=Material).pk
-    except:
-        return None
-
 class MaterialPhotos(models.Model):
     Material = models.ForeignKey(MaterialList, on_delete=models.RESTRICT)
     Photo = models.ImageField(upload_to='MatlImg/',height_field='height',width_field='width')
@@ -203,11 +199,14 @@ class CountSchedule(models.Model):
         return f'{self.pk}: {self.CountDate:%Y-%m-%d}  / {self.Material} / {self.Counter}'
         # return super().__str__()
 
-def VIEW_countschedule():
-    qs = CountSchedule.objects.all()
+def VIEW_countschedule(db_to_use:HttpRequest|User|str) -> QuerySet:
+
+    dbUsing = user_db(db_to_use)
+
+    qs = CountSchedule.objects.using(dbUsing).all()
     qs = qs.annotate(
             Material_org = Case(
-                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))),
+                When(Exists(MaterialList.objects.using(dbUsing).filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))),
                     then=Concat(F('Material__Material'), Value(' ('), F('Material__org__orgname'), Value(')'), output_field=models.CharField())
                     ),
                 default=F('Material__Material')
@@ -251,11 +250,14 @@ class ActualCounts(models.Model):
         # return super().__str__()
 
 
-def VIEW_actualcounts():
-    qs = ActualCounts.objects.all()
+def VIEW_actualcounts(db_to_use:HttpRequest|User|str) -> QuerySet:
+
+    dbUsing = user_db(db_to_use)
+
+    qs = ActualCounts.objects.using(dbUsing).all()
     qs = qs.annotate(
             Material_org=Case(
-                When(Exists(MaterialList.objects.filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))),
+                When(Exists(MaterialList.objects.using(dbUsing).filter(Material=OuterRef('Material__Material')).exclude(org=OuterRef('Material__org'))),
                     then=Concat(F('Material__Material'), Value(' ('), F('Material__org__orgname'), Value(')'), output_field=models.CharField())
                     ),
                 default=F('Material__Material')
@@ -267,26 +269,29 @@ def VIEW_actualcounts():
 
     return qs
 
-def FoundAt(matl = None):
+def FoundAt(db_to_use:HttpRequest|User|str, matl = None):
     # Django's generated SQL takes longer than I'd like.  I can do better, so...
 
+    # dbUsing = user_db(db_to_use)  # VIEW_actualcounts will do this
+
     if matl is None:
-        Totalqs = VIEW_actualcounts().all()
+        Totalqs = VIEW_actualcounts(db_to_use).all()
     else:
-        Totalqs = VIEW_actualcounts().filter(Material=matl)
+        Totalqs = VIEW_actualcounts(db_to_use).filter(Material=matl)
 
     FA_qs = Totalqs.order_by('Material_org', '-CountDate').values('Material', 'Material_org', 'CountDate').annotate(FoundAt=GroupConcat('LOCATION',distinct=True, ordering='LOCATION'))
     return FA_qs
 
-def VIEW_LastFoundAtList(matl=None):
+def VIEW_LastFoundAtList(db_to_use:HttpRequest|User|str, matl=None):
 
+    dbUsing = user_db(db_to_use)
     FA_qs = None
 
     if (matl is not None) and (not matl):
         matl = None
 
-    MaxDates = ActualCounts.objects.all().values('Material').annotate(MaxCtDt=Max('CountDate'))
-    FA_qs = VIEW_actualcounts().filter(
+    MaxDates = ActualCounts.objects.using(dbUsing).all().values('Material').annotate(MaxCtDt=Max('CountDate'))
+    FA_qs = VIEW_actualcounts(dbUsing).filter(
                         CountDate = Subquery(MaxDates.filter(Material=OuterRef('Material')).values('MaxCtDt')[:1])
                 )
 
@@ -298,7 +303,7 @@ def VIEW_LastFoundAtList(matl=None):
             FA_qs = None
 
     if FA_qs is None:
-        FA_qs = VIEW_actualcounts().filter(Material=matl)
+        FA_qs = VIEW_actualcounts(dbUsing).filter(Material=matl)
 
     LFAqs = FA_qs.annotate(FoundAt=F('LOCATION')).values('Material','Material_org','CountDate','FoundAt').distinct().order_by('Material__Material', 'Material__org', 'FoundAt') if FA_qs is not None else None
 
@@ -352,18 +357,20 @@ class UnitsOfMeasure(models.Model):
     DimensionText = models.CharField(max_length=100, blank=True, default='')
     Multiplier1 = models.FloatField(default=1.0)
 
-def VIEW_SAP():
-    return SAP_SOHRecs.objects.all()\
+def VIEW_SAP(db_to_use:HttpRequest|User|str):
+    dbUsing = user_db(db_to_use)
+
+    return SAP_SOHRecs.objects.using(dbUsing).all()\
         .annotate(
             Material_org=Case(
-                When(Exists(MaterialList.objects.filter(Material=OuterRef('MaterialPartNum')).exclude(org=OuterRef('org'))),
+                When(Exists(MaterialList.objects.using(dbUsing).filter(Material=OuterRef('MaterialPartNum')).exclude(org=OuterRef('org'))),
                     then=Concat(F('MaterialPartNum'), Value(' ('), F('org__orgname'), Value(')'), output_field=models.CharField())
                     ),
                 default=F('MaterialPartNum')
                 ),
             Description = F('Material__Description'),
             Notes = F('Material__Notes'),
-            mult = Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1])
+            mult = Subquery(UnitsOfMeasure.objects.using(dbUsing).filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1])
             )
             # do I need to annotate OrgName?
 

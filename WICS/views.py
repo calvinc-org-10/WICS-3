@@ -75,7 +75,7 @@ def fnCountEntryView(req,
         # if mainFm.is_valid() and matlSubFm.is_valid() and schedFm.is_valid():
         if mainFm.is_valid() and matlSubFm.is_valid():
             if mainFm.has_changed():
-                s = mainFm.save()
+                s = mainFm.save(req=req)
                 chgd_dat['main'] = []
                 for chgdfld in mainFm.changed_data:
                     chgd_dat['main'].append(chgdfld+'='+str(mainFm.cleaned_data[chgdfld]))
@@ -246,7 +246,7 @@ def _fnCountSchedRecViewCommon(req, variation,
     # defauls parms
     if recNum is None: recNum = 0
     if reqDate is None: 
-        skipdates = HolidayList()
+        skipdates = HolidayList(req)
         reqDate = calvindate().nextWorkdayAfter(extraNonWorkdayList=skipdates)
 
     # the string 'None' is not the same as the value None
@@ -389,7 +389,7 @@ def _fnCountSchedRecViewCommon(req, variation,
         if gotoCommand == 'ChgKey':
             #finally, if this is a new rec, and a rec already exists for this CountDate and Material, the Material must be rejected
             MatlNum = int(MatlNum)
-            exstSchdRec = getattr(fnCountScheduleRecordExists(reqDate,MatlNum),'id', False)
+            exstSchdRec = getattr(fnCountScheduleRecordExists(req, reqDate,MatlNum),'id', False)
             if exstSchdRec:
                 # if its not THIS record, reject
                 if (currRec and currRec.id != exstSchdRec):

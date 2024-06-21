@@ -3,12 +3,18 @@ import datetime
 from datetime import date, timedelta
 from dateutil.parser import parse
 from dateutil.rrule import *
+from django.contrib.auth.models import User, Group
+from django.shortcuts import render
+from django.http import HttpRequest
+from django.http.response import HttpResponse, HttpResponseForbidden
 from django.db.models import QuerySet
 from django.db.models import Aggregate, CharField
 from collections import namedtuple
+from cMenu.externalWebPageURL_Map import ExternalWebPageURL_Map
 from openpyxl import Workbook
 from openpyxl.styles import PatternFill, Font, fills, colors
 from openpyxl.utils.datetime import from_excel, WINDOWS_EPOCH
+
 
 ExcelWorkbook_fileext = ".XLSX"
 
@@ -290,4 +296,47 @@ class UpldSprdsheet():
 
     def process_spreadsheet(self, SprsheetName):
         pass
+
+
+def fn_LoadExtWebPage(req, extpageURL):
+
+    templt = "cUtilLoadExt.html"
+    cntext = {
+        'extpageURL': ExternalWebPageURL_Map[extpageURL],
+        }
+    theForm = render(req, templt, cntext)
+
+    return theForm
+
+def is_user_in_group(user: User, group_name: str) -> bool:
+    return user.groups.filter(name=group_name).exists()
+
+def is_superman(usr: User) -> bool:
+    return usr.is_superuser or is_user_in_group(usr,'superman')
+
+def user_db(req: HttpRequest|User|str) -> str:
+    dbUsing = 'default'
+    usr = None
+
+    if   isinstance(req, HttpRequest):
+        usr = req.user
+    elif isinstance(req, User):
+        usr = req
+    elif isinstance(req, str):
+        dbUsing = req
+    #endif isinstance(req)
+
+    if usr:
+        if is_user_in_group(usr,'demo'): 
+            dbUsing = 'demo'
+        else:
+            dbUsing = 'default'
+        
+    return dbUsing
+
+def unauthorized_function(req: HttpRequest) -> HttpResponse:
+    # templt = ''
+    # cntext = {}
+
+    return HttpResponseForbidden('Unauthorized') # render(req, templt, cntext, status=403)
 

@@ -1,6 +1,7 @@
 from typing import Any, Dict
 from datetime import datetime
 import zoneinfo
+import random
 from django import forms, db
 from django.conf import settings as django_settings
 from django.contrib import messages
@@ -9,7 +10,6 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.db.models import QuerySet, Min
 from django.forms import formset_factory, modelformset_factory, CharField
 from django.shortcuts import render, redirect
-from django.http import HttpRequest
 from django.http.response import HttpResponseBase, HttpResponse
 from django.urls import reverse, resolve
 from django.utils.decorators import classonlymethod
@@ -22,9 +22,10 @@ from cMenu import menucommand_handlers
 from cMenu.menucommand_handlers import MENUCOMMAND
 from cMenu.models import menuCommands, menuItems, menuGroups, cParameters, cGreetings
 from cMenu.menuformname_viewMap import FormNameToURL_Map
-from cMenu.externalWebPageURL_Map import ExternalWebPageURL_Map
+from cMenu.utils import fn_LoadExtWebPage, user_db
 from sysver import sysver
 from django_support.settings import sysver_key
+
 
 ##################################################################################
 ##################################################################################
@@ -510,6 +511,8 @@ class fm_cRawSQL(forms.Form):
 @login_required
 def fn_cRawSQL(req):
 
+    usrdb = user_db(req)
+
     cntext = {}
 
     if req.method == 'POST':
@@ -672,13 +675,3 @@ def fn_cGreetings(req):
 
     return processedForm
 
-#https://calvinc440.great-site.net/
-def fn_LoadExtWebPage(req, extpageURL):
-
-    templt = "cUtilLoadExt.html"
-    cntext = {
-        'extpageURL': ExternalWebPageURL_Map[extpageURL],
-        }
-    theForm = render(req, templt, cntext)
-
-    return theForm

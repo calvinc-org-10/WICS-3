@@ -16,7 +16,10 @@ from django_q.tasks import async_task
 from barcode import Code128
 from userprofiles.models import WICSuser
 from cMenu.models import getcParm
-from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate, ExcelWorkbook_fileext
+from cMenu.utils import makebool, WrapInQuotes
+from cMenu.utils import ExcelWorkbook_fileext
+from cMenu.utils import isDate, calvindate
+from cMenu.utils import user_db
 from WICS.models import MaterialList, VIEW_materials, CountSchedule, VIEW_countschedule, VIEW_LastFoundAtList
 from WICS.models_async_comm import async_comm, set_async_comm_state
 from WICS.procs_SAP import fnSAPList
@@ -34,7 +37,7 @@ from cMenu.utils import calvindate
 # ====================================================
 
 
-def fnCountScheduleRecordExists(CtDate, Matl):
+def fnCountScheduleRecordExists(req:HttpRequest, CtDate:datetime, Matl:MaterialList|str|int) -> CountSchedule:
     """
     used to check if a CountSchedule record exists for the given CtDate and Material
     (only one such record is allowed).
@@ -44,21 +47,21 @@ def fnCountScheduleRecordExists(CtDate, Matl):
         MatObj = Matl 
     elif isinstance(Matl,str):
         try:
-            MatObj = MaterialList.objects.get(Material=Matl)
+            MatObj = MaterialList.objects.using(user_db(req)).get(Material=Matl)
         except:
-            MatObj = MaterialList.objects.none()
+            MatObj = MaterialList.objects.using(user_db(req)).none()
     elif isinstance(Matl,int):
         try:
-            MatObj = MaterialList.objects.get(pk=Matl)
+            MatObj = MaterialList.objects.using(user_db(req)).get(pk=Matl)
         except:
-            MatObj = MaterialList.objects.none()
+            MatObj = MaterialList.objects.using(user_db(req)).none()
     else:
-        MatObj = MaterialList.objects.none()
+        MatObj = MaterialList.objects.using(user_db(req)).none()
         
     try:
-        rec = CountSchedule.objects.get(CountDate=CtDate, Material=MatObj)
+        rec = CountSchedule.objects.using(user_db(req)).get(CountDate=CtDate, Material=MatObj)
     except:
-        rec = CountSchedule.objects.none()
+        rec = CountSchedule.objects.using(user_db(req)).none()
 
     return rec
 
@@ -124,7 +127,7 @@ def fnUploadCountSchedSprsht(req):
 
         # save the file so we can open it as an excel file
         SprshtFile = req.FILES['SchdFile']
-        svdir = getcParm('SAP-FILELOC')
+        svdir = getcParm(req, 'SAP-FILELOC')
         fName = svdir+"tmpSchd"+str(uuid.uuid4())+ExcelWorkbook_fileext
         with open(fName, "wb") as destination:
             for chunk in SprshtFile.chunks():
@@ -175,12 +178,12 @@ def fnUploadCountSchedSprsht(req):
                 else:
                     spshtorg = cleanupfld('org_id', row[SprshtcolmnMap['org_id']])['cleanval']
                 matlnum = cleanupfld('Material', row[SprshtcolmnMap['Material']])['cleanval']
-                matlorglist = MaterialList.objects.filter(Material=matlnum).values_list('org_id', flat=True)
+                matlorglist = MaterialList.objects.using(user_db(req)).filter(Material=matlnum).values_list('org_id', flat=True)
                 MatlKount = len(matlorglist)
                 MatObj = None
                 err_already_handled = False
                 if MatlKount == 1:
-                    MatObj = MaterialList.objects.get(Material=matlnum)
+                    MatObj = MaterialList.objects.using(user_db(req)).get(Material=matlnum)
                     spshtorg = MatObj.org_id
                 if MatlKount > 1:
                     if spshtorg is None:
@@ -190,7 +193,7 @@ def fnUploadCountSchedSprsht(req):
                             })
                         err_already_handled = True
                     elif spshtorg in matlorglist:
-                        MatObj = MaterialList.objects.get(org_id=spshtorg, Material=matlnum)
+                        MatObj = MaterialList.objects.using(user_db(req)).get(org_id=spshtorg, Material=matlnum)
                     else:
                         UplResults.append({
                             'error': f"{matlnum} in in multiple org_id's {tuple(matlorglist)}, but org_id given ({spshtorg}) is not one of them", 
@@ -241,11 +244,11 @@ def fnUploadCountSchedSprsht(req):
                             UplResults.append({'error':keyname+' missing', 'rowNum':SprshtRowNum})
 
                     if AllRequiredPresent:
-                        if fnCountScheduleRecordExists(SRec.CountDate, MatObj):
+                        if fnCountScheduleRecordExists(req, SRec.CountDate, MatObj):
                             UplResults.append({'error': f'Count already scheduled for {MatObj}  on {SRec.CountDate:%Y-%m-%d}', 'rowNum':SprshtRowNum})
                         else:
-                            SRec.save()
-                            qs = type(SRec).objects.filter(pk=SRec.pk).values().first()
+                            SRec.save(using=user_db(req))
+                            qs = type(SRec).objects.using(user_db(req)).filter(pk=SRec.pk).values().first()
                             res = {'error': False, 'rowNum':SprshtRowNum, 'MaterialNum': str(MatObj) }
                             res.update(qs)      # tack the new record (along with its new pk) onto res
                             # res.update(SRec)      #QUESTION:  can I do this directly with SRec?? - NO. This line does not work. SRec is not iterable
@@ -290,7 +293,7 @@ class CountScheduleListForm(LoginRequiredMixin, ListView):
         return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
-        return VIEW_countschedule().order_by(*self.ordering)
+        return VIEW_countschedule(self._user).order_by(*self.ordering)
 
     # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
     #     return super().get(request, *args, **kwargs)
@@ -314,24 +317,26 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
     template_name = 'rpt_CountWksht_main.html'
     
     # def setup(self, userid, reqid, *args: Any, **kwargs: Any) -> None:
-    def setup(self, reqid, *args: Any, **kwargs: Any) -> None:
+    def setup(self, db_to_use: str, reqid:int, *args: Any, **kwargs: Any) -> None:
+        self._db = db_to_use
         self._reqid = reqid
         if 'CountDate' in kwargs: self.CountDate = kwargs['CountDate']
         else: self.CountDate = calvindate().today().as_datetime()
         if isinstance(self.CountDate,str): self.CountDate = calvindate(self.CountDate).as_datetime()
-        self.SAPDate = fnSAPList(self.CountDate)['SAPDate']
+        self.SAPDate = fnSAPList(db_to_use, self.CountDate)['SAPDate']
         # return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
-        SAP_SOH = fnSAPList(self.CountDate)
+        SAP_SOH = fnSAPList(self._db, self.CountDate)
         self.SAPDate = SAP_SOH['SAPDate']
-        qs = CountSchedule.objects.filter(CountDate=self.CountDate).order_by(*self.ordering).select_related('Material','Material__PartType')
+        qs = CountSchedule.objects.using(self._db).filter(CountDate=self.CountDate).order_by(*self.ordering).select_related('Material','Material__PartType')
         qs = qs.annotate(LastCountDate=Value(0), LastFoundAt=Value(''), SAPQty=Value(0), MaterialBarCode=Value(''), Material_org=Value(''))
         prevCtr = None
         for rec in qs:
             strMatlNum = str(rec.Material)
             rec.Material_org = strMatlNum
             set_async_comm_state(
+                self._db,
                 self._reqid,
                 statecode = 'proc-Material',
                 statetext = f'Preparing Count Worksheet for Material {strMatlNum}',
@@ -343,8 +348,8 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
             bcstr = Code128(str(strMatlNum)).render(writer_options={'module_height':7.0,'module_width':0.35,'quiet_zone':0.1,'write_text':True,'text_distance':3.5})
             bcstr = str(bcstr).replace("b'","").replace('\\r','').replace('\\n','').replace("'","")
             rec.MaterialBarCode = bcstr
-            rec.LastFoundAt = VIEW_materials.objects.get(pk=rec.Material_id).LastFoundAt
-            rec.LastCountDate = VIEW_materials.objects.get(pk=rec.Material_id).LastCountDate
+            rec.LastFoundAt = VIEW_materials.objects.using(self._db).get(pk=rec.Material_id).LastFoundAt
+            rec.LastCountDate = VIEW_materials.objects.using(self._db).get(pk=rec.Material_id).LastCountDate
             for SAProw in SAP_SOH['SAPTable'].filter(Material=rec.Material):
                 rec.SAPQty += SAProw.Amount*SAProw.mult
 
@@ -364,22 +369,24 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
 
         # collect the list of Counters so that tabs can be built in the html
         set_async_comm_state(
+            self._db,
             self._reqid,
             statecode = 'proc-CounterList',
             statetext = f'Collecting List of Counters',
             )
-        CounterList = CountSchedule.objects.filter(CountDate=self.CountDate).order_by('Counter').values('Counter').distinct()
+        CounterList = CountSchedule.objects.using(self._db).filter(CountDate=self.CountDate).order_by('Counter').values('Counter').distinct()
 
         # form list of last found locations
         set_async_comm_state(
+            self._db,
             self._reqid,
             statecode = 'proc-Locations',
             statetext = f'Collecting List of Locations',
             )
-        MList = MaterialList.objects.filter(
-                    pk__in=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate).values('Material'))
+        MList = MaterialList.objects.using(self._db).filter(
+                    pk__in=Subquery(CountSchedule.objects.using(self._db).filter(CountDate=self.CountDate).values('Material'))
                 )
-        LocationList = VIEW_LastFoundAtList(MList).annotate(Counter=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1])).order_by('FoundAt') if MList.exists() else []
+        LocationList = VIEW_LastFoundAtList(self._db, MList).annotate(Counter=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1])).order_by('FoundAt') if MList.exists() else []
 
         context.update({
                 'LocationList': LocationList,
@@ -392,20 +399,22 @@ class CountWorksheetReport(LoginRequiredMixin, ListView):
 
 ##### the suite of procs to support viewCountWorksheetReport
 
-def proc_CountWorksheet_00InitUMLasync_comm(reqid):
+def proc_CountWorksheet_00InitUMLasync_comm(req: HttpRequest, reqid: int) -> None:
     acomm = set_async_comm_state(
+        user_db(req),
         reqid,
         statecode = 'initializing',
         statetext = 'Initializing ...',
         new_async=True
         )
 
-def proc_CountWorksheet_01PrepWorksheet(reqid, CountDate):
+def proc_CountWorksheet_01PrepWorksheet(db_to_use, reqid, CountDate):
     CountWorksheet_instance = CountWorksheetReport()
-    CountWorksheet_instance.setup(reqid, CountDate=CountDate)
+    CountWorksheet_instance.setup(db_to_use, reqid, CountDate=CountDate)
     resp = CountWorksheet_instance.render_to_response()
 
     set_async_comm_state(
+        db_to_use,
         reqid,
         statecode = 'writing-tmpfile',
         statetext = f'Formatting Worksheet',
@@ -421,15 +430,16 @@ def proc_CountWorksheet_01PrepWorksheet(reqid, CountDate):
             destination.write(str(resp))
 
     set_async_comm_state(
+        db_to_use,
         reqid,
         statecode = 'done',
         statetext = f'Ready to present Worksheet',
         result=fName,
         )
     
-def proc_CountWorksheet_99_Cleanup(reqid, tmpHTMLfil):
+def proc_CountWorksheet_99_Cleanup(db_to_use, reqid, tmpHTMLfil):
     # also kill reqid, acomm, qcluster process
-    async_comm.objects.filter(pk=reqid).delete()
+    async_comm.objects.using(db_to_use).filter(pk=reqid).delete()
 
     # kill the django-q process
     try:
@@ -446,8 +456,11 @@ def proc_CountWorksheet_99_Cleanup(reqid, tmpHTMLfil):
 
 
 def viewCountWorksheetReport(req, CountDate=None):
+    dbUsing = user_db(req)
+
     client_phase = req.POST['phase'] if 'phase' in req.POST else None
     reqid = req.COOKIES['reqid'] if 'reqid' in req.COOKIES else None
+
     # if CountDate is None: CountDate = calvindate().today().as_datetime()  # this is the old way - remove this from view params
     CountDate = req.POST['CountDate'] if 'CountDate' in req.POST else calvindate().today().as_datetime()
 
@@ -460,15 +473,15 @@ def viewCountWorksheetReport(req, CountDate=None):
             ).pid
             retinfo.set_cookie('reqid',str(reqid))
 
-            proc_CountWorksheet_00InitUMLasync_comm(reqid)
+            proc_CountWorksheet_00InitUMLasync_comm(req, reqid)
 
-            async_task(proc_CountWorksheet_01PrepWorksheet, reqid, CountDate)
+            async_task(proc_CountWorksheet_01PrepWorksheet, dbUsing, reqid, CountDate)
 
-            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+            acomm = async_comm.objects.using(dbUsing).values().get(pk=reqid)    # something's very wrong if this doesn't exist
             retinfo.write(json.dumps(acomm))
             return retinfo
         elif client_phase=='waiting':
-            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+            acomm = async_comm.objects.using(dbUsing).values().get(pk=reqid)    # something's very wrong if this doesn't exist
             retinfo.write(json.dumps(acomm))
             return retinfo
         elif client_phase=='wantresults':
@@ -484,7 +497,7 @@ def viewCountWorksheetReport(req, CountDate=None):
                     retHTML = readfile.read()
 
             # do final cleanup
-            proc_CountWorksheet_99_Cleanup(reqid, fName)
+            proc_CountWorksheet_99_Cleanup(dbUsing, reqid, fName)
             retinfo.delete_cookie('reqid')
 
             # return to requestor for presentation
@@ -497,7 +510,7 @@ def viewCountWorksheetReport(req, CountDate=None):
     else:
         # (hopefully,) this is the initial phase; all others will be part of a POST request
 
-        SAPDate = fnSAPList(CountDate)['SAPDate']
+        SAPDate = fnSAPList(req, CountDate)['SAPDate']
 
         cntext = {
             'SAP_Updated_at': SAPDate,
@@ -519,7 +532,8 @@ class CountWorksheetLocReport(LoginRequiredMixin, ListView):
     template_name = 'rpt_CountWkshtLoc_main.html'
     
     # def setup(self, userid, reqid, *args: Any, **kwargs: Any) -> None:
-    def setup(self, reqid, *args: Any, **kwargs: Any) -> None:
+    def setup(self, db_to_use: str, reqid: int, *args: Any, **kwargs: Any) -> None:
+        self._db  = db_to_use
         self._reqid = reqid
         if 'CountDate' in kwargs: self.CountDate = kwargs['CountDate']
         else: self.CountDate = calvindate().today().as_datetime()
@@ -528,13 +542,13 @@ class CountWorksheetLocReport(LoginRequiredMixin, ListView):
         # return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
-        MList = MaterialList.objects.filter(
-                    pk__in=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate).values('Material'))
+        MList = MaterialList.objects.using(self._db).filter(
+                    pk__in=Subquery(CountSchedule.objects.using(self._db).filter(CountDate=self.CountDate).values('Material'))
                 )
         qs = []
         if MList.exists():
-            qs = VIEW_LastFoundAtList(MList).annotate(
-                Counter=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1]),
+            qs = VIEW_LastFoundAtList(self._db, MList).annotate(
+                Counter=Subquery(CountSchedule.objects.using(self._db).filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1]),
                 MaterialBarCode=Value(''),
                 ).order_by(*self.ordering) 
 
@@ -546,6 +560,7 @@ class CountWorksheetLocReport(LoginRequiredMixin, ListView):
             strMatlNum = rec['Material_org']
             # rec.Material_org = strMatlNum
             set_async_comm_state(
+                self._db,
                 self._reqid,
                 statecode = 'proc-Material',
                 statetext = f'Preparing Count Worksheet for Material {strMatlNum} at {rec["FoundAt"]}',
@@ -587,22 +602,24 @@ class CountWorksheetLocReport(LoginRequiredMixin, ListView):
 
         # collect the list of Counters so that tabs can be built in the html
         set_async_comm_state(
+            self._db,
             self._reqid,
             statecode = 'proc-CounterList',
             statetext = f'Collecting List of Counters',
             )
-        CounterList = CountSchedule.objects.filter(CountDate=self.CountDate).order_by('Counter').values('Counter').distinct()
+        CounterList = CountSchedule.objects.using(self._db).filter(CountDate=self.CountDate).order_by('Counter').values('Counter').distinct()
 
         # form Material summary list
         set_async_comm_state(
+            self._db,
             self._reqid,
             statecode = 'proc-MatlSumm',
             statetext = f'Collecting Material Summary List',
             )
-        MList = VIEW_materials.objects.filter(
-                    pk__in=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate).values('Material'))
+        MList = VIEW_materials.objects.using(self._db).filter(
+                    pk__in=Subquery(CountSchedule.objects.using(self._db).filter(CountDate=self.CountDate).values('Material'))
                 ).annotate(
-                    Counter=Subquery(CountSchedule.objects.filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1]),
+                    Counter=Subquery(CountSchedule.objects.using(self._db).filter(CountDate=self.CountDate,Material=OuterRef('Material')).values('Counter')[:1]),
                     MaterialBarCode=Value(''),
                 ).order_by(
                     'Material', 'org'
@@ -623,20 +640,22 @@ class CountWorksheetLocReport(LoginRequiredMixin, ListView):
 
 ##### the suite of procs to support viewCountWorksheetLocReport
 
-def proc_CountWorksheetLoc_00InitUMLasync_comm(reqid):
+def proc_CountWorksheetLoc_00InitUMLasync_comm(db_to_use, reqid):
     acomm = set_async_comm_state(
+        db_to_use,
         reqid,
         statecode = 'initializing',
         statetext = 'Initializing ...',
         new_async=True
         )
 
-def proc_CountWorksheetLoc_01PrepWorksheet(reqid, CountDate):
+def proc_CountWorksheetLoc_01PrepWorksheet(db_to_use, reqid, CountDate):
     CountWorksheet_instance = CountWorksheetLocReport()
-    CountWorksheet_instance.setup(reqid, CountDate=CountDate)
+    CountWorksheet_instance.setup(db_to_use, reqid, CountDate=CountDate)
     resp = CountWorksheet_instance.render_to_response()
 
     set_async_comm_state(
+        db_to_use,
         reqid,
         statecode = 'writing-tmpfile',
         statetext = f'Formatting Worksheet',
@@ -652,15 +671,16 @@ def proc_CountWorksheetLoc_01PrepWorksheet(reqid, CountDate):
             destination.write(str(resp))
 
     set_async_comm_state(
+        db_to_use,
         reqid,
         statecode = 'done',
         statetext = f'Ready to present Worksheet',
         result=fName,
         )
     
-def proc_CountWorksheetLoc_99_Cleanup(reqid, tmpHTMLfil):
+def proc_CountWorksheetLoc_99_Cleanup(db_to_use, reqid, tmpHTMLfil):
     # also kill reqid, acomm, qcluster process
-    async_comm.objects.filter(pk=reqid).delete()
+    async_comm.objects.using(user_db(db_to_use)).filter(pk=reqid).delete()
 
     # kill the django-q process
     try:
@@ -677,6 +697,8 @@ def proc_CountWorksheetLoc_99_Cleanup(reqid, tmpHTMLfil):
 
 
 def viewCountWorksheetLocReport(req, CountDate=None):
+    dbUsing = user_db(req)
+
     client_phase = req.POST['phase'] if 'phase' in req.POST else None
     reqid = req.COOKIES['reqid'] if 'reqid' in req.COOKIES else None
     # if CountDate is None: CountDate = calvindate().today().as_datetime()  # this is the old way - remove this from view params
@@ -691,15 +713,15 @@ def viewCountWorksheetLocReport(req, CountDate=None):
             ).pid
             retinfo.set_cookie('reqid',str(reqid))
 
-            proc_CountWorksheetLoc_00InitUMLasync_comm(reqid)
+            proc_CountWorksheetLoc_00InitUMLasync_comm(dbUsing, reqid)
 
-            async_task(proc_CountWorksheetLoc_01PrepWorksheet, reqid, CountDate)
+            async_task(proc_CountWorksheetLoc_01PrepWorksheet, dbUsing, reqid, CountDate)
 
-            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+            acomm = async_comm.objects.using(dbUsing).values().get(pk=reqid)    # something's very wrong if this doesn't exist
             retinfo.write(json.dumps(acomm))
             return retinfo
         elif client_phase=='waiting':
-            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+            acomm = async_comm.objects.using(dbUsing).values().get(pk=reqid)    # something's very wrong if this doesn't exist
             retinfo.write(json.dumps(acomm))
             return retinfo
         elif client_phase=='wantresults':
@@ -715,7 +737,7 @@ def viewCountWorksheetLocReport(req, CountDate=None):
                     retHTML = readfile.read()
 
             # do final cleanup
-            proc_CountWorksheetLoc_99_Cleanup(reqid, fName)
+            proc_CountWorksheetLoc_99_Cleanup(dbUsing, reqid, fName)
             retinfo.delete_cookie('reqid')
 
             # return to requestor for presentation
@@ -728,7 +750,7 @@ def viewCountWorksheetLocReport(req, CountDate=None):
     else:
         # (hopefully,) this is the initial phase; all others will be part of a POST request
 
-        SAPDate = fnSAPList(CountDate)['SAPDate']
+        SAPDate = fnSAPList(req, CountDate)['SAPDate']
 
         cntext = {
             'SAP_Updated_at': SAPDate,

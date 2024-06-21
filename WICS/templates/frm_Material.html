@@ -687,7 +687,7 @@ function CopyCount(n) {
                 req.addEventListener("loadend", (evnt) => {
                     location.reload();
                     });
-                const thisurl="{% url 'MatlFormRecNum' frmMain.instance.pk %}";
+                const thisurl="{% url 'MatlFormRecNum' frmMain.instance.pk|default_if_none:'0' %}";
                 req.open("POST", thisurl);
 
                 start_wait_spinner();

@@ -36,7 +36,9 @@
                 <br><span class=h1>WICS</span> version {{ sysver }}
             </div>
             <div class="container">
-                The username and password are both DEMO (all lowercase). TBH, it doesn't matter what you enter, that username/password will be substituted anyhow.
+                <br>
+                The username is {{DEMOuName}} and the password is {{DEMOuPW}}. TBH, it doesn't matter what you enter, that username/password will be substituted anyhow.
+                <br>
             <form method="post" id="login-form"> 
                 {% csrf_token %}
                 <div class="row">

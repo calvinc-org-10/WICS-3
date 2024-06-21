@@ -1,6 +1,8 @@
 # import datetime
 from django import forms
-from cMenu.utils import calvindate
+from django.http import HttpRequest
+from django.contrib.auth.models import User
+from cMenu.utils import calvindate, user_db
 from WICS.models import MaterialList, MfrPNtoMaterial, ActualCounts, CountSchedule, WhsePartTypes
 from WICS.procs_misc import HolidayList
 
@@ -26,14 +28,15 @@ class CountEntryForm(forms.ModelForm):
         fields = ['id', 'CountDate', 'CycCtID', 'Counter', 'LocationOnly', 
                 'LOCATION', 'CTD_QTY_Expr', 'PKGID_Desc', 'TAGQTY',
                 'FLAG_PossiblyNotRecieved', 'FLAG_MovementDuringCount', 'Notes']
-    def save(self):
+    def save(self, req: str|HttpRequest|User):
+        dbUsing = user_db(req)
         dbmodel = self.Meta.model
         required_fields = ['CountDate', 'Material', 'Counter'] #id handled separately
         PriK = self['id'].value()
-        M = MaterialList.objects.get(pk=self.data['MatlPK']) 
+        M = MaterialList.objects.using(dbUsing).get(pk=self.data['MatlPK']) 
         if not str(PriK).isnumeric(): PriK = -1
-        existingrec = dbmodel.objects.filter(pk=PriK).exists()
-        if existingrec: rec = dbmodel.objects.get(pk=PriK)
+        existingrec = dbmodel.objects.using(dbUsing).filter(pk=PriK).exists()
+        if existingrec: rec = dbmodel.objects.using(dbUsing).get(pk=PriK)
         else:   rec = dbmodel()
         for fldnm in self.changed_data + required_fields:
             if fldnm=='id': continue
@@ -42,14 +45,14 @@ class CountEntryForm(forms.ModelForm):
             else:
                 setattr(rec, fldnm, self.cleaned_data[fldnm])
         
-        rec.save()
+        rec.save(using=dbUsing)
         return rec
 
 
 class CountScheduleRecordForm(forms.ModelForm):
     id = forms.IntegerField(required=False, widget=forms.HiddenInput)
     CountDate = forms.DateField(required=True, 
-        initial=calvindate().nextWorkdayAfter(extraNonWorkdayList=HolidayList()).as_datetime()
+        initial=calvindate().nextWorkdayAfter(extraNonWorkdayList=HolidayList(None)).as_datetime()    #TODO: find a workaround for this - HolidayList needs to know which db to query
         )
     Material = forms.CharField(required=True)
         # Material is handled this way because of the way it's done in the html.
@@ -64,14 +67,15 @@ class CountScheduleRecordForm(forms.ModelForm):
     class Meta:
         model = CountSchedule
         fields = ['id', 'CountDate', 'Counter', 'Priority', 'ReasonScheduled', 'Requestor', 'RequestFilled', 'Notes']
-    def save(self, savingUser = None):
+    def save(self, req:str|HttpRequest|User, savingUser = None):
+        dbUsing = user_db(req)
         dbmodel = self.Meta.model
         required_fields = ['CountDate', 'Material'] #id handled separately
         PriK = self['id'].value()
-        M = MaterialList.objects.get(pk=self.data['MatlPK']) 
+        M = MaterialList.objects.using(dbUsing).get(pk=self.data['MatlPK']) 
         if not str(PriK).isnumeric(): PriK = -1
-        existingrec = dbmodel.objects.filter(pk=PriK).exists()
-        if existingrec: rec = dbmodel.objects.get(pk=PriK)
+        existingrec = dbmodel.objects.using(dbUsing).filter(pk=PriK).exists()
+        if existingrec: rec = dbmodel.objects.using(dbUsing).get(pk=PriK)
         else: rec = dbmodel()
         for fldnm in self.changed_data + required_fields:
             if fldnm=='id': continue
@@ -83,13 +87,13 @@ class CountScheduleRecordForm(forms.ModelForm):
             else:
                 setattr(rec, fldnm, self.cleaned_data[fldnm])
         
-        rec.save()
+        rec.save(using=dbUsing)
         return rec
 
 class RequestCountScheduleRecordForm(forms.ModelForm):
     id = forms.IntegerField(required=False, widget=forms.HiddenInput)
     CountDate = forms.DateField(required=True, 
-        initial=calvindate().nextWorkdayAfter(extraNonWorkdayList=HolidayList()).as_datetime()
+        initial=calvindate().nextWorkdayAfter(extraNonWorkdayList=HolidayList(None)).as_datetime()    #TODO: find a workaround for this - HolidayList needs to know which db to query
         )
     Requestor = forms.CharField(max_length=100, required=True)
       # the requestor can type whatever they want here, but WICS will record the userid behind-the-scenes
@@ -105,14 +109,15 @@ class RequestCountScheduleRecordForm(forms.ModelForm):
         fields = ['id', 'CountDate', 'Requestor', 'Counter', 'Priority', 'ReasonScheduled', 'Notes']
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-    def save(self, savingUser = None) -> CountSchedule:
+    def save(self, req:str|HttpRequest|User, savingUser = None) -> CountSchedule:
+        dbUsing = user_db(req)
         dbmodel = self.Meta.model
         required_fields = ['CountDate', 'Material', 'Requestor'] #id handled separately
         PriK = self['id'].value()
-        M = MaterialList.objects.get(pk=self.data['Material']) 
+        M = MaterialList.objects.using(dbUsing).get(pk=self.data['Material']) 
         if not str(PriK).isnumeric(): PriK = -1
-        existingrec = dbmodel.objects.filter(pk=PriK).exists()
-        if existingrec: rec = dbmodel.objects.get(pk=PriK)
+        existingrec = dbmodel.objects.using(dbUsing).filter(pk=PriK).exists()
+        if existingrec: rec = dbmodel.objects.using(dbUsing).get(pk=PriK)
         else: rec = dbmodel()
         for fldnm in self.changed_data + required_fields:
             if fldnm=='id': continue
@@ -122,7 +127,7 @@ class RequestCountScheduleRecordForm(forms.ModelForm):
                 setattr(rec, fldnm, self.cleaned_data[fldnm])
         rec.Requestor_userid = savingUser
         
-        rec.save()
+        rec.save(using=dbUsing)
         return rec
 
 
@@ -143,13 +148,14 @@ class RelatedMaterialInfo(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.id = id
         self.fields['PartType'].queryset=WhsePartTypes.objects.all().order_by('WhsePartType').all()
-    def save(self):
+    def save(self, req:str|HttpRequest|User):
+        dbUsing = user_db(req)
         dbmodel = self.Meta.model
         required_fields = [] #id handled separately
         PriK = self.id
         if not str(PriK).isnumeric(): PriK = -1
-        existingrec = dbmodel.objects.filter(pk=PriK).exists()
-        if existingrec: rec = dbmodel.objects.get(pk=PriK)
+        existingrec = dbmodel.objects.using(dbUsing).filter(pk=PriK).exists()
+        if existingrec: rec = dbmodel.objects.using(dbUsing).get(pk=PriK)
         else:  raise Exception('Saving Related Material with no PK')  # rec = dbmodel()
         for fldnm in self.changed_data + required_fields:
             if fldnm=='id': continue
@@ -159,7 +165,7 @@ class RelatedMaterialInfo(forms.ModelForm):
             else:
                 setattr(rec, fldnm, self.cleaned_data[fldnm])
         
-        rec.save()
+        rec.save(using=dbUsing)
         return rec
 
 
@@ -176,14 +182,15 @@ class RelatedScheduleInfo(forms.ModelForm):
     def __init__(self, id, *args, **kwargs) -> None:
         super().__init__(*args, **kwargs)
         self.id = id
-    def save(self):
+    def save(self, req:str|HttpRequest|User):
+        dbUsing = user_db(req)
         dbmodel = self.Meta.model
         required_fields = ['CountDate', 'Material'] #id handled separately
         PriK = self.id
-        M = MaterialList.objects.get(pk=self.data['MatlPK']) 
+        M = MaterialList.objects.using(dbUsing).get(pk=self.data['MatlPK']) 
         if not str(PriK).isnumeric(): PriK = -1
-        existingrec = dbmodel.objects.filter(pk=PriK).exists()
-        if existingrec: rec = dbmodel.objects.get(pk=PriK)
+        existingrec = dbmodel.objects.using(dbUsing).filter(pk=PriK).exists()
+        if existingrec: rec = dbmodel.objects.using(dbUsing).get(pk=PriK)
         else:  raise Exception('Saving Related Schedule Info with no PK')   # rec = dbmodel()
         for fldnm in self.changed_data + required_fields:
             if fldnm=='id': continue
@@ -192,7 +199,7 @@ class RelatedScheduleInfo(forms.ModelForm):
             else:
                 setattr(rec, fldnm, self.cleaned_data[fldnm])
         
-        rec.save()
+        rec.save(using=dbUsing)
         return rec
 
 ############################################################

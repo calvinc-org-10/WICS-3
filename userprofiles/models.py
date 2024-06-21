@@ -1,6 +1,6 @@
 from django.contrib.auth.models import User
 from django.db import models
-import WICS.models as WICSmodels
+# import WICS.models as WICSmodels
 from cMenu.models import menuGroups
 
 
@@ -19,3 +19,11 @@ class WICSuser(models.Model):
 
     def __str__(self):
         return f'<WICS User> {self.user.get_username()} ({self.pk})'
+
+def WICSUserRecord(usr: User) -> WICSuser | None:
+    try:
+        return WICSuser.objects.get(user=usr)
+    except Exception:
+        return None
+    
+    

@@ -1,4 +1,5 @@
 from django.db import models
+from cMenu.utils import user_db
 
 
 class menuCommands(models.Model):
@@ -62,16 +63,18 @@ class cParameters(models.Model):
         S += ')'
         return S
 
-def getcParm(parmname):
-    if cParameters.objects.filter(ParmName=parmname).exists():
-        return cParameters.objects.get(ParmName=parmname).ParmValue
+def getcParm(req, parmname):
+    dbUsing = user_db(req)
+    if cParameters.objects.using(dbUsing).filter(ParmName=parmname).exists():
+        return cParameters.objects.using(dbUsing).get(ParmName=parmname).ParmValue
     else:
         return ''
 
-def setcParm(parmname, parmvalue):
-    P = cParameters.objects.get_or_create(ParmName=parmname)
+def setcParm(req, parmname, parmvalue):
+    dbUsing = user_db(req)
+    P = cParameters.objects.using(dbUsing).get_or_create(ParmName=parmname)
     P.ParmValue = parmvalue
-    P.save()
+    P.save(using=dbUsing)
 
 
 class cGreetings(models.Model):

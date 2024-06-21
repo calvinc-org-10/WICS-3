@@ -1,6 +1,6 @@
 from datetime import datetime
 from django.db import models
-
+# from cMenu.views import user_db
 
 # I'm quite happy with automaintained pk fields, so I don't specify any
 
@@ -14,6 +14,7 @@ class async_comm(models.Model):
     extra1 = models.CharField(max_length=2048, null=True, blank=True)
 
 def set_async_comm_state(
+        dbToUse,
         reqid, 
         statecode,
         statetext,
@@ -23,9 +24,9 @@ def set_async_comm_state(
         new_async = False
     ):
     if new_async:
-        acomm = async_comm.objects.get_or_create(pk=reqid)
+        acomm = async_comm.objects.using(dbToUse).get_or_create(pk=reqid)
     else:
-        acomm = async_comm.objects.get(pk=reqid)
+        acomm = async_comm.objects.using(dbToUse).get(pk=reqid)
     # why does acomm sometimes come back as a tuple???
     if isinstance(acomm, tuple): acomm = acomm[0]
     
@@ -35,6 +36,6 @@ def set_async_comm_state(
     acomm.extra1 = extra1
     if processname is not None: acomm.processname = processname
     acomm.timestamp = datetime.now().__str__()
-    acomm.save()
+    acomm.save(using=dbToUse)
 
     return acomm

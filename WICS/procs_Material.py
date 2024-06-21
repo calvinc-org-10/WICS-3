@@ -16,6 +16,7 @@ from django.shortcuts import render
 from django.views.generic import ListView
 from cMenu.models import getcParm
 from cMenu.utils import modelobj_to_dict, calvindate, ExcelWorkbook_fileext, Excelfile_fromqs
+from cMenu.views import user_db
 from mathematical_expressions_parser.eval import evaluate
 from WICS.globals import _defaultOrg
 from WICS.forms import MaterialForm, MaterialCountSummary, MfrPNtoMaterialForm, PartTypesForm
@@ -34,13 +35,13 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
 
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
-        qs = VIEW_materials.objects.all().annotate(
+        qs = VIEW_materials.objects.using(user_db(req)).all().annotate(
                         SAPList=Value(0),
                         DoNotShow=Value(False),
                     )
 
         # it's more efficient to pull this all now and store it for the upcoming qs request
-        SAP = fnSAPList()
+        SAP = fnSAPList(req)   
         self.SAPDate = SAP['SAPDate']
         self.SAPTable = SAP['SAPTable']
 
@@ -55,7 +56,7 @@ class MaterialLocationsList(LoginRequiredMixin, ListView):
             # filter Material in SAP_SOH for date OR last count date within 30d
             testdate = rec.LastCountDate
             if testdate == None: testdate = calvindate(MINYEAR, 1, 1)
-            rec.DoNotShow = (not rec.SAPList.exists()) and (testdate < calvindate().today()-int(getcParm('LOCRPT-COUNTDAYS-IFNOSAP')))
+            rec.DoNotShow = (not rec.SAPList.exists()) and (testdate < calvindate().today()-int(getcParm(self._user, 'LOCRPT-COUNTDAYS-IFNOSAP')))
 
         return qs
 
@@ -92,16 +93,16 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
     # get current record
     currRec = None
     if req.method == 'POST':
-        currRec = modelMain.objects.filter(pk=req.POST['MatlPK']).first()
+        currRec = modelMain.objects.using(user_db(req)).filter(pk=req.POST['MatlPK']).first()
     else:
         if newRec:
             # provide new record
             currRec = modelMain(org=_defaultOrg)
         elif recNum <= 0:
-            currRec = modelMain.objects.first()
+            currRec = modelMain.objects.using(user_db(req)).first()
         else:
             try:
-                currRec = modelMain.objects.get(pk=recNum)
+                currRec = modelMain.objects.using(user_db(req)).get(pk=recNum)
             except:
                 pass    # currRec remains None
         # endif newRec, recNum
@@ -138,12 +139,12 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
         }
 
     if newRec:
-        SAP_SOH = fnSAPList(matl='-')
+        SAP_SOH = fnSAPList(req, matl='-')
     else:
-        SAP_SOH = fnSAPList(matl=currRec)
+        SAP_SOH = fnSAPList(req, matl=currRec)
 
     gotoForm = {}
-    gotoForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
+    gotoForm['choicelist'] = VIEW_materials.objects.using(user_db(req)).values('id','Material_org')
     gotoForm['gotoItem'] = currRec
 
     if req.method == 'POST':
@@ -155,68 +156,68 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
             MaterialPhotos(
                 Material = currRec,
                 Photo = req.FILES["newPhoto"],
-            ).save()
+            ).save(using=user_db(req))
 
         # is a photo being removed?
         if req.POST['PhotoOp'][:3] == "DEL":
             photoID = req.POST['PhotoOp'][4:]
-            MaterialPhotos.objects.filter(pk=photoID).delete()
+            MaterialPhotos.objects.using(user_db(req)).filter(pk=photoID).delete()
 
         # process forms
         mtlFm = FormMain(req.POST, instance=currRec,  prefix=prefixvals['main'])
-        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.all().order_by('WhsePartType')
+        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.using(user_db(req)).order_by('WhsePartType')
         countSubFm_class = inlineformset_factory(modelMain,modelSubs[0],
                     fields=FormFieldsSubs[0],
                     extra=0,can_delete=False)
         countSet = countSubFm_class(req.POST, instance=currRec, prefix=prefixvals['counts'], initial=initialvals['counts'],
-                    queryset=modelSubs[0].objects.order_by('-CountDate'))
+                    queryset=modelSubs[0].objects.using(user_db(req)).order_by('-CountDate'))
                     # queryset=modelSubs[0].objects.filter(CountDate__gte=HistoryCutoffDate).order_by('-CountDate'))
         SchedSubFm_class = inlineformset_factory(modelMain,modelSubs[1],
                     fields=FormFieldsSubs[1],
                     extra=0,can_delete=False)
         schedSet = SchedSubFm_class(req.POST, instance=currRec, prefix=prefixvals['schedule'], initial=initialvals['schedule'],
-                    queryset=modelSubs[1].objects.order_by('-CountDate'))
+                    queryset=modelSubs[1].objects.using(user_db(req)).order_by('-CountDate'))
                     # queryset=modelSubs[1].objects.filter(CountDate__gte=HistoryCutoffDate).order_by('-CountDate'))
         MPNSubFm_class = inlineformset_factory(modelMain,modelSubs[2],
                     fields=FormFieldsSubs[2],
                     extra=1,can_delete=True)
         MPNSet = MPNSubFm_class(req.POST, instance=currRec, prefix=prefixvals['MfrPN'], initial=initialvals['MfrPN'],
-                    queryset=modelSubs[2].objects.order_by('MfrPN'))
+                    queryset=modelSubs[2].objects.using(user_db(req)).order_by('MfrPN'))
 
         # is there a request to copy a count?
         if ('copyCountFromid' in req.POST) and ('copyCountToDate' in req.POST):
             copyCountFromid = req.POST['copyCountFromid']
             copyCountToDate = req.POST['copyCountToDate']
-            copyCountRec = ActualCounts.objects.get(pk=copyCountFromid)
+            copyCountRec = ActualCounts.objects.using(user_db(req)).get(pk=copyCountFromid)
             copyCountRec.pk = None
             copyCountRec.CountDate = copyCountToDate
-            copyCountRec.save()
+            copyCountRec.save(using=user_db(req))
 
         if all([mtlFm.is_valid(), countSet.is_valid(), schedSet.is_valid(), MPNSet.is_valid(), ]):
             if mtlFm.has_changed():
                 try:
-                    mtlFm.save()
+                    mtlFm.save()  # hopefully saves to same db: using=user_db(req))
                     chgd_dat['main'] = mtlFm.changed_data
                     changes_saved['main'] = True
                 except Exception as err:
                     messages.add_message(req,messages.ERROR,err)
             if countSet.has_changed():
                 try:
-                    countSet.save()
+                    countSet.save()  # hopefully saves to same db: using=user_db(req))
                     chgd_dat['counts'] = countSet.changed_objects
                     changes_saved['counts'] = True
                 except Exception as err:
                     messages.add_message(req,messages.ERROR,err)
             if schedSet.has_changed():
                 try:
-                    schedSet.save()
+                    schedSet.save()  # hopefully saves to same db: using=user_db(req))
                     chgd_dat['schedule'] = schedSet.changed_objects
                     changes_saved['schedule'] = True
                 except Exception as err:
                     messages.add_message(req,messages.ERROR, err)
             if MPNSet.has_changed():
                 try:
-                    MPNSet.save()
+                    MPNSet.save(using=user_db(req))
                     chgd_dat['MfrPN'] = MPNSet.changed_objects
                     chgd_dat['MfrPN'].append(MPNSet.deleted_objects)
                     chgd_dat['MfrPN'].append(MPNSet.new_objects)
@@ -224,40 +225,40 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
     
                     # regenerate mainFm (mainly to get new add row)
                     MPNSet = MPNSubFm_class(instance=currRec, prefix=prefixvals['MfrPN'], initial=initialvals['MfrPN'],
-                                queryset=modelSubs[2].objects.order_by('MfrPN'))
+                                queryset=modelSubs[2].objects.using(user_db(req)).order_by('MfrPN'))
                 except Exception as err:
                     messages.add_message(req,messages.ERROR, err)
 
         # count summary form is r/o.  It will not be changed
     else: # request.method == 'GET' or something else
         mtlFm = FormMain(instance=currRec, initial=initialvals['main'], prefix=prefixvals['main'])
-        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.all().order_by('WhsePartType')
+        mtlFm.fields['PartType'].queryset=WhsePartTypes.objects.using(user_db(req)).order_by('WhsePartType')
 
         CountSubFm_class = inlineformset_factory(modelMain,modelSubs[0],
                     fields=FormFieldsSubs[0],
                     extra=0,can_delete=False)
         countSet = CountSubFm_class(instance=currRec, prefix=prefixvals['counts'], initial=initialvals['counts'],
-                    queryset=modelSubs[0].objects.order_by('-CountDate'))
+                    queryset=modelSubs[0].objects.using(user_db(req)).order_by('-CountDate'))
                     # queryset=modelSubs[0].objects.filter(CountDate__gte=HistoryCutoffDate).order_by('-CountDate'))
         SchedSubFm_class = inlineformset_factory(modelMain,modelSubs[1],
                     fields=FormFieldsSubs[1],
                     extra=0,can_delete=False)
         schedSet = SchedSubFm_class(instance=currRec, prefix=prefixvals['schedule'], initial=initialvals['schedule'],
-                    queryset=modelSubs[1].objects.order_by('-CountDate'))
+                    queryset=modelSubs[1].objects.using(user_db(req)).order_by('-CountDate'))
                     # queryset=modelSubs[1].objects.filter(CountDate__gte=HistoryCutoffDate).order_by('-CountDate'))
         MPNSubFm_class = inlineformset_factory(modelMain,modelSubs[2],
                     fields=FormFieldsSubs[2],
                     extra=1,can_delete=True)
         MPNSet = MPNSubFm_class(instance=currRec, prefix=prefixvals['MfrPN'], initial=initialvals['MfrPN'],
-                    queryset=modelSubs[2].objects.order_by('MfrPN'))
+                    queryset=modelSubs[2].objects.using(user_db(req)).order_by('MfrPN'))
     # endif req.method
 
     # count summary subform
-    SAPTotals = SAP_SOHRecs.objects.filter(Material=currRec)\
+    SAPTotals = SAP_SOHRecs.objects.using(user_db(req)).filter(Material=currRec)\
         .values('uploaded_at','MaterialPartNum')\
         .annotate(SAPQty=Sum('Amount')).annotate(mult=Subquery(UnitsOfMeasure.objects.filter(UOM=OuterRef('BaseUnitofMeasure')).values('Multiplier1')[:1]))\
         .order_by('uploaded_at', 'MaterialPartNum')
-    raw_countdata = ActualCounts.objects.filter(Material=currRec, LocationOnly=False).order_by('Material__Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
+    raw_countdata = ActualCounts.objects.using(user_db(req)).filter(Material=currRec, LocationOnly=False).order_by('Material__Material','-CountDate').annotate(QtyEval=Value(0, output_field=models.IntegerField()))
     LastMaterial = None ; LastCountDate = None
     initdata = []
     for r in raw_countdata:
@@ -299,16 +300,19 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
     summarySet = subFm_class(initial=initdata, prefix='summaryset')
 
     # Material photos
-    PhotoSet = MaterialPhotos.objects.filter(Material=currRec)
+    PhotoSet = MaterialPhotos.objects.using(user_db(req)).filter(Material=currRec)
 
     # display the form
     if req.user.has_perm('WICS.Material_onlyview') and not req.user.has_perm('WICS.SuperUser'): templt = 'frm_Material_RO.html'
     else: templt = 'frm_Material.html'
+    
+    LastFA = None if not currRec else VIEW_materials.objects.using(user_db(req)).filter(pk=currRec.pk).values('LastCountDate','LastFoundAt')[0]
+
     cntext = {
             'frmMain': mtlFm,
             'PhotoSet': PhotoSet, 
             'userReadOnly': req.user.has_perm('WICS.Material_onlyview') and not req.user.has_perm('WICS.SuperUser'),
-            'lastFoundAt': VIEW_materials.objects.filter(pk=currRec.pk).values('LastCountDate','LastFoundAt')[0],
+            'lastFoundAt': LastFA,
             'FoundAt': FoundAt(currRec),
             'gotoForm': gotoForm,
             'countset': countSet,
@@ -319,12 +323,14 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
             'changes_saved': changes_saved,
             'changed_data': chgd_dat,
             }
+    
     return render(req, templt, cntext)
 
 
 #####################################################################
 #####################################################################
 #####################################################################
+
 
 class MaterialListCommonView(LoginRequiredMixin, ListView):
     #login_url = reverse('WICSlogin')
@@ -336,10 +342,15 @@ class MaterialListCommonView(LoginRequiredMixin, ListView):
 
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
         self._user = req.user
-        self.queryset = VIEW_materials.objects.order_by(*self.ordering).annotate(SAPQty=Value(0), HasSAPQty=Value(False), SAPValue=Value(0), SAPCurrency=Value(''), UnitValue=Value(0))
+        
+        # checking if tabnle is empty, otherwise order_by will crash
+        if VIEW_materials.objects.using(user_db(req)).exists():
+            self.queryset = VIEW_materials.objects.using(user_db(req)).order_by(*self.ordering).annotate(SAPQty=Value(0), HasSAPQty=Value(False), SAPValue=Value(0), SAPCurrency=Value(''), UnitValue=Value(0))
+        else:
+            self.queryset = VIEW_materials.objects.using(user_db(req)).annotate(SAPQty=Value(0), HasSAPQty=Value(False), SAPValue=Value(0), SAPCurrency=Value(''), UnitValue=Value(0))
 
         # it's more efficient to pull this all now and store it for the upcoming qs request
-        SAP = fnSAPList()
+        SAP = fnSAPList(req)
         self.SAPDate = SAP['SAPDate']
         rawsums = SAP['SAPTable'].values('Material_id','mult','Currency').annotate(TotalAmount=Sum('Amount',default=0), TotalValue=Sum('ValueUnrestricted',default=0))
         for x in rawsums:
@@ -454,7 +465,7 @@ def fnLocationList(req):
     DoABuildSQLFunction += " ORDER BY LOCATION"
     DoABuildSQLFunction +=";"
 
-    locations_qs = ActualCounts.objects.raw(DoABuildSQLFunction)
+    locations_qs = ActualCounts.objects.using(user_db(req)).raw(DoABuildSQLFunction)
 
     cntext = {
             'locations': locations_qs,
@@ -470,15 +481,15 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
     # get current record
     currRec = None
     if gotoRec and req.method == 'GET' and recNum > 0:
-        currRec = WhsePartTypes.objects.get(pk=recNum)
+        currRec = WhsePartTypes.objects.using(user_db(req)).get(pk=recNum)
     if not currRec:
         if recNum < 0:
-            currRec = WhsePartTypes.objects.first()
+            currRec = WhsePartTypes.objects.using(user_db(req)).first()
         elif recNum == 0:
             # provide new record
             currRec = WhsePartTypes()
         else:
-            currRec = WhsePartTypes.objects.get(pk=recNum)   # later, handle record not found
+            currRec = WhsePartTypes.objects.using(user_db(req)).get(pk=recNum)   # later, handle record not found
         # endif
     #endif
 
@@ -496,7 +507,7 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
     }
     chgd_dat = {'main':None, 'matl': None, }
 
-    MaterialList_qs = VIEW_materials.objects.all().select_related('org').order_by('Material_org')
+    MaterialList_qs = VIEW_materials.objects.using(user_db(req)).all().select_related('org').order_by('Material_org')
 
     if req.method == 'POST':
         # changed data is being submitted.  process and save it
@@ -513,12 +524,12 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
 
         if PtTypFm.is_valid() and MaterialSubFm.is_valid():
             if PtTypFm.has_changed():
-                PtTypFm.save()
+                PtTypFm.save()  # hopefully saves to same db: using=user_db(req))
                 chgd_dat['main'] = PtTypFm.changed_data
                 changes_saved['main'] = True
 
             if MaterialSubFm.has_changed():
-                MaterialSubFm.save()
+                MaterialSubFm.save()  # hopefully saves to same db: using=user_db(req))
                 chgd_dat['matl'] = MaterialSubFm.changed_objects
                 changes_saved['matl'] = True
 
@@ -536,12 +547,12 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
     # endif req.method
 
     gotoForm = {}
-    gotoForm['choicelist'] = WhsePartTypes.objects.all().values('id','WhsePartType')
+    gotoForm['choicelist'] = WhsePartTypes.objects.using(user_db(req)).all().values('id','WhsePartType')
     gotoForm['gotoItem'] = currRec
 
     # display the form
     cntext = {'frmMain': PtTypFm,
-            'showID': currRec.pk,
+            'showID': None if not currRec else currRec.pk,
             'gotoForm': gotoForm,
             'materials': MaterialSubFm,
             'changes_saved': changes_saved,
@@ -554,15 +565,15 @@ def fnPartTypesForm(req, recNum = -1, gotoRec=False):
 
 def fnDeletPartTypes(req, recNum):
     # get record.  If related Material, cannot delete, else do so
-    currRec = WhsePartTypes.objects.get(id=recNum)
+    currRec = WhsePartTypes.objects.using(user_db(req)).get(id=recNum)
     # later, handle record not found -- but then, that really shouldn't happen
 
-    if MaterialList.objects.filter(PartType=currRec).exists():
+    if MaterialList.objects.using(user_db(req)).filter(PartType=currRec).exists():
         messages.add_message(req,messages.ERROR,'There is Material with Part Type %s.  The Part Type cannot be removed' % currRec.WhsePartType)
         next = urls.reverse('ReloadPTypForm',args=[currRec.pk])
     else:
         deletedPT = currRec.WhsePartType
-        currRec.delete()
+        currRec.delete(using=user_db(req))
         messages.add_message(req,messages.SUCCESS,'Part Type %s has been removed' % deletedPT)
         next = urls.reverse('PartTypeForm')
 
@@ -600,7 +611,7 @@ def fnMPNView(req):
                 # form=FormMain,
                 extra=5,can_delete=True)
 
-    MPNqs = MfrPNtoMaterial.objects.all().order_by('MfrPN')
+    MPNqs = MfrPNtoMaterial.objects.using(user_db(req)).all().order_by('MfrPN')
 
     if req.method == 'POST':
         mainFm = mainFm_class(req.POST, prefix=prefixvals['main'], initial=initialvals['main'],
@@ -609,12 +620,12 @@ def fnMPNView(req):
         if mainFm.is_valid():
             if mainFm.has_changed():
                 try:
-                    mainFm.save()
+                    mainFm.save(using=user_db(req))
                     chgd_dat['main'] = mainFm.changed_objects
                     changes_saved['main'] = True
 
                     # regenerate mainFm (mainly to get 5 new add rows)
-                    MPNqs = MfrPNtoMaterial.objects.all().order_by('MfrPN')     # to force reload of qs
+                    MPNqs = MfrPNtoMaterial.objects.using(user_db(req)).all().order_by('MfrPN')     # to force reload of qs
                     mainFm = mainFm_class(prefix=prefixvals['main'], initial=initialvals['main'],
                                 queryset=MPNqs)
                 except Exception as err:
@@ -625,7 +636,7 @@ def fnMPNView(req):
     # endif req.method == 'POST'
 
     gotoForm = {}
-    gotoForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
+    gotoForm['choicelist'] = VIEW_materials.objects.using(user_db(req)).all().values('id','Material_org')
     gotoForm['gotoItem'] = None
 
     # display the form

@@ -6,6 +6,7 @@ from django import forms
 from django.conf import settings as django_settings
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.models import User
 from django.db.models.query import QuerySet
 from django.http import HttpRequest, HttpResponse
 from django import http
@@ -14,7 +15,9 @@ from django.views.generic import ListView
 from django_q.tasks import async_task
 from typing import *
 from cMenu.models import getcParm
-from cMenu.utils import makebool, isDate, WrapInQuotes, calvindate, ExcelWorkbook_fileext, Excelfile_fromqs
+from cMenu.utils import makebool, WrapInQuotes, user_db
+from cMenu.utils import isDate, calvindate
+from cMenu.utils import ExcelWorkbook_fileext, Excelfile_fromqs
 from mathematical_expressions_parser.eval import evaluate
 from openpyxl import load_workbook
 from openpyxl.utils.datetime import from_excel, WINDOWS_EPOCH
@@ -95,18 +98,22 @@ def cleanupfld(fld, val, CountSprshtDateEpoch = WINDOWS_EPOCH):
     return {'usefld':usefld, 'cleanval': cleanval}
 #end def cleanupfld
 
-def proc_UpActCountSprsheet_00InitUpld(reqid):
+def proc_UpActCountSprsheet_00InitUpld(req: HttpRequest|User|str, reqid: int) -> None:
+    dbUsing = user_db(req)
     acomm = set_async_comm_state(
+        dbUsing,
         reqid,
         processname = 'Upload Counts',
         statecode = 'reading-spreadsht-init',
         statetext = 'Initializing',
         new_async=True,
         )
-    UploadSAPResults.objects.all().delete()
+    UploadSAPResults.objects.using(dbUsing).all().delete()
 
-def proc_UpActCountSprsheet_00CopySpreadsheet(req, reqid):
+def proc_UpActCountSprsheet_00CopySpreadsheet(req:HttpRequest, reqid:int) -> str:
+    dbUsing = user_db(req)
     acomm = set_async_comm_state(
+        dbUsing,
         reqid,
         statecode = 'uploading-sprsht',
         statetext = 'Uploading Spreadsheet',
@@ -114,7 +121,7 @@ def proc_UpActCountSprsheet_00CopySpreadsheet(req, reqid):
 
     # save the file so we can open it as an excel file
     CountSprshtFile = req.FILES['CEFile']
-    svdir = getcParm('SAP-FILELOC')
+    svdir = getcParm(req, 'SAP-FILELOC')
     fName = svdir+"tmpCE"+str(uuid.uuid4())+ExcelWorkbook_fileext
     with open(fName, "wb") as destination:
         for chunk in CountSprshtFile.chunks():
@@ -122,8 +129,10 @@ def proc_UpActCountSprsheet_00CopySpreadsheet(req, reqid):
     
     return fName
 
-def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
+def proc_UpActCountSprsheet_01ReadSheet(db_to_use: str|HttpRequest|User, reqid: int, fName: str) -> None:
+    dbUsing = user_db(db_to_use)
     acomm = set_async_comm_state(
+        dbUsing,
         reqid,
         statecode = 'rdng-sprsht',
         statetext = 'Reading Spreadsheet',
@@ -137,6 +146,7 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
         ws = wb['Counts']
     else:
         acomm = set_async_comm_state(
+            dbUsing,
             reqid,
             statecode = 'fatalerr',
             statetext = 'This workbook does not contain a sheet named Counts in the correct format',
@@ -175,6 +185,7 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
             if (colkey in SprshtcolmnMap and SprshtcolmnMap[colkey] is not None):
                 # yes, that's a problem
                 set_async_comm_state(
+                    dbUsing,
                     reqid,
                     statecode = 'fatalerr',
                     statetext = f'SAP Spreadsheet has bad header row - More than one column named {col.value}.  See Calvin to fix this.',
@@ -193,6 +204,7 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
     if not HeaderGood:
         MissingRequiredFields = [reqFld for reqFld in SprshtREQUIREDFLDS if reqFld not in SprshtcolmnMap]
         set_async_comm_state(
+            dbUsing,
             reqid,
             statecode = 'fatalerr',
             statetext = f'Counts worksheet has bad header row - missing columns {MissingRequiredFields}.  See Calvin to fix this.',
@@ -211,6 +223,7 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
         SprshtRowNum += 1
         if SprshtRowNum % 100 == 0:
             set_async_comm_state(
+                dbUsing,
                 reqid,
                 statecode = 'rdng-sprsht',
                 statetext = f'Reading Spreadsheet ... record {SprshtRowNum} of {ws.max_row}<br><progress max="{ws.max_row}" value="{SprshtRowNum}"></progress>',
@@ -226,12 +239,12 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
                 spshtorg = None
             else:
                 spshtorg = cleanupfld('org_id', row[SprshtcolmnMap['org_id']])['cleanval']
-            matlorglist = MaterialList.objects.filter(Material=matlnum).values_list('org_id', flat=True)
+            matlorglist = MaterialList.objects.using(dbUsing).filter(Material=matlnum).values_list('org_id', flat=True)
             MatlKount = len(matlorglist)
             MatObj = None
             err_already_handled = False
             if MatlKount == 1:
-                MatObj = MaterialList.objects.get(Material=matlnum)
+                MatObj = MaterialList.objects.using(dbUsing).get(Material=matlnum)
                 spshtorg = MatObj.org_id
             if MatlKount > 1:
                 if spshtorg is None:
@@ -239,17 +252,17 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
                         errState = 'error',
                         errmsg = f"{matlnum} in multiple org_id's {tuple(matlorglist)}, but no org_id given", 
                         rowNum = SprshtRowNum
-                        ).save()
+                        ).save(using=dbUsing)
                     nRowsErrors += 1
                     err_already_handled = True
                 elif spshtorg in matlorglist:
-                    MatObj = MaterialList.objects.get(org_id=spshtorg, Material=matlnum)
+                    MatObj = MaterialList.objects.using(dbUsing).get(org_id=spshtorg, Material=matlnum)
                 else:
                     UploadSAPResults(
                         errState = 'error',
                         errmsg = f"{matlnum} in in multiple org_id's {tuple(matlorglist)}, but org_id given ({spshtorg}) is not one of them", 
                         rowNum = SprshtRowNum
-                        ).save()
+                        ).save(using=dbUsing)
                     nRowsErrors += 1
                     err_already_handled = True
                 #endif spshtorg is None
@@ -262,7 +275,7 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
                         errState = 'error',
                         errmsg = f'either {matlnum} does not exist in MaterialList or incorrect org_id ({str(spshtorg)}) given', 
                         rowNum = SprshtRowNum
-                        ).save()
+                        ).save(using=dbUsing)
             else:
                 rowErrs = False
                 requiredFields = {reqFld: False for reqFld in SprshtREQUIREDFLDS}
@@ -311,7 +324,7 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
                                     errState = 'error',
                                     errmsg = f'{str(V)} is invalid for {fldName}', 
                                     rowNum = SprshtRowNum
-                                    ).save()
+                                    ).save(using=dbUsing)
                         #endif usefld
                     #endif (V is not None)
                 # for each column
@@ -325,7 +338,7 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
                         errState = 'error',
                         errmsg = f'record is not marked LocationOnly and {str(V)} is invalid for {fldName}', 
                         rowNum = SprshtRowNum
-                        ).save()
+                        ).save(using=dbUsing)
 
                 # are all required fields present?
                 AllRequiredPresent = True
@@ -337,11 +350,11 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
                             errState = 'error',
                             errmsg = f'{keyname} missing', 
                             rowNum = SprshtRowNum
-                            ).save()
+                            ).save(using=dbUsing)
 
                 if not rowErrs:
-                    SRec.save()
-                    if MatChanged: MatObj.save()
+                    SRec.save(using=dbUsing)
+                    if MatChanged: MatObj.save(using=dbUsing)
                     resultString = str(SRec)
                     resultString += ' / LOCATION ONLY'  if SRec.LocationOnly else f' / Qty= {SRec.CTD_QTY_Expr}'
                     resultString += ' (Typ Cont Qty/Typ Plt Qty also changed)' if MatChanged else ''
@@ -349,7 +362,7 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
                         errState = 'success',
                         errmsg = resultString, 
                         rowNum = SprshtRowNum
-                        ).save()
+                        ).save(using=dbUsing)
                     nRowsAdded += 1
                 else:
                     nRowsErrors += 1
@@ -364,48 +377,54 @@ def proc_UpActCountSprsheet_01ReadSheet(reqid, fName):
         errState = 'nRowsTotal',
         errmsg = '', 
         rowNum = SprshtRowNum
-        ).save()
+        ).save(using=dbUsing)
     UploadSAPResults(
         errState = 'nRowsAdded',
         errmsg = '', 
         rowNum = nRowsAdded
-        ).save()
+        ).save(using=dbUsing)
     UploadSAPResults(
         errState = 'nRowsErrors',
         errmsg = '', 
         rowNum = nRowsErrors
-        ).save()
+        ).save(using=dbUsing)
     UploadSAPResults(
         errState = 'nRowsIgnored',
         errmsg = '', 
         rowNum = nRowsNoMaterial
-        ).save()
+        ).save(using=dbUsing)
 
     # close and kill temp files
     wb.close()
     os.remove(fName)
 def done_UpActCountSprsheet_01ReadSheet(t):
-    reqid = t.args[0]
-    statecode = async_comm.objects.get(pk=reqid).statecode
+    dbUsing = user_db(t.args[0])
+    reqid = t.args[1]
+    statecode = async_comm.objects.using(dbUsing).get(pk=reqid).statecode
     if statecode != 'fatalerr':
         set_async_comm_state(
+            dbUsing,
             reqid,
             statecode = 'done-rdng-sprsht',
             statetext = f'Finished Reading Spreadsheet',
             )
-        proc_UpActCountSprsheet_99_FinalProc(reqid)
+        proc_UpActCountSprsheet_99_FinalProc(dbUsing, reqid)
     #endif stateocde != 'fatalerr'
 
-def proc_UpActCountSprsheet_99_FinalProc(reqid):
+def proc_UpActCountSprsheet_99_FinalProc(db_to_use: str|HttpRequest|User, reqid:int) -> None:
+    dbUsing = user_db(db_to_use)
     set_async_comm_state(
+        dbUsing,
         reqid,
         statecode = 'done',
         statetext = 'Finished Processing Spreadsheet',
         )
 
-def proc_UpActCountSprsheet_99_Cleanup(reqid):
+def proc_UpActCountSprsheet_99_Cleanup(req:HttpRequest|User|str, reqid:int) -> None:
+    dbUsing = user_db(req)
+
     # also kill reqid, acomm, qcluster process
-    async_comm.objects.filter(pk=reqid).delete()
+    async_comm.objects.using(dbUsing).filter(pk=reqid).delete()
 
     try:
         os.kill(int(reqid), signal.SIGTERM)
@@ -417,10 +436,12 @@ def proc_UpActCountSprsheet_99_Cleanup(reqid):
         pass
 
     # delete the temporary table
-    UploadSAPResults.objects.all().delete()
+    UploadSAPResults.objects.using(dbUsing).all().delete()
 
 @login_required
 def fnUploadActCountSprsht(req):
+
+    dbUsing = user_db(req)
 
     client_phase = req.POST['phase'] if 'phase' in req.POST else None
     reqid = req.COOKIES['reqid'] if 'reqid' in req.COOKIES else None
@@ -436,12 +457,12 @@ def fnUploadActCountSprsht(req):
                 ['python', f'{django_settings.BASE_DIR}/manage.py', 'qcluster']
             ).pid
             retinfo.set_cookie('reqid',str(reqid))
-            proc_UpActCountSprsheet_00InitUpld(reqid)
+            proc_UpActCountSprsheet_00InitUpld(req, reqid)
 
             # save the file so we can open it as an excel file
             fName = proc_UpActCountSprsheet_00CopySpreadsheet(req, reqid)
 
-            task01 = async_task(proc_UpActCountSprsheet_01ReadSheet, reqid, fName, hook=done_UpActCountSprsheet_01ReadSheet)
+            task01 = async_task(proc_UpActCountSprsheet_01ReadSheet, req, reqid, fName, hook=done_UpActCountSprsheet_01ReadSheet)
 
             acomm_fake = {
                 'statecode': 'starting',
@@ -452,22 +473,26 @@ def fnUploadActCountSprsht(req):
         elif client_phase=='waiting':
             retinfo = HttpResponse()
 
-            acomm = async_comm.objects.values().get(pk=reqid)    # something's very wrong if this doesn't exist
+            acomm = async_comm.objects.using(dbUsing).values().get(pk=reqid)    # something's very wrong if this doesn't exist
             stcode = acomm['statecode']
             if stcode == 'fatalerr':
                 pass
             retinfo.write(json.dumps(acomm))
             return retinfo
         elif client_phase=='wantresults':
-            if UploadSAPResults.objects.filter(errState = 'nRowsTotal').exists(): SprshtRowNum = UploadSAPResults.objects.filter(errState = 'nRowsTotal')[0].rowNum
+            QS = UploadSAPResults.objects.using(dbUsing).filter(errState = 'nRowsTotal')
+            if QS.exists(): SprshtRowNum = QS[0].rowNum
             else: SprshtRowNum = 0
-            if UploadSAPResults.objects.filter(errState = 'nRowsAdded').exists(): nRowsAdded = UploadSAPResults.objects.filter(errState = 'nRowsAdded')[0].rowNum
+            QS = UploadSAPResults.objects.using(dbUsing).filter(errState = 'nRowsAdded')
+            if QS.exists(): nRowsAdded = QS[0].rowNum
             else: nRowsAdded = 0
-            if UploadSAPResults.objects.filter(errState = 'nRowsErrors').exists(): nRowsErrors = UploadSAPResults.objects.filter(errState = 'nRowsErrors')[0].rowNum
+            QS = UploadSAPResults.objects.using(dbUsing).filter(errState = 'nRowsErrors')
+            if QS.exists(): nRowsErrors = QS[0].rowNum
             else: nRowsErrors = 0
-            if UploadSAPResults.objects.filter(errState = 'nRowsIgnored').exists(): nRowsNoMaterial = UploadSAPResults.objects.filter(errState = 'nRowsIgnored')[0].rowNum
+            QS = UploadSAPResults.objects.using(dbUsing).filter(errState = 'nRowsIgnored')
+            if QS.exists(): nRowsNoMaterial = QS[0].rowNum
             else: nRowsNoMaterial = 0
-            UplResults = UploadSAPResults.objects.exclude(errState__in = ['nRowsAdded','nRowsTotal','nRowsErrors','nRowsIgnored']).order_by('rowNum')
+            UplResults = UploadSAPResults.objects.using(dbUsing).exclude(errState__in = ['nRowsAdded','nRowsTotal','nRowsErrors','nRowsIgnored']).order_by('rowNum')
             cntext = {'UplResults':UplResults, 
                     'ResultStats': {
                             'nRowsRead': SprshtRowNum - 1,      
@@ -480,7 +505,7 @@ def fnUploadActCountSprsht(req):
             templt = 'frm_uploadCountEntry_Success.html'
             return render(req, templt, cntext)
         elif client_phase=='resultspresented':
-            proc_UpActCountSprsheet_99_Cleanup(reqid)
+            proc_UpActCountSprsheet_99_Cleanup(req, reqid)
             retinfo = HttpResponse()
             retinfo.delete_cookie('reqid')
 
@@ -501,6 +526,7 @@ def fnUploadActCountSprsht(req):
 #####################################################################
 #####################################################################
 
+
 class ActualCountListForm(LoginRequiredMixin, ListView):
     ordering = ['-CountDate', 'Material']
     context_object_name = 'ActCtList'
@@ -511,7 +537,7 @@ class ActualCountListForm(LoginRequiredMixin, ListView):
         return super().setup(req, *args, **kwargs)
 
     def get_queryset(self) -> QuerySet[Any]:
-        return ActualCounts.objects.all().order_by(*self.ordering)[:_MAX_LISTRECS]
+        return ActualCounts.objects.using(user_db(self._user)).all().order_by(*self.ordering)[:_MAX_LISTRECS]
         # return super().get_queryset()
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
@@ -526,18 +552,19 @@ class ActualCountListForm(LoginRequiredMixin, ListView):
     #     return super().get(request, *args, **kwargs)
 
     def post(self, req: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
+        dbUsing = user_db(req)
         # is there a request to copy a count?
         if ('copyCountFromid' in req.POST) and ('copyCountToDate' in req.POST):
             copyCountFromid = req.POST['copyCountFromid']
             copyCountToDate = req.POST['copyCountToDate']
-            copyCountRec = ActualCounts.objects.get(pk=copyCountFromid)
+            copyCountRec = ActualCounts.objects.using(dbUsing).get(pk=copyCountFromid)
             copyCountRec.pk = None
             copyCountRec.CountDate = copyCountToDate
-            copyCountRec.save()
+            copyCountRec.save(using=dbUsing)
         # is there a request to delete a count
         if ('deleteCountid' in req.POST) :
             deleteCountid = req.POST['deleteCountid']
-            ActualCounts.objects.filter(pk=deleteCountid).delete()
+            ActualCounts.objects.using(dbUsing).filter(pk=deleteCountid).delete()
         
         return http.HttpResponseNotModified()
 
@@ -546,16 +573,27 @@ class ActualCountListForm(LoginRequiredMixin, ListView):
 #####################################################################
 #####################################################################
 
+# add this to cMenu.utils later
+def forcefloat(x) -> float:
+    if isinstance(x,(float, int)):
+        return float(x)
+    if isinstance(x,str) and x.isnumeric():
+        return float(x)
+    
+    return 0.0
+
 @login_required
 def fnCountSummaryReqRpt(req, passedCountDate='CURRENT_DATE'):
     return fnCountSummaryRpt(req, passedCountDate, Rptvariation='REQ')
 @login_required
 def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
 
+    dbUsing = user_db(req)
+
     # get the SAP data
     dtobj_pDate = isDate(passedCountDate)
     if not dtobj_pDate: dtobj_pDate = calvindate().as_datetime()
-    SAP_SOH = fnSAPList(dtobj_pDate)
+    SAP_SOH = fnSAPList(req, dtobj_pDate)
 
     # prep Excel_qdict.  It's up here so that the functions below have access to it
     Excel_qdict = []
@@ -708,7 +746,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
 
     VIEW_Material_sql = "VIEW_materials mtl "
 
-    for org in Organizations.objects.all():
+    for org in Organizations.objects.using(dbUsing).all():
         # group by org_id
         org_condition = '(mtl.org_id = ' + str(org.pk) + ')'
 
@@ -726,7 +764,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
         if A_Sched_Ctd_where:
             A_Sched_Ctd_sql += ' AND ' + A_Sched_Ctd_where
         A_Sched_Ctd_sql += ' ORDER BY ' + order_by
-        A_Sched_Ctd_qs = CountSchedule.objects.raw(A_Sched_Ctd_sql)
+        A_Sched_Ctd_qs = CountSchedule.objects.using(dbUsing).raw(A_Sched_Ctd_sql)
         # build display lines
         ttl = 'Scheduled and Counted'
         if Rptvariation == 'REQ':
@@ -748,7 +786,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
                 ' WHERE NOT ac.LocationOnly AND ' + date_condition + ' AND ' + org_condition + \
                 ' AND ' + B_UnSched_Ctd_where + \
                 ' ORDER BY ' + order_by
-            B_UnSched_Ctd_qs = CountSchedule.objects.raw(B_UnSched_Ctd_sql)
+            B_UnSched_Ctd_qs = CountSchedule.objects.using(dbUsing).raw(B_UnSched_Ctd_sql)
             SummaryReport.append({
                         'org':org,
                         'Title':'UnScheduled',
@@ -769,7 +807,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
         if C_Sched_NotCtd_Ctd_where:
             C_Sched_NotCtd_Ctd_sql += ' AND ' + C_Sched_NotCtd_Ctd_where
         C_Sched_NotCtd_Ctd_sql += ' ORDER BY ' + order_by
-        C_Sched_NotCtd_Ctd_qs = CountSchedule.objects.raw(C_Sched_NotCtd_Ctd_sql)
+        C_Sched_NotCtd_Ctd_qs = CountSchedule.objects.using(dbUsing).raw(C_Sched_NotCtd_Ctd_sql)
         ttl = 'Scheduled but Not Counted'
         if Rptvariation == 'REQ':
             ttl = 'Requested but Not Counted'            
@@ -780,9 +818,9 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
                     })
     
     AccuracyCutoff = { 
-                'DANGER': float(getcParm('ACCURACY-DANGER')),
-                'SUCCESS': float(getcParm('ACCURACY-SUCCESS')),
-                'WARNING': float(getcParm('ACCURACY-WARNING')),
+                'DANGER': forcefloat(getcParm(req, 'ACCURACY-DANGER')),
+                'SUCCESS': forcefloat(getcParm(req, 'ACCURACY-SUCCESS')),
+                'WARNING': forcefloat(getcParm(req, 'ACCURACY-WARNING')),
                 }
 
     ExcelFileNamePrefix = "CountSummary "

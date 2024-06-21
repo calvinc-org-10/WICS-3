@@ -17,7 +17,7 @@ class WICSLoginView(auth_views.LoginView):
         cntext = super().get_context_data(**kwargs)
 
         grts = cGreetings.objects.all().values('Greeting')
-        Greeting = random.choice(grts)['Greeting']
+        Greeting = random.choice(grts)['Greeting'] if grts.count() else ''
 
         cntext.update({
             'Greeting':Greeting,
@@ -42,26 +42,29 @@ class WICSLoginView(auth_views.LoginView):
 
 class WICSDemoLoginView(auth_views.LoginView):
     template_name = "DemoLogin.html"
+    svK = 'DEMO'
+    uName = 'demo'
+    uPW = '12345678demo'
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
-        svK = 'DEMO'
         cntext = super().get_context_data(**kwargs)
 
         grts = cGreetings.objects.all().values('Greeting')
-        Greeting = random.choice(grts)['Greeting']
+        Greeting = random.choice(grts)['Greeting'] if grts.count() else ''
 
         cntext.update({
             'Greeting':Greeting,
-            'sysver_key': svK,
-            'sysver':sysver[svK],
+            'sysver_key': self.svK,
+            'sysver':sysver[self.svK],
+            'DEMOuName': self.uName,
+            'DEMOuPW': self.uPW,
             })
 
         return cntext
 
     def post(self, request, *args: str, **kwargs: Any) -> HttpResponse:
-        svK = 'demo'
 
-        usr = authenticate(request,username=svK,password=svK)
+        usr = authenticate(request,username=self.uName,password=self.uPW)
         if usr != None:
             login(request,usr)
             return self.form_valid(self.get_form())
