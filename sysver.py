@@ -1,7 +1,7 @@
 _base_ver_major=3
 _base_ver_minor=9
 _base_ver_patch=1
-_ver_date='2024-06-19?'
+_ver_date='2024-06-21'
 _base_ver = f'{_base_ver_major}.{_base_ver_minor}.{_base_ver_patch}'
 sysver = {
     'DEV': f'DEV{_base_ver}', 
@@ -9,7 +9,7 @@ sysver = {
     'DEMO': f'DEMO{_base_ver}'
     } 
 
-# 3.9.1 - 2024-06-19? - modifying code to use demo db if user is demo
+# 3.9.1 - 2024-06-21 - modifying code to use demo db if user is demo
 # 3.9.0a - 2024-06-01 handle empty Greetings table
 # 3.9.0 - 2024-06-01 support demo vs prod db (laying foundations, contructing db, tables)
 # 3.8.1 - 2024-04-20 add progress bar to spreadsheet reads
