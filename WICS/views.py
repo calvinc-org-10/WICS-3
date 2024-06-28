@@ -3,7 +3,7 @@ from django.db.models import Value
 from django.forms import modelformset_factory
 # from django import http # for the various HttpResponses
 from django.shortcuts import render
-from cMenu.utils import calvindate
+from cMenu.utils import calvindate, user_db
 from userprofiles.models import WICSuser
 from WICS.forms import CountEntryForm, CountScheduleRecordForm, RequestCountScheduleRecordForm
 from WICS.forms import RelatedMaterialInfo, RelatedScheduleInfo
@@ -17,6 +17,8 @@ def fnCountEntryView(req,
             recNum = None, MatlNum = None, reqDate = None,
             gotoCommand = None
             ):
+
+    dbUsing = user_db(req)
 
     # defauls parms
     if recNum is None: recNum = 0
@@ -58,10 +60,10 @@ def fnCountEntryView(req,
         R = req.POST[prefixvals['main']+'-id']
         recNum = int(R) if R.isnumeric() else 0
         try:
-            currRec = modelMain.objects.get(pk=recNum)
+            currRec = modelMain.objects.using(dbUsing).get(pk=recNum)
         except:
             currRec = modelMain()
-        matlRec = modelSubs[0].objects.get(id=req.POST['MatlPK'])
+        matlRec = modelSubs[0].objects.using(dbUsing).get(id=req.POST['MatlPK'])
         #schedRecs = modelSubs[1].objects.filter(org=_userorg, CountDate=req.POST[prefixvals['main']+'-CountDate'], Material=matlRec)
 
         # process main form
@@ -70,7 +72,7 @@ def fnCountEntryView(req,
         matlSubFm = FormSubs[0](matlRec.pk, req.POST, instance=matlRec, prefix=prefixvals['matl'])
         #schedSet = RelatedScheduleInfo(_userorg, SchedID, req.POST, prefix=prefixvals['schedule'], initial=initialvals['schedule'])
 
-        s = modelMain.objects.none()
+        s = modelMain.objects.using(dbUsing).none()
 
         # if mainFm.is_valid() and matlSubFm.is_valid() and schedFm.is_valid():
         if mainFm.is_valid() and matlSubFm.is_valid():
@@ -82,7 +84,7 @@ def fnCountEntryView(req,
                 changes_saved['main'] = s.id
             # material info subform
             if matlSubFm.has_changed():
-                matlSubFm.save()
+                matlSubFm.save(req=req)
                 chgd_dat['matl'] = []
                 for chgdfld in matlSubFm.changed_data:
                     chgd_dat['matl'].append(chgdfld+'='+str(matlSubFm.cleaned_data[chgdfld]))
@@ -110,11 +112,11 @@ def fnCountEntryView(req,
                 matlSubFm = FormSubs[0](None, initial=initialvals['matl'], prefix=prefixvals['matl'])
     else:   ## rec.method != 'POST'
         currRec = modelMain(CountDate=reqDate,Counter=req.user.get_short_name())
-        matlRec = modelSubs[0].objects.none()
+        matlRec = modelSubs[0].objects.using(dbUsing).none()
 
         # TODO: add protection against no records
-        recFirstPK = modelMain.objects.order_by('id').first().pk
-        recLastPK = modelMain.objects.order_by('id').last().pk
+        recFirstPK = modelMain.objects.using(dbUsing).order_by('id').first().pk
+        recLastPK = modelMain.objects.using(dbUsing).order_by('id').last().pk
         
         if gotoCommand == 'New':
             recNum = 0
@@ -135,7 +137,7 @@ def fnCountEntryView(req,
                 elif recNum <= recFirstPK:
                     recNum = recFirstPK
                 else:
-                    recNum = modelMain.objects.filter(pk__lt=recNum).order_by('id').last().pk
+                    recNum = modelMain.objects.using(dbUsing).filter(pk__lt=recNum).order_by('id').last().pk
             except:
                 recNum = 0
         elif gotoCommand == 'Next':
@@ -145,19 +147,19 @@ def fnCountEntryView(req,
                 elif recNum >= recLastPK:
                     recNum = recLastPK
                 else:
-                    recNum = modelMain.objects.filter(pk__gt=recNum).order_by('id').first().pk
+                    recNum = modelMain.objects.using(dbUsing).filter(pk__gt=recNum).order_by('id').first().pk
             except:
                 recNum = 0
         else:
             pass
 
         if recNum:
-            currRec = modelMain.objects.get(pk=recNum)
+            currRec = modelMain.objects.using(dbUsing).get(pk=recNum)
             matlRec = currRec.Material  # subject to change
 
         if gotoCommand == 'ChgKey':
             currRec.CountDate = reqDate
-            matlRec = modelSubs[0].objects.get(pk=MatlNum)
+            matlRec = modelSubs[0].objects.using(dbUsing).get(pk=MatlNum)
             currRec.Material = matlRec
             currRec.Material_id = MatlNum
 
@@ -177,36 +179,36 @@ def fnCountEntryView(req,
     if matlRec:
         matchDate = reqDate
         if currRec: matchDate = currRec.CountDate
-        todayscounts = modelMain.objects.filter(CountDate=matchDate,Material=matlRec)
+        todayscounts = modelMain.objects.using(dbUsing).filter(CountDate=matchDate,Material=matlRec)
     else: 
-        todayscounts = modelMain.objects.none()
+        todayscounts = modelMain.objects.using(dbUsing).none()
 
     if currRec:
         getDate = currRec.CountDate
-        if matlRec and modelSubs[1].objects.filter(CountDate=getDate, Material=matlRec).exists():
-            schedinfo = modelSubs[1].objects.filter(CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
+        if matlRec and modelSubs[1].objects.using(dbUsing).filter(CountDate=getDate, Material=matlRec).exists():
+            schedinfo = modelSubs[1].objects.using(dbUsing).filter(CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
         else:
-            schedinfo = modelSubs[1].objects.none()
+            schedinfo = modelSubs[1].objects.using(dbUsing).none()
     elif (MatlNum!=0) and (gotoCommand==None):
         # review and clean up this block!
         if MatlNum != 0:
             # fill in MatlInfo and CountSchedInfo
             if recNum > 0: getDate = currRec.CountDate 
             else: getDate = reqDate
-            if modelSubs[1].objects.filter(CountDate=getDate, Material=matlRec).exists():
-                schedinfo = modelSubs[1].objects.filter(CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
+            if modelSubs[1].objects.using(dbUsing).filter(CountDate=getDate, Material=matlRec).exists():
+                schedinfo = modelSubs[1].objects.using(dbUsing).filter(CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
             else:
-                schedinfo = modelSubs[1].objects.none()
+                schedinfo = modelSubs[1].objects.using(dbUsing).none()
         elif recNum > 0:
             # ??????????? shouldn't this already be handled?  Think about it...
             # fill in MatlInfo and CountSchedInfo
             getDate = currRec.CountDate
-            if modelSubs[1].objects.filter(CountDate=getDate, Material=matlRec).exists():
-                schedinfo = modelSubs[1].objects.filter(CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
+            if modelSubs[1].objects.using(dbUsing).filter(CountDate=getDate, Material=matlRec).exists():
+                schedinfo = modelSubs[1].objects.using(dbUsing).filter(CountDate=getDate, Material=matlRec)[0]  # filter rather than get, since a scheduled count may not exist, or multiple may exist (shouldn't but ...)
             else:
-                schedinfo = modelSubs[1].objects.none()
+                schedinfo = modelSubs[1].objects.using(dbUsing).none()
     else: 
-        schedinfo = modelSubs[1].objects.none()
+        schedinfo = modelSubs[1].objects.using(dbUsing).none()
     #endif currRec
     if not schedinfo: schedFm = FormSubs[1](None, initial=initialvals['schedule'], prefix=prefixvals['schedule'])
     else: schedFm = FormSubs[1](schedinfo.pk, instance=schedinfo, prefix=prefixvals['schedule'])
@@ -219,7 +221,7 @@ def fnCountEntryView(req,
         if MatlNum==None: MatlNum = 0
         ## matlchoiceForm['gotoItem'] = {'Material':MatlNum}
         matlchoiceForm['gotoItem'] = ''
-    matlchoiceForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
+    matlchoiceForm['choicelist'] = VIEW_materials.objects.using(dbUsing).all().values('id','Material_org')
 
     # display the form
     cntext = {'frmMain': mainFm,
@@ -242,6 +244,7 @@ def _fnCountSchedRecViewCommon(req, variation,
             gotoCommand = None, **kwargs
             ):
     requser = WICSuser.objects.get(user=req.user)
+    dbUsing = user_db(req)
 
     # defauls parms
     if recNum is None: recNum = 0
@@ -284,32 +287,32 @@ def _fnCountSchedRecViewCommon(req, variation,
         R = req.POST[prefixvals['main']+'-id']
         recNum = int(R) if R.isnumeric() else 0
         try:
-            currRec = modelMain.objects.get(pk=recNum)
+            currRec = modelMain.objects.using(dbUsing).get(pk=recNum)
         except:
             currRec = modelMain()
-        matlRec = modelSubs[0].objects.get(pk=req.POST['MatlPK'])
+        matlRec = modelSubs[0].objects.using(dbUsing).get(pk=req.POST['MatlPK'])
 
         # process main form
         if currRec: mainFm = FormMain(req.POST, instance=currRec,  prefix=prefixvals['main'])
         else: mainFm = FormMain(req.POST, initial=initialvals['main'],  prefix=prefixvals['main']) 
         matlSubFm = FormSubs[0](matlRec.pk, req.POST, instance=matlRec, prefix=prefixvals['matl'])
 
-        s = modelMain.objects.none()
+        s = modelMain.objects.using(dbUsing).none()
 
         # if mainFm.is_valid() and matlSubFm.is_valid() and schedFm.is_valid():
         if mainFm.is_valid() and matlSubFm.is_valid():
             if mainFm.has_changed():
                 if variation=='REQ' or 'Requestor' in mainFm.changed_data:
-                    s = mainFm.save(requser)    #pylint: disable=no-value-for-parameter
+                    s = mainFm.save(req=req, savingUser=requser)
                 else:
-                    s = mainFm.save()    #pylint: disable=no-value-for-parameter
+                    s = mainFm.save(req=req)
                 chgd_dat['main'] = []
                 for chgdfld in mainFm.changed_data:
                     chgd_dat['main'].append(chgdfld+'='+str(mainFm.cleaned_data[chgdfld]))
                 changes_saved['main'] = s.id
             # material info subform
             if matlSubFm.has_changed():
-                matlSubFm.save()
+                matlSubFm.save(req=req)
                 chgd_dat['matl'] = []
                 for chgdfld in matlSubFm.changed_data:
                     chgd_dat['matl'].append(chgdfld+'='+str(matlSubFm.cleaned_data[chgdfld]))
@@ -340,11 +343,11 @@ def _fnCountSchedRecViewCommon(req, variation,
             Requestor=req.user.get_short_name() if variation=='REQ' else None,
             RequestFilled=None
             )
-        matlRec = modelSubs[0].objects.none()
+        matlRec = modelSubs[0].objects.using(dbUsing).none()
 
         # TODO: add protection against no records
-        recFirstPK = modelMain.objects.order_by('id').first().pk
-        recLastPK = modelMain.objects.order_by('id').last().pk
+        recFirstPK = modelMain.objects.using(dbUsing).order_by('id').first().pk
+        recLastPK = modelMain.objects.using(dbUsing).order_by('id').last().pk
         
         if gotoCommand == 'New':
             recNum = 0
@@ -365,7 +368,7 @@ def _fnCountSchedRecViewCommon(req, variation,
                 elif recNum <= recFirstPK:
                     recNum = recFirstPK
                 else:
-                    recNum = modelMain.objects.filter(pk__lt=recNum).order_by('id').last().pk
+                    recNum = modelMain.objects.using(dbUsing).filter(pk__lt=recNum).order_by('id').last().pk
             except:
                 recNum = 0
         elif gotoCommand == 'Next':
@@ -375,7 +378,7 @@ def _fnCountSchedRecViewCommon(req, variation,
                 elif recNum >= recLastPK:
                     recNum = recLastPK
                 else:
-                    recNum = modelMain.objects.filter(pk__gt=recNum).order_by('id').first().pk
+                    recNum = modelMain.objects.using(dbUsing).filter(pk__gt=recNum).order_by('id').first().pk
             except:
                 recNum = 0
         else:
@@ -383,7 +386,7 @@ def _fnCountSchedRecViewCommon(req, variation,
 
         incomingMatlRec = matlRec   # in case it's trying to be changed to an existing scheduled count
         if recNum:
-            currRec = modelMain.objects.get(pk=recNum)
+            currRec = modelMain.objects.using(dbUsing).get(pk=recNum)
             matlRec = currRec.Material  # subject to change
 
         if gotoCommand == 'ChgKey':
@@ -393,13 +396,13 @@ def _fnCountSchedRecViewCommon(req, variation,
             if exstSchdRec:
                 # if its not THIS record, reject
                 if (currRec and currRec.id != exstSchdRec):
-                    matlRec = VIEW_materials.objects.get(id=MatlNum)
+                    matlRec = VIEW_materials.objects.using(dbUsing).get(id=MatlNum)
                     msgDupSched = 'A count for ' + str(matlRec.Material) + ' is already scheduled for ' + str(reqDate)
                     matlRec = incomingMatlRec
                     MatlNum = getattr(matlRec,'Material',None)
             else:
                 currRec.CountDate = reqDate
-                matlRec = modelSubs[0].objects.get(pk=MatlNum)
+                matlRec = modelSubs[0].objects.using(dbUsing).get(pk=MatlNum)
                 currRec.Material = matlRec
 
         # at this point, currRec and matlRec s/b correct
@@ -422,7 +425,7 @@ def _fnCountSchedRecViewCommon(req, variation,
         if MatlNum==None: MatlNum = 0
         ## matlchoiceForm['gotoItem'] = {'Material':MatlNum}
         matlchoiceForm['gotoItem'] = ''
-    matlchoiceForm['choicelist'] = VIEW_materials.objects.all().values('id','Material_org')
+    matlchoiceForm['choicelist'] = VIEW_materials.objects.using(dbUsing).all().values('id','Material_org')
 
     # display the form
     cntext = {'frmMain': mainFm,
@@ -465,6 +468,7 @@ def fnCountScheduleRecView(req,
 
 def fnRequestedCountEditListView(req, ShowFilledRequests = True):
     requser = WICSuser.objects.get(user=req.user)
+    dbUsing = user_db(req)
 
     FormMain = RequestCountScheduleRecordForm
     FormSubs = [S for S in []]
@@ -497,7 +501,7 @@ def fnRequestedCountEditListView(req, ShowFilledRequests = True):
                 exclude=excludelist['main'],
                 # form=FormMain,
                 extra=0,can_delete=False)
-    qs_RequestsToShow = modelMain.objects.filter(Requestor_userid__isnull=False).order_by('-CountDate', 'Material__Material').annotate(hascounts=Value(False))
+    qs_RequestsToShow = modelMain.objects.using(dbUsing).filter(Requestor_userid__isnull=False).order_by('-CountDate', 'Material__Material').annotate(hascounts=Value(False))
     if not ShowFilledRequests:
         qs_RequestsToShow = qs_RequestsToShow.filter(RequestFilled=False)
 
@@ -508,7 +512,7 @@ def fnRequestedCountEditListView(req, ShowFilledRequests = True):
 
         if mainFm.is_valid():
             if mainFm.has_changed():
-                s = mainFm.save()
+                s = mainFm.save(req=req)
                 chgd_dat['main'] = mainFm.changed_objects
                 changes_saved['main'] = s
     else:   #req.method != 'POST'
@@ -518,7 +522,7 @@ def fnRequestedCountEditListView(req, ShowFilledRequests = True):
 
     # show if the request has counts or not
     for rec in qs_RequestsToShow:
-        rec.hascounts = ActualCounts.objects.filter(Material=rec.Material,CountDate=rec.CountDate).exists()
+        rec.hascounts = ActualCounts.objects.using(dbUsing).filter(Material=rec.Material,CountDate=rec.CountDate).exists()
 
     # display the form
     cntext = {

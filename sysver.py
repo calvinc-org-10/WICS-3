@@ -1,6 +1,6 @@
 _base_ver_major=3
 _base_ver_minor=9
-_base_ver_patch=1
+_base_ver_patch='1a'
 _ver_date='2024-06-21'
 _base_ver = f'{_base_ver_major}.{_base_ver_minor}.{_base_ver_patch}'
 sysver = {
@@ -9,6 +9,7 @@ sysver = {
     'DEMO': f'DEMO{_base_ver}'
     } 
 
+# 3.9.1a - 2024-06-28 - bug fix - add dbUsing (etc) to views.py
 # 3.9.1 - 2024-06-21 - modifying code to use demo db if user is demo
 # 3.9.0a - 2024-06-01 handle empty Greetings table
 # 3.9.0 - 2024-06-01 support demo vs prod db (laying foundations, contructing db, tables)
