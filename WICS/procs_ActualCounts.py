@@ -462,7 +462,7 @@ def fnUploadActCountSprsht(req):
             # save the file so we can open it as an excel file
             fName = proc_UpActCountSprsheet_00CopySpreadsheet(req, reqid)
 
-            task01 = async_task(proc_UpActCountSprsheet_01ReadSheet, req, reqid, fName, hook=done_UpActCountSprsheet_01ReadSheet)
+            task01 = async_task(proc_UpActCountSprsheet_01ReadSheet, dbUsing, reqid, fName, hook=done_UpActCountSprsheet_01ReadSheet)
 
             acomm_fake = {
                 'statecode': 'starting',

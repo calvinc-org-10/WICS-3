@@ -1,7 +1,7 @@
 _base_ver_major=3
 _base_ver_minor=9
-_base_ver_patch='1a'
-_ver_date='2024-06-21'
+_base_ver_patch='1b'
+_ver_date='2024-07-01'
 _base_ver = f'{_base_ver_major}.{_base_ver_minor}.{_base_ver_patch}'
 sysver = {
     'DEV': f'DEV{_base_ver}', 
@@ -9,6 +9,7 @@ sysver = {
     'DEMO': f'DEMO{_base_ver}'
     } 
 
+# 3.9.1b - 2024-07-01 - bug fix - tried passing req to Upl CE async
 # 3.9.1a - 2024-06-28 - bug fix - add dbUsing (etc) to views.py
 # 3.9.1 - 2024-06-21 - modifying code to use demo db if user is demo
 # 3.9.0a - 2024-06-01 handle empty Greetings table
