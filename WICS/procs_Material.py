@@ -97,7 +97,7 @@ def fnMaterialForm(req, recNum = -1, gotoRec=False, newRec=False, HistoryCutoffD
     else:
         if newRec:
             # provide new record
-            currRec = modelMain(org=_defaultOrg)
+            currRec = modelMain(org_id=_defaultOrg)
         elif recNum <= 0:
             currRec = modelMain.objects.using(user_db(req)).first()
         else:
