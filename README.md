@@ -1,70 +1,41 @@
 # WICS-3
 
 Short description
-- A brief overview: WICS-3 is a project that [replace with specific domain — e.g., collects and analyzes sensor data, provides a web dashboard for incident reporting, implements an authentication microservice, etc.]. The sections below give a fuller description of what the system does, its architecture, typical workflows, and how to get started.
+- WICS-3 is a Django-based web application that ingests, processes, and displays event data. It uses Python/Django for the backend, MySQL for persistent storage, and vanilla JavaScript with jQuery for client-side interactions embedded in Django-generated HTML templates.
 
 System overview
-- Purpose: WICS-3 is built to [primary goal — e.g., monitor, collect, process, and visualize X]. It aims to provide reliable data ingestion, configurable processing rules, and an interface/API for consumers to query results or view dashboards.
-- Primary users: operators, analysts, integrators, or end users who need to monitor or analyze X in near-real-time.
+- Purpose: WICS-3 provides a pipeline to accept events (API or batch import), run domain-specific processing rules, persist raw and processed records in MySQL, and offer a web UI and REST endpoints for querying and visualizing results.
+- Primary users: operators, analysts, and integrators who need a lightweight dashboard and API for event monitoring and alerts.
 - Key capabilities:
-  - Data ingestion: accepts input from [sensors, webhooks, batch uploads, APIs].
-  - Processing pipeline: transforms, normalizes, and optionally enriches incoming data (filtering, aggregation, anomaly detection).
-  - Storage: persists raw inputs and processed results in a datastore for search, analytics, and audits.
-  - Access layer: REST API and/or UI for querying, visualizing, and managing data and alerts.
-  - Alerts & notifications: rules-based alerts triggered when conditions are met (email, webhook, or third-party integrations).
-  - Extensibility: plugin or configuration points for custom processors, integrations, and rules.
+  - Data ingestion: HTTP endpoints and CSV import for batch uploads.
+  - Processing pipeline: Django background tasks (Celery recommended) perform parsing, normalization, enrichment, and rule evaluation.
+  - Storage: MySQL stores raw and processed records; Django ORM models are used for persistence.
+  - Access layer: Django REST Framework (optional) exposes API endpoints; server-rendered templates provide the UI.
+  - Alerts & notifications: rules-based alerting via email or webhooks; Celery tasks dispatch notifications.
+  - Front-end: Django templates with JavaScript/jQuery for interactivity (tables, AJAX calls, form handling).
 
 How it works (high-level data flow)
-1. Input: Events or files are submitted to the system via API endpoints, streaming ingestion, or scheduled imports.
-2. Validation & normalization: Inputs are validated and normalized into a canonical format.
-3. Processing pipeline:
-   - Stage A: Lightweight pre-processing (parse, timestamp, dedupe).
-   - Stage B: Domain-specific transformations and enrichment (e.g., geocoding, lookup tables).
-   - Stage C: Rule engine / detection (apply configured checks and mark records).
-4. Persistence: Raw and processed data are stored in a database (e.g., PostgreSQL, MongoDB, or time-series store — specify actual tech).
-5. Access & presentation: API endpoints serve processed data; the front-end dashboard displays KPIs, charts, and alerts.
-6. Notifications: When a rule fires, notifications are dispatched through configured channels.
+1. Client posts events to API endpoints or uploads CSV via the web UI.
+2. Django validates inputs and enqueues processing tasks (Celery/RQ or Django management commands).
+3. Workers process events (parse, normalize, enrich) and save raw + processed records to MySQL.
+4. The web UI queries the database and displays KPIs, lists, and charts; AJAX endpoints support live updates.
+5. When rules trigger, alerts are created and notifications are sent via configured channels.
 
-Architecture (suggested / placeholder)
-- Components:
-  - Ingest service (HTTP/worker) — receives and queues incoming data.
-  - Worker(s) / Processor(s) — handle transformations and rule evaluation.
-  - Database(s) — primary store for records; optionally a search index for fast queries.
-  - API service — authentication, query endpoints, management endpoints.
-  - UI (optional) — dashboard for visualization and manual data operations.
-  - Message broker (optional) — for decoupling producers/consumers (e.g., RabbitMQ, Kafka).
-- Deployment:
-  - Containerized services (Docker)
-  - Orchestrated with Kubernetes or a simpler process manager for development
-- Non-functional goals:
-  - Reliability: retry logic, idempotency in ingestion
-  - Scalability: horizontally scalable processors
-  - Observability: metrics, logs, and traces to monitor pipeline health
+Architecture (concrete for this repo)
+- Backend: Python 3.10+ and Django 4.x (adjust versions as needed).
+- Database: MySQL 8.x (configure settings.DATABASES accordingly).
+- Task queue: Celery with Redis/RabbitMQ (recommended) or Django-RQ for simpler setups.
+- API: Django REST Framework for JSON endpoints (optional but recommended).
+- Front-end: Django templates, jQuery for AJAX and DOM manipulation, optionally Chart.js for charts.
+- Deployment: containerize with Docker and orchestrate with Docker Compose or Kubernetes for production.
 
-Typical workflows (examples)
-- Ingest & view:
-  1. Client posts event(s) to /api/v1/events
-  2. Events are queued, processed, and stored
-  3. Analyst queries /api/v1/events?from=...&type=... and views results on the dashboard
-- Rule-based alert:
-  1. Define a rule in management UI or via API
-  2. When processor detects a matching condition, an alert object is created
-  3. Notification is sent to configured channel and the alert appears in dashboard
-- Batch import:
-  1. Upload CSV via UI or PUT to /api/v1/imports
-  2. Workers parse rows, normalize, and create records
-
-Assumptions & configuration points
-- Replace placeholders with actual tech stack: database type, queue system, UI framework, and language (Node, Python, Go, etc.).
-- Authentication: define whether the API uses token-based auth, OAuth, or an internal user system.
-- Storage retention and backups: configure retention policy for raw vs processed data.
-
-Getting started (quick)
+Getting started
 Prerequisites
 - Git
-- Runtime: Node.js, Python, Go, or specify actual runtime and version
-- Database: e.g., PostgreSQL 13+ (or whatever the project uses)
-- (Optional) Message broker: RabbitMQ / Kafka
+- Python 3.10+ (or project-specific version)
+- pip
+- MySQL 8+ server running
+- Node/npm only if you add front-end build tooling (optional)
 
 Clone and checkout
 ```bash
@@ -73,47 +44,90 @@ cd WICS-3
 git checkout add-readme
 ```
 
-Install and run (example placeholders)
-- For Node.js projects:
+Setup (development)
 ```bash
-npm install
-npm run dev
-```
-- For Python projects:
-```bash
-python -m venv venv
-source venv/bin/activate
+# create a virtual environment
+python -m venv .venv
+source .venv/bin/activate
+
+# install Python dependencies
 pip install -r requirements.txt
-python main.py
+
+# configure your local settings (example: copy env or settings file)
+cp example.env .env
+# edit .env or settings/local.py to point DATABASE_URL or DATABASES to your MySQL server
+
+# run migrations
+python manage.py migrate
+
+# create a superuser for admin access
+python manage.py createsuperuser
+
+# collect static files (for production or when DEBUG=False)
+python manage.py collectstatic --noinput
+
+# run the development server
+python manage.py runserver
 ```
 
-Testing
-- Describe how to run tests, e.g.:
+Database notes
+- Configure DATABASES in settings.py to use mysqlclient or PyMySQL. Example (using mysqlclient):
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'wics3',
+        'USER': 'wics_user',
+        'PASSWORD': 's3cr3t',
+        'HOST': '127.0.0.1',
+        'PORT': '3306',
+    }
+}
+
+- Ensure the MySQL user has appropriate privileges and that utf8mb4 is used for character set.
+
+Running background workers
+- Celery example:
 ```bash
-npm test
-# or
+celery -A project_name worker -l info
+```
+- Alternatively use Django-Q, django-rq, or management commands depending on the repo.
+
+Front-end (JavaScript/jQuery)
+- Place custom JS under static/ and include via template tags. Use AJAX endpoints to fetch data without full page reloads.
+
+Testing
+- Run Django's test suite:
+```bash
+python manage.py test
+```
+- Or run pytest if the project uses pytest-django:
+```bash
 pytest
 ```
 
 Project structure
-- `README.md` — this file
-- `src/` — source code (update to match repo)
-- `tests/` — test suite (update to match repo)
-- `docs/` — additional documentation (optional)
+- README.md — this file
+- requirements.txt — Python dependencies
+- manage.py — Django management
+- project_name/ — Django project settings and urls
+- app/ — Django apps (models, views, templates, static)
+- static/ — static assets including JavaScript/jQuery
+- templates/ — Django templates
+- tests/ — test modules
 
 Contributing
-- Fork the repo and open a branch with descriptive name (e.g., `feature/short-description`).
-- Open a pull request targeting the `main` (or appropriate) branch.
-- Describe your changes and include testing instructions.
-- Follow any coding standards or style guides used by the project.
+- Fork the repo and open a branch with a descriptive name (e.g., feature/add-export).
+- Run tests locally and include passing test results with your PR.
+- Follow existing code style and include migrations for model changes.
 
 License
-- Add a LICENSE file or update this section with the chosen license (e.g., MIT, Apache-2.0).
+- Add a LICENSE file or update this section with the chosen license (e.g., MIT).
 
 Contact
-- Maintainer: curtindolph-calvin-10 or calvinc-org-10
+- Maintainer: curtindolph-calvin-10 (GitHub: @curtindolph-calvin-10)
 - For questions or issues, open a GitHub Issue in this repository.
 
 Notes / TODO
-- Replace placeholders with project-specific details (language, frameworks, DB, authentication).
-- Add badges (CI, coverage, license) as appropriate.
+- Replace project_name and app placeholders with the actual Django project and app names in the repo.
+- Add example .env, requirements.txt, and a docker-compose.yml for local development.
