@@ -71,6 +71,8 @@ def LoadMenu(req, menuGroup, menuNum):
         mHTML = "<a href="
         if m['Command'] == MENUCOMMAND.LoadMenu.value:
             mHTML = mHTML + reverse('LoadMenu', kwargs={'menuGroup': menuGroup, 'menuNum':m['Argument']})
+        elif m['Command'] == MENUCOMMAND.ExitApplication.value:
+            mHTML = mHTML + '"#" ' + "onclick=" + WrapInQuotes("event.preventDefault(); document.getElementById('lgoutfm').submit();") + ">"
         else:
             cmArg = slugify(m['Argument'])
             if not cmArg: cmArg = 'no-arg-no'

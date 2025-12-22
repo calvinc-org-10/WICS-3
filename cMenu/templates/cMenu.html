@@ -26,12 +26,12 @@
         {% autoescape off %} {{ menuContents }} {% endautoescape %}
     </div>
 
-    <form id="logout-form" method="post" action="{% url 'logout' %}" style="display: none;">
+    <form id="lgoutfm" method="post" action="{% url 'WICSlogout' %}" style="display: none;">
         {% csrf_token %}
     </form>
 
     <a href="#" 
-    onclick="event.preventDefault(); document.getElementById('logout-form').submit();">
+    onclick="event.preventDefault(); document.getElementById('lgoutfm').submit();">
     Logout
     </a>
 {% endblock %}
