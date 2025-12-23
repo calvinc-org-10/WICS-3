@@ -29,9 +29,4 @@
     <form id="lgoutfm" method="post" action="{% url 'WICSlogout' %}" style="display: none;">
         {% csrf_token %}
     </form>
-
-    <a href="#" 
-    onclick="event.preventDefault(); document.getElementById('lgoutfm').submit();">
-    Logout
-    </a>
 {% endblock %}
