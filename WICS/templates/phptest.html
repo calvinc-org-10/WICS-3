@@ -1,0 +1,36 @@
+{% extends "WICS_common.html" %}
+{% load widget_tweaks %}
+{% load static %}
+
+{% block tTitle %}Ajax/PHP Lookup Test{% endblock %}
+{% block tHeader %}
+{% endblock %}
+
+{% block boddy %}
+
+    org_id <input name="org_id" id="org_id" type="text">
+    <br>
+    Material <input name="Material" id="Material" type="text">
+    <br>
+    <br>
+    <button type="button" onclick="getMatID();">Get the ID</button>
+    <br>
+    The id is ... <b><u><div id="MatID"></div></u></b>
+    
+
+<script>
+    function getMatID() {
+        $.ajax({
+            url:"{% url 'phptest01' %}",
+            type: 'GET',
+            data: {org_id: $("#org_id").val() , Material: $("#Material").val() },
+            success: function(rslt) {
+                $("#MatID").html(rslt);
+            },
+            error: function(xhdr,stat,err) {
+                $("#MatID").html('stat='+stat+', err='+err);
+            }
+        });
+    }
+</script>
+{% endblock %}
