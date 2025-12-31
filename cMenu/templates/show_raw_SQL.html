@@ -30,7 +30,7 @@
     <tbody>
     {% for row in SQLresults %}
         <tr style="border-bottom: solid;">
-            {% for vv in row %}
+            {% for kk, vv in row.items %}
                 <td>{{ vv }}</td>
             {% endfor %}
         </tr>

@@ -1,14 +1,17 @@
 _base_ver_major=3
-_base_ver_minor=9
-_base_ver_patch='1b'
-_ver_date='2024-07-01'
+_base_ver_minor=10
+_base_ver_patch=0
+_ver_date='2025-12-30'
 _base_ver = f'{_base_ver_major}.{_base_ver_minor}.{_base_ver_patch}'
 sysver = {
-    'DEV': f'DEV{_base_ver}', 
+    'DEV': f'DEV{_base_ver}',
     'PROD': _base_ver,
     'DEMO': f'DEMO{_base_ver}'
-    } 
+    }
 
+# 3.10.0 - 2025-12-30 - moved source code to github
+#               fixed logout bug
+#               fixed RunSQL bug
 # 3.9.1b - 2024-07-01 - bug fix - tried passing req to Upl CE async
 # 3.9.1a - 2024-06-28 - bug fix - add dbUsing (etc) to views.py
 # 3.9.1 - 2024-06-21 - modifying code to use demo db if user is demo
@@ -36,7 +39,7 @@ sysver = {
 # 3.2.6 - 2023-09-16 Put hints to structure of major WICS tables on RunSQL
 # 3.2.5 - 2023-09-13 Attempt to make MaterialList Update a self-transitioning process, with no need for intervention
 # 3.2.4 - 2023-09-06 Button to output Material Listings to spreadsheet
-# 3.2.3 - 2023-09-05 First draft of Remove User 
+# 3.2.3 - 2023-09-05 First draft of Remove User
 # 3.2.2 - 2023-09-02 Put Copy Count button on Matl Form and Actual Count List.  Added Del Count button to Actual Count List
 # 3.2.1 - 2023-08-27 Bug fixes with MM52 - revert to semi-manual process for now
     # set null=True on most Model fields where it's OK

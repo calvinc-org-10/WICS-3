@@ -527,44 +527,46 @@ def fn_cRawSQL(req):
                 cursor.execute(SForm.cleaned_data['inputSQL'])
             except Exception as err:
                 sqlerr = err
-        if not sqlerr:
-            if cursor.description:
-                colNames = [col[0] for col in cursor.description]
-                #rows = dictfetchall(cursor)
-                cntext['colNames'] = colNames
-                cntext['nRecs'] = cursor.rowcount
-                cntext['SQLresults'] = cursor
 
-                Excel_qdict = [{colNames[x]:cRec[x] for x in range(len(colNames))} for cRec in cursor]
-                ExcelFileNamePrefix = "SQLresults "
-                svdir = django_settings.STATIC_ROOT
-                if svdir is None:
-                    svdir = django_settings.STATICFILES_DIRS[0]
-                noww = datetime.now(zoneinfo.ZoneInfo('US/Central'))
-                fName_base = '/tmpdl/'+ExcelFileNamePrefix + f'{noww:%Y-%m-%d (%H-%M-%S)}'
-                if svdir is not None and fName_base is not None:
-                    fName = svdir + fName_base
-                    cntext['SavedAt'] = Excelfile_fromqs(Excel_qdict, fName)
-                    cntext['ExcelFileName'] = fName_base + ExcelWorkbook_fileext
+            if not sqlerr:
+                if cursor.description:
+                    colNames = [col[0] for col in cursor.description]
+                    rows = [dict(zip(colNames, row)) for row in cursor.fetchall()]
+                    #rows = dictfetchall(cursor)
+                    cntext['colNames'] = colNames
+                    cntext['nRecs'] = cursor.rowcount
+                    cntext['SQLresults'] = rows
+
+                    Excel_qdict = [{colNames[x]:cRec[x] for x in range(len(colNames))} for cRec in cursor]
+                    ExcelFileNamePrefix = "SQLresults "
+                    svdir = django_settings.STATIC_ROOT
+                    if svdir is None:
+                        svdir = django_settings.STATICFILES_DIRS[0]
+                    noww = datetime.now(zoneinfo.ZoneInfo('US/Central'))
+                    fName_base = '/tmpdl/'+ExcelFileNamePrefix + f'{noww:%Y-%m-%d (%H-%M-%S)}'
+                    if svdir is not None and fName_base is not None:
+                        fName = svdir + fName_base
+                        cntext['SavedAt'] = Excelfile_fromqs(Excel_qdict, fName)
+                        cntext['ExcelFileName'] = fName_base + ExcelWorkbook_fileext
+                    else:
+                        cntext['SavedAt'] = None
+                        cntext['ExcelFileName'] = None
                 else:
+                    cntext['colNames'] = 'NO RECORDS RETURNED; ' + str(cursor.rowcount) + ' records affected'
+                    cntext['nRecs'] = cursor.rowcount
+                    cntext['SQLresults'] = {}
                     cntext['SavedAt'] = None
                     cntext['ExcelFileName'] = None
+
+                cntext['OrigSQL'] = SForm.cleaned_data['inputSQL']
+
+                templt = "show_raw_SQL.html"
             else:
-                cntext['colNames'] = 'NO RECORDS RETURNED; ' + str(cursor.rowcount) + ' records affected'
-                cntext['nRecs'] = cursor.rowcount
-                cntext['SQLresults'] = cursor
-                cntext['SavedAt'] = None
-                cntext['ExcelFileName'] = None
+                SForm = fm_cRawSQL(req.POST)
 
-            cntext['OrigSQL'] = SForm.cleaned_data['inputSQL']
-
-            templt = "show_raw_SQL.html"
-        else:
-            SForm = fm_cRawSQL(req.POST)
-
-            cntext['form'] = SForm
-            messages.add_message(req, messages.WARNING,message=sqlerr)
-            templt = "enter_raw_SQL.html"
+                cntext['form'] = SForm
+                messages.add_message(req, messages.WARNING,message=sqlerr)
+                templt = "enter_raw_SQL.html"
     else:
         SForm = fm_cRawSQL()
 
