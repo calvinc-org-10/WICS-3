@@ -44,7 +44,7 @@ def cleanupfld(fld, val, CountSprshtDateEpoch = WINDOWS_EPOCH):
     """
     cleanval = None
 
-    if   fld == 'CountDate': 
+    if   fld == 'CountDate':
         if isinstance(val,(calvindate, datetime.date, datetime.datetime)):
             usefld = True
             cleanval = calvindate(val).as_datetime()
@@ -52,12 +52,12 @@ def cleanupfld(fld, val, CountSprshtDateEpoch = WINDOWS_EPOCH):
             usefld = True
             cleanval = from_excel(val,CountSprshtDateEpoch)
         else:
-            usefld = isDate(val) 
+            usefld = isDate(val)
             if (usefld != False):
                 cleanval = calvindate(usefld).as_datetime()
                 usefld = True
     elif fld in \
-        ['CTD_QTY_Expr', 
+        ['CTD_QTY_Expr',
             ]:
         if isinstance(val,str):
             if val[0] == '=':
@@ -69,9 +69,9 @@ def cleanupfld(fld, val, CountSprshtDateEpoch = WINDOWS_EPOCH):
         usefld = (v!="-- INVALID --")
         cleanval = str(val) if (v != "--INVALID--") else None
     elif fld in \
-        ['org_id', 
+        ['org_id',
             'LocationOnly',
-            'FLAG_PossiblyNotRecieved', 
+            'FLAG_PossiblyNotRecieved',
             'FLAG_MovementDuringCount',
             ]:
         try:
@@ -80,13 +80,13 @@ def cleanupfld(fld, val, CountSprshtDateEpoch = WINDOWS_EPOCH):
         except:
             usefld = False
     elif fld in \
-        ['Material', 
-            'Counter', 
-            'LOCATION', 
-            'Notes', 
-            'TypicalContainerQty', 
+        ['Material',
+            'Counter',
+            'LOCATION',
+            'Notes',
+            'TypicalContainerQty',
             'TypicalPalletQty',
-            'PKGID_Desc',	
+            'PKGID_Desc',
             'TAGQTY',
             ]:
         usefld = (val is not None)
@@ -94,7 +94,7 @@ def cleanupfld(fld, val, CountSprshtDateEpoch = WINDOWS_EPOCH):
     else:
         usefld = True
         cleanval = val
-    
+
     return {'usefld':usefld, 'cleanval': cleanval}
 #end def cleanupfld
 
@@ -126,7 +126,7 @@ def proc_UpActCountSprsheet_00CopySpreadsheet(req:HttpRequest, reqid:int) -> str
     with open(fName, "wb") as destination:
         for chunk in CountSprshtFile.chunks():
             destination.write(chunk)
-    
+
     return fName
 
 def proc_UpActCountSprsheet_01ReadSheet(db_to_use: str|HttpRequest|User, reqid: int, fName: str) -> None:
@@ -158,7 +158,7 @@ def proc_UpActCountSprsheet_01ReadSheet(db_to_use: str|HttpRequest|User, reqid: 
     #endif 'Counts' in wb
 
     SprshtcolmnNames = ws[1]
-    SprshtREQUIREDFLDS = ['Material','CountDate','Counter','LOCATION']     
+    SprshtREQUIREDFLDS = ['Material','CountDate','Counter','LOCATION']
         # LocationOnly/CTD_QTY_Expr handled separately since at least one must be present and both can be
     SprshtcolmnMap = {}
     Sprsht_SSName_TableName_map = {
@@ -250,7 +250,7 @@ def proc_UpActCountSprsheet_01ReadSheet(db_to_use: str|HttpRequest|User, reqid: 
                 if spshtorg is None:
                     UploadSAPResults(
                         errState = 'error',
-                        errmsg = f"{matlnum} in multiple org_id's {tuple(matlorglist)}, but no org_id given", 
+                        errmsg = f"{matlnum} in multiple org_id's {tuple(matlorglist)}, but no org_id given",
                         rowNum = SprshtRowNum
                         ).save(using=dbUsing)
                     nRowsErrors += 1
@@ -260,7 +260,7 @@ def proc_UpActCountSprsheet_01ReadSheet(db_to_use: str|HttpRequest|User, reqid: 
                 else:
                     UploadSAPResults(
                         errState = 'error',
-                        errmsg = f"{matlnum} in in multiple org_id's {tuple(matlorglist)}, but org_id given ({spshtorg}) is not one of them", 
+                        errmsg = f"{matlnum} in in multiple org_id's {tuple(matlorglist)}, but org_id given ({spshtorg}) is not one of them",
                         rowNum = SprshtRowNum
                         ).save(using=dbUsing)
                     nRowsErrors += 1
@@ -273,7 +273,7 @@ def proc_UpActCountSprsheet_01ReadSheet(db_to_use: str|HttpRequest|User, reqid: 
                     nRowsErrors += 1
                     UploadSAPResults(
                         errState = 'error',
-                        errmsg = f'either {matlnum} does not exist in MaterialList or incorrect org_id ({str(spshtorg)}) given', 
+                        errmsg = f'either {matlnum} does not exist in MaterialList or incorrect org_id ({str(spshtorg)}) given',
                         rowNum = SprshtRowNum
                         ).save(using=dbUsing)
             else:
@@ -289,28 +289,28 @@ def proc_UpActCountSprsheet_01ReadSheet(db_to_use: str|HttpRequest|User, reqid: 
                     usefld, V = cleanupfld(fldName, row[colNum], CountSprshtDateEpoch=CountSprshtDateEpoch).values()
                     if (V is not None):
                         if usefld:
-                            if   fldName == 'CountDate': 
-                                setattr(SRec, fldName, V) 
+                            if   fldName == 'CountDate':
+                                setattr(SRec, fldName, V)
                                 requiredFields['CountDate'] = True
-                            elif fldName == 'Material': 
+                            elif fldName == 'Material':
                                 setattr(SRec, fldName, MatObj)
                                 requiredFields['Material'] = True
-                            elif fldName == 'Counter': 
+                            elif fldName == 'Counter':
                                 setattr(SRec, fldName, V)
                                 requiredFields['Counter'] = True
-                            elif fldName == 'LOCATION': 
+                            elif fldName == 'LOCATION':
                                 setattr(SRec, fldName, V)
                                 requiredFields['LOCATION'] = True
-                            elif fldName == 'LocationOnly': 
+                            elif fldName == 'LocationOnly':
                                 setattr(SRec, fldName, makebool(V))
                                 requiredFields['Both LocationOnly and CTD_QTY'] = True
-                            elif fldName == 'CTD_QTY_Expr': 
+                            elif fldName == 'CTD_QTY_Expr':
                                 setattr(SRec, fldName, V)
                                 requiredFields['Both LocationOnly and CTD_QTY'] = True
                             elif fldName == 'TypicalContainerQty' \
                             or fldName == 'TypicalPalletQty':
                                 if V == '' or V == None: V = 0
-                                if V != 0 and V != getattr(MatObj,fldName,0): 
+                                if V != 0 and V != getattr(MatObj,fldName,0):
                                     setattr(MatObj, fldName, V)
                                     MatChanged = True
                             else:
@@ -322,13 +322,13 @@ def proc_UpActCountSprsheet_01ReadSheet(db_to_use: str|HttpRequest|User, reqid: 
                                 rowErrs = True
                                 UploadSAPResults(
                                     errState = 'error',
-                                    errmsg = f'{str(V)} is invalid for {fldName}', 
+                                    errmsg = f'{str(V)} is invalid for {fldName}',
                                     rowNum = SprshtRowNum
                                     ).save(using=dbUsing)
                         #endif usefld
                     #endif (V is not None)
                 # for each column
-                
+
                 # now we determine if one of LocationOnly or CTD_QTY was given
                 if not requiredFields['Both LocationOnly and CTD_QTY']:
                     fldName = 'CTD_QTY_Expr'
@@ -336,7 +336,7 @@ def proc_UpActCountSprsheet_01ReadSheet(db_to_use: str|HttpRequest|User, reqid: 
                     rowErrs = True
                     UploadSAPResults(
                         errState = 'error',
-                        errmsg = f'record is not marked LocationOnly and {str(V)} is invalid for {fldName}', 
+                        errmsg = f'record is not marked LocationOnly and {str(V)} is invalid for {fldName}',
                         rowNum = SprshtRowNum
                         ).save(using=dbUsing)
 
@@ -348,7 +348,7 @@ def proc_UpActCountSprsheet_01ReadSheet(db_to_use: str|HttpRequest|User, reqid: 
                         rowErrs = True
                         UploadSAPResults(
                             errState = 'error',
-                            errmsg = f'{keyname} missing', 
+                            errmsg = f'{keyname} missing',
                             rowNum = SprshtRowNum
                             ).save(using=dbUsing)
 
@@ -360,7 +360,7 @@ def proc_UpActCountSprsheet_01ReadSheet(db_to_use: str|HttpRequest|User, reqid: 
                     resultString += ' (Typ Cont Qty/Typ Plt Qty also changed)' if MatChanged else ''
                     UploadSAPResults(
                         errState = 'success',
-                        errmsg = resultString, 
+                        errmsg = resultString,
                         rowNum = SprshtRowNum
                         ).save(using=dbUsing)
                     nRowsAdded += 1
@@ -375,22 +375,22 @@ def proc_UpActCountSprsheet_01ReadSheet(db_to_use: str|HttpRequest|User, reqid: 
 
     UploadSAPResults(
         errState = 'nRowsTotal',
-        errmsg = '', 
+        errmsg = '',
         rowNum = SprshtRowNum
         ).save(using=dbUsing)
     UploadSAPResults(
         errState = 'nRowsAdded',
-        errmsg = '', 
+        errmsg = '',
         rowNum = nRowsAdded
         ).save(using=dbUsing)
     UploadSAPResults(
         errState = 'nRowsErrors',
-        errmsg = '', 
+        errmsg = '',
         rowNum = nRowsErrors
         ).save(using=dbUsing)
     UploadSAPResults(
         errState = 'nRowsIgnored',
-        errmsg = '', 
+        errmsg = '',
         rowNum = nRowsNoMaterial
         ).save(using=dbUsing)
 
@@ -493,9 +493,9 @@ def fnUploadActCountSprsht(req):
             if QS.exists(): nRowsNoMaterial = QS[0].rowNum
             else: nRowsNoMaterial = 0
             UplResults = UploadSAPResults.objects.using(dbUsing).exclude(errState__in = ['nRowsAdded','nRowsTotal','nRowsErrors','nRowsIgnored']).order_by('rowNum')
-            cntext = {'UplResults':UplResults, 
+            cntext = {'UplResults':UplResults,
                     'ResultStats': {
-                            'nRowsRead': SprshtRowNum - 1,      
+                            'nRowsRead': SprshtRowNum - 1,
                                 # -1 because header doesn't count
                             'nRowsAdded': nRowsAdded ,
                             'nRowsNoMaterial': nRowsNoMaterial,
@@ -531,23 +531,40 @@ class ActualCountListForm(LoginRequiredMixin, ListView):
     ordering = ['-CountDate', 'Material']
     context_object_name = 'ActCtList'
     template_name = 'frm_ActualCountList.html'
-    
+
     def setup(self, req: HttpRequest, *args: Any, **kwargs: Any) -> None:
+        self.req = req
         self._user = req.user
+
+        max_listrecs = getcParm(self.req, 'COUNTLIST-RECLIMIT')
+        if isinstance(max_listrecs, str):
+            max_listrecs = _MAX_LISTRECS if not max_listrecs.isnumeric() else int(max_listrecs)
+        elif isinstance(max_listrecs, (int, float)):
+            max_listrecs = int(max_listrecs)
+        else:
+            max_listrecs = _MAX_LISTRECS
+        # endif
+        self.set_maxlistrecs(max_listrecs)
+
         return super().setup(req, *args, **kwargs)
 
+    def set_maxlistrecs(self, n: int) -> None:
+        self.max_listrecs = n
+
     def get_queryset(self) -> QuerySet[Any]:
-        return ActualCounts.objects.using(user_db(self._user)).all().order_by(*self.ordering)[:_MAX_LISTRECS]
+        return ActualCounts.objects.using(user_db(self._user)).all().order_by(*self.ordering)[:self.max_listrecs]
         # return super().get_queryset()
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         cntext = super().get_context_data(**kwargs)
 
+        cntext['max_listrecs'] = self.max_listrecs
+
         return cntext
 
     def dispatch(self, request, *args, **kwargs):
         return super().dispatch(request, *args, **kwargs)
-    
+
     # def get(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponse:
     #     return super().get(request, *args, **kwargs)
 
@@ -565,7 +582,7 @@ class ActualCountListForm(LoginRequiredMixin, ListView):
         if ('deleteCountid' in req.POST) :
             deleteCountid = req.POST['deleteCountid']
             ActualCounts.objects.using(dbUsing).filter(pk=deleteCountid).delete()
-        
+
         return http.HttpResponseNotModified()
 
 
@@ -579,7 +596,7 @@ def forcefloat(x) -> float:
         return float(x)
     if isinstance(x,str) and x.isnumeric():
         return float(x)
-    
+
     return 0.0
 
 @login_required
@@ -597,7 +614,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
 
     # prep Excel_qdict.  It's up here so that the functions below have access to it
     Excel_qdict = []
-    
+
     def CreateOutputRows(raw_qs, Eval_CTDQTY=True):
         def SummaryLine(lastrow):
             # summarize last Matl
@@ -687,7 +704,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
 
             return outputline
         #end def DetailLine
-        
+
         outputrows = []
         lastrow = {'Material_id': None}
         for rawrow in raw_qs:
@@ -696,7 +713,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
                     SmLine = SummaryLine(lastrow)
                     outputrows.append(SmLine)
                     Excel_qdict.append(
-                        {key:SmLine[key] 
+                        {key:SmLine[key]
                           for key in ['OrgName','Material','PartType','Description','CountTotal','SAPTotal','Diff','Accuracy','Counters']
                         })
                 # no else -  if outputrows is empty, this is the first row, so keep going
@@ -717,13 +734,13 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
             SmLine = SummaryLine(lastrow)
             outputrows.append(SmLine)
             Excel_qdict.append(
-                {key:SmLine[key] 
+                {key:SmLine[key]
                     for key in ['OrgName','Material','PartType','Description','CountTotal','SAPTotal','Diff','Accuracy','Counters']
                 })
-        
+
         return outputrows
     #end def CreateOutputRows
-        
+
     ### main body of fnCountSummaryRpt
 
     SummaryReport = []
@@ -750,12 +767,12 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
         # group by org_id
         org_condition = '(mtl.org_id = ' + str(org.pk) + ')'
 
-        A_Sched_Ctd_from = 'WICS_countschedule cs INNER JOIN ' + VIEW_Material_sql 
-        A_Sched_Ctd_from += ' INNER JOIN (SELECT * FROM WICS_actualcounts WHERE not LocationOnly) ac '    
-        A_Sched_Ctd_joinon = ' cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id AND ac.Material_id=mtl.id'    
+        A_Sched_Ctd_from = 'WICS_countschedule cs INNER JOIN ' + VIEW_Material_sql
+        A_Sched_Ctd_from += ' INNER JOIN (SELECT * FROM WICS_actualcounts WHERE not LocationOnly) ac '
+        A_Sched_Ctd_joinon = ' cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id AND ac.Material_id=mtl.id'
         A_Sched_Ctd_where = ''
         if Rptvariation == 'REQ':
-            if A_Sched_Ctd_where:  A_Sched_Ctd_where += ' AND ' 
+            if A_Sched_Ctd_where:  A_Sched_Ctd_where += ' AND '
             A_Sched_Ctd_where += 'Requestor IS NOT NULL'
         A_Sched_Ctd_sql = 'SELECT ' + fldlist + \
             ' FROM ' + A_Sched_Ctd_from + \
@@ -768,7 +785,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
         # build display lines
         ttl = 'Scheduled and Counted'
         if Rptvariation == 'REQ':
-            ttl = 'Requested and Counted'            
+            ttl = 'Requested and Counted'
         SummaryReport.append({
                     'org':org,
                     'Title':ttl,
@@ -792,13 +809,13 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
                         'Title':'UnScheduled',
                         'outputrows': CreateOutputRows(B_UnSched_Ctd_qs)
                         })
-        
-        C_Sched_NotCtd_Ctd_from = '(WICS_countschedule cs INNER JOIN ' + VIEW_Material_sql + ' ON cs.Material_id=mtl.id)' 
-        C_Sched_NotCtd_Ctd_from += ' LEFT JOIN (SELECT * FROM WICS_actualcounts WHERE not LocationOnly) ac '    
+
+        C_Sched_NotCtd_Ctd_from = '(WICS_countschedule cs INNER JOIN ' + VIEW_Material_sql + ' ON cs.Material_id=mtl.id)'
+        C_Sched_NotCtd_Ctd_from += ' LEFT JOIN (SELECT * FROM WICS_actualcounts WHERE not LocationOnly) ac '
         C_Sched_NotCtd_Ctd_joinon = 'cs.CountDate=ac.CountDate AND cs.Material_id=ac.Material_id'
         C_Sched_NotCtd_Ctd_where = '(ac.id IS NULL)'
         if Rptvariation == 'REQ':
-            if C_Sched_NotCtd_Ctd_where:  C_Sched_NotCtd_Ctd_where += ' AND ' 
+            if C_Sched_NotCtd_Ctd_where:  C_Sched_NotCtd_Ctd_where += ' AND '
             C_Sched_NotCtd_Ctd_where += '(Requestor IS NOT NULL)'
         C_Sched_NotCtd_Ctd_sql = 'SELECT ' + fldlist + ' ' + \
             ' FROM ' + C_Sched_NotCtd_Ctd_from + \
@@ -810,14 +827,14 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
         C_Sched_NotCtd_Ctd_qs = CountSchedule.objects.using(dbUsing).raw(C_Sched_NotCtd_Ctd_sql)
         ttl = 'Scheduled but Not Counted'
         if Rptvariation == 'REQ':
-            ttl = 'Requested but Not Counted'            
+            ttl = 'Requested but Not Counted'
         SummaryReport.append({
                     'org':org,
                     'Title':ttl,
                     'outputrows': CreateOutputRows(C_Sched_NotCtd_Ctd_qs, Eval_CTDQTY=False)
                     })
-    
-    AccuracyCutoff = { 
+
+    AccuracyCutoff = {
                 'DANGER': forcefloat(getcParm(req, 'ACCURACY-DANGER')),
                 'SUCCESS': forcefloat(getcParm(req, 'ACCURACY-SUCCESS')),
                 'WARNING': forcefloat(getcParm(req, 'ACCURACY-WARNING')),
@@ -837,7 +854,7 @@ def fnCountSummaryRpt (req, passedCountDate='CURRENT_DATE', Rptvariation=None):
             'AccuracyCutoff': AccuracyCutoff,
             'SummaryReport': SummaryReport,
             'FilSavLoc': ExcelFileName,
-            'ExcelFileName': fName_base+ExcelWorkbook_fileext, 
+            'ExcelFileName': fName_base+ExcelWorkbook_fileext,
             }
     templt = 'rpt_CountSummary.html'
     return render(req, templt, cntext)

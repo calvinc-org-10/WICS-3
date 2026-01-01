@@ -20,7 +20,7 @@ tbody tr {
         <td></td>
         <td>
             Count Date | Counter | Material | LOCATION | Counted Quantity
-        </td> 
+        </td>
         <td></td>
     </tr>
 </thead>
@@ -31,7 +31,7 @@ tbody tr {
             {{ itm.id }}:&nbsp;&nbsp;
         </td>
         <td>
-            {{ itm.CountDate }} | 
+            {{ itm.CountDate }} |
             {{ itm.Counter }} |
             {{ itm.Material }} |
             {{ itm.LOCATION }} |
@@ -60,19 +60,22 @@ tbody tr {
 <div class="container">
     <div class="row mx-auto max-width=100%">
         <div class="col-2">
-            <button 
-                id="add_btn" 
+            <button
+                id="add_btn"
                 type="button">
                 <img src="{% static 'addition-color-outline-icon.svg' %}" width="20" height="20" />
                 Add New Count
             </button>
         </div>
-        <div class="col-8">
+        <div class="col-3">
+            max Count Records shown: {{max_listrecs}}
+        </div>
+        <div class="col-5">
         </div>
         <div class="col-2">
-            <button 
-                id="close_btn" 
-                type="button" 
+            <button
+                id="close_btn"
+                type="button"
                 onclick="window.close();">
                 <img src="{% static 'stop-road-sign-icon.svg' %}" width="20" height="20" />
                 Close Form
@@ -139,8 +142,8 @@ tbody tr {
         $("#modalGeneric").dialog("option","title","Copy to what Date?");
         document.getElementById("modalGeneric").innerHTML = '<input type="date" name="'+newdateid+'" id="'+newdateid+'" value="'+todayStr+'"></input>'
 
-        $("#modalGeneric").dialog("option","buttons", 
-            { 
+        $("#modalGeneric").dialog("option","buttons",
+            {
                 "OK" : function() {
                     d = $("#"+newdateid).val();
 
@@ -164,7 +167,7 @@ tbody tr {
                     $(this).dialog("close");
                 },
                 "Cancel" : function() {
-                    $(this).dialog("close"); 
+                    $(this).dialog("close");
                 }
             } );
         $("#modalGeneric").dialog("open");
@@ -175,10 +178,10 @@ tbody tr {
         $("#modalGeneric").dialog("option","title","Really Deelte Count?");
         document.getElementById("modalGeneric").innerHTML = 'Are you <b>SURE</b> you want to delete count '+idToDelete+"?"
 
-        $("#modalGeneric").dialog("option","buttons", 
-            { 
+        $("#modalGeneric").dialog("option","buttons",
+            {
                 "No" : function() {
-                    $(this).dialog("close"); 
+                    $(this).dialog("close");
                 },
                 "Yes" : function() {
                     const formdata = new FormData();

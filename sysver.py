@@ -1,7 +1,7 @@
 _base_ver_major=3
 _base_ver_minor=10
-_base_ver_patch=0
-_ver_date='2025-12-30'
+_base_ver_patch=1
+_ver_date='2026-01-01'
 _base_ver = f'{_base_ver_major}.{_base_ver_minor}.{_base_ver_patch}'
 sysver = {
     'DEV': f'DEV{_base_ver}',
@@ -9,6 +9,7 @@ sysver = {
     'DEMO': f'DEMO{_base_ver}'
     }
 
+# 3.10.1 - 2026-01-01 - limit ActualCount listing records to 500, prep code to make that number configurable later
 # 3.10.0 - 2025-12-30 - moved source code to github
 #               fixed logout bug
 #               fixed RunSQL bug
